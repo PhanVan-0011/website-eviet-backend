@@ -6,16 +6,25 @@ use App\Http\Controllers\Api\AuthController;
 
 
 
-//Route Rgister
-Route::post('/register', [AuthController::class, 'register']);
-//Route Login
-Route::post('/login', [AuthController::class, 'login']);
 
-//Route Slider
-Route::prefix('sliders')->group(function () {
-    Route::post('/', [SliderController::class, 'store']);        // Add
-    Route::put('/{id}', [SliderController::class, 'update']);    // Update
-    Route::delete('/{id}', [SliderController::class, 'destroy']); // Delete
-    Route::get('/{id}', [SliderController::class, 'detail']);// Detail
-    Route::get('', [SliderController::class, 'index']);  //List     
+// Auth - Public
+Route::controller(AuthController::class)->group(function () {
+    Route::post('/register', 'register');
+    Route::post('/login', 'login');
 });
+
+// Auth - Protected
+Route::middleware('auth:sanctum')->controller(AuthController::class)->group(function () {
+    Route::post('/logout', 'logout');
+    Route::get('/users/me', 'me');
+    Route::put('/user/update_profile', 'update_profile');
+});
+//Route Slider
+Route::prefix('sliders')->controller(SliderController::class)->group(function () {
+    Route::post('/', 'store');       // Add
+    Route::put('/{id}', 'update');   // Update
+    Route::delete('/{id}', 'destroy'); // Delete
+    Route::get('/{id}', 'detail');   // Detail
+    Route::get('/', 'index');        // List
+});
+
