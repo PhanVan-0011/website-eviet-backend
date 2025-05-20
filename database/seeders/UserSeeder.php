@@ -4,7 +4,9 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\User; 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+
 class UserSeeder extends Seeder
 {
     /**
@@ -12,10 +14,43 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
-            'name' => 'Admin',
-            'email' => 'admin@example.com',
-            'password' => bcrypt('password'),
+        DB::table('users')->insert([
+            [
+                'name' => 'Admin',
+                'email' => 'admin@example.com',
+                'phone' => '0123456789',
+                'password' => Hash::make('password'),
+                'is_active' => true,
+                'is_verified' => true,
+                'email_verified_at' => now(),
+                'phone_verified_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Editor',
+                'email' => 'editor@example.com',
+                'phone' => '0123456788',
+                'password' => Hash::make('password'),
+                'is_active' => true,
+                'is_verified' => true,
+                'email_verified_at' => now(),
+                'phone_verified_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'User',
+                'email' => 'user@example.com',
+                'phone' => '0123456787',
+                'password' => Hash::make('password'),
+                'is_active' => true,
+                'is_verified' => true,
+                'email_verified_at' => now(),
+                'phone_verified_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
     }
 }
