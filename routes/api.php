@@ -5,11 +5,15 @@ use App\Http\Controllers\Api\SliderController;
 use App\Http\Controllers\Api\AuthController;
 
 
-
+Route::prefix('auth')->group(function () {
+    Route::post('register', [AuthController::class, 'register']);
+    Route::post('verify-otp', [AuthController::class, 'verifyOtp']);
+    Route::post('resend-otp', [AuthController::class, 'resendOtp']);
+});
 
 // Auth - Public
 Route::controller(AuthController::class)->group(function () {
-    Route::post('/register', 'register');
+    //Route::post('/register', 'register');
     Route::post('/login', 'login');
 });
 

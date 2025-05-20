@@ -40,6 +40,11 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'api' => [
+            'driver' => 'sanctum', // Sử dụng Sanctum làm driver cho API
+            'provider' => 'users', // Sử dụng provider 'users' (liên kết với model User)
+            'hash' => false, // Không mã hóa token (tùy chọn, mặc định là false với Sanctum)
+        ],
     ],
 
     /*

@@ -30,5 +30,10 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+    'esms' => [
+        'api_key' => env('ESMS_API_KEY'),
+        'secret_key' => env('ESMS_SECRET_KEY'),
+        'brandname' => env('ESMS_BRANDNAME'),
+    ],
 
 ];
