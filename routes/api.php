@@ -3,7 +3,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SliderController;
 use App\Http\Controllers\Api\AuthController;
-
+use App\Http\Controllers\CategoryController;
 
 // Route::prefix('auth')->group(function () {
 //     Route::post('register', [AuthController::class, 'register']);
@@ -25,6 +25,14 @@ Route::prefix('sliders')->controller(SliderController::class)->group(function ()
     Route::delete('/{id}', 'destroy'); // Delete
     Route::get('/{id}', 'detail');   // Detail
     Route::get('/', 'index');        // List
+});
+//Categories
+Route::prefix('categories')->group(function () {
+    Route::get('/', [CategoryController::class, 'index']);
+    Route::get('/{id}', [CategoryController::class, 'show']);
+    Route::post('/', [CategoryController::class, 'store']);
+    Route::put('/{id}', [CategoryController::class, 'update']);
+    Route::delete('/{id}', [CategoryController::class, 'destroy']);
 });
 
 // Auth - Protected
