@@ -1,12 +1,10 @@
 <?php
-
-namespace App\Http\Requests;
-
+namespace App\Http\Requests\Api\Category;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class UpdateCategoryRequest extends FormRequest
+class StoreCategoryRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,35 +22,25 @@ class UpdateCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'string|max:50|unique:categories,name,' . $this->route('category'),
-            'status' => 'boolean',
-            'parent_id' => 'nullable|exists:categories,id',
+            'name' => 'required|string|max:255|unique:categories,name,' . $this->route('category'),
             'description' => 'nullable|string',
+            'status' => 'required|boolean',
+            'parent_id' => 'nullable|exists:categories,id', // Thêm validation cho parent_id
         ];
-        
     }
-    /**
-     * Tùy chỉnh thông báo lỗi cho các quy tắc xác thực.
-     *
-     * @return array
-     */
     public function messages(): array
     {
         return [
+            'name.required' => 'Tên danh mục là bắt buộc.',
             'name.string' => 'Tên danh mục phải là chuỗi ký tự.',
-            'name.max' => 'Tên danh mục không được dài quá 50 ký tự.',
+            'name.max' => 'Tên danh mục không được dài quá 255 ký tự.',
             'name.unique' => 'Tên danh mục đã tồn tại.',
+            'description.string' => 'Mô tả phải là chuỗi ký tự.',
+            'status.required' => 'Trạng thái là bắt buộc.',
             'status.boolean' => 'Trạng thái phải là true hoặc false.',
             'parent_id.exists' => 'Danh mục cha không tồn tại.',
         ];
     }
-     /**
-     * Xử lý khi xác thực thất bại, trả về phản hồi JSON.
-     *
-     * @param Validator $validator
-     * @return void
-     * @throws HttpResponseException
-     */
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(response()->json([
