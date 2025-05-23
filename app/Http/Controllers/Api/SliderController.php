@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreSliderRequest;
-use App\Http\Requests\UpdateSliderRequest;
+use App\Http\Requests\Api\Slider\StoreSliderRequest;
+use App\Http\Requests\Api\Slider\UpdateSliderRequest;
 use App\Models\Slider;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;

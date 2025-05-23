@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
 use App\Services\ProductService;
-use App\Http\Requests\StoreProductRequest;
-use App\Http\Requests\UpdateProductRequest;
-use Illuminate\Http\JsonResponse;
+use App\Http\Requests\Api\Product\StoreProductRequest;
+use App\Http\Requests\Api\Product\UpdateProductRequest;
+use App\Http\Controllers\Controller; 
 use Exception;
 
 class ProductController extends Controller
@@ -31,7 +31,7 @@ class ProductController extends Controller
                     'per_page' => $products->perPage(),
                 ],
                 'message' => 'Lấy danh sách sản phẩm thành công',
-                'timestamp' => now()->format('Y-m-d H:i:s')
+                'timestamp' => now()->format('d-m-Y H:i:s')
             ], 200);
         } catch (Exception $e) {
             return response()->json([

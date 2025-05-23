@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Api\Category;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
@@ -24,12 +24,11 @@ class UpdateCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'string|max:50|unique:categories,name,' . $this->route('category'),
-            'status' => 'boolean',
-            'parent_id' => 'nullable|exists:categories,id',
+            'name' => 'string|max:255|unique:categories,name,' . $this->route('category'),
             'description' => 'nullable|string',
+            'status' => 'boolean',
+            'parent_id' => 'nullable|exists:categories,id', // Thêm validation cho parent_id
         ];
-        
     }
     /**
      * Tùy chỉnh thông báo lỗi cho các quy tắc xác thực.
@@ -42,11 +41,12 @@ class UpdateCategoryRequest extends FormRequest
             'name.string' => 'Tên danh mục phải là chuỗi ký tự.',
             'name.max' => 'Tên danh mục không được dài quá 50 ký tự.',
             'name.unique' => 'Tên danh mục đã tồn tại.',
+            'description.string' => 'Mô tả phải là chuỗi ký tự.',
             'status.boolean' => 'Trạng thái phải là true hoặc false.',
             'parent_id.exists' => 'Danh mục cha không tồn tại.',
         ];
     }
-     /**
+    /**
      * Xử lý khi xác thực thất bại, trả về phản hồi JSON.
      *
      * @param Validator $validator

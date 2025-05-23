@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Api\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateProfileRequest extends FormRequest
+class RegisterRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,10 +22,12 @@ class UpdateProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-        'name' => 'nullable|string|max:255',
-        'address' => 'nullable|string|max:500',
-        'gender' => 'nullable|in:male,female,other',
-        'date_of_birth' => 'nullable|date|before:today',
+            'name' => 'required|string|max:255',
+            'email' => 'nullable|email|unique:users,email',
+            'phone' => 'required|string|unique:users,phone',
+            'password' => 'required|string|min:6|confirmed',
+            'address' => 'nullable|string|max:255',
+            'gender' => 'nullable|in:male,female,other',
         ];
     }
 }

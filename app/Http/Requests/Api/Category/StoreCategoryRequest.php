@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Requests;
+namespace App\Http\Requests\Api\Category;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -22,9 +22,9 @@ class StoreCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'string|max:255|unique:categories,name,' . $this->route('category'),
+            'name' => 'required|string|max:255|unique:categories,name,' . $this->route('category'),
             'description' => 'nullable|string',
-            'status' => 'boolean',
+            'status' => 'required|boolean',
             'parent_id' => 'nullable|exists:categories,id', // Thêm validation cho parent_id
         ];
     }
@@ -32,8 +32,12 @@ class StoreCategoryRequest extends FormRequest
     {
         return [
             'name.required' => 'Tên danh mục là bắt buộc.',
-            'name.max' => 'Tên danh mục không được dài quá 50 ký tự.',
+            'name.string' => 'Tên danh mục phải là chuỗi ký tự.',
+            'name.max' => 'Tên danh mục không được dài quá 255 ký tự.',
             'name.unique' => 'Tên danh mục đã tồn tại.',
+            'description.string' => 'Mô tả phải là chuỗi ký tự.',
+            'status.required' => 'Trạng thái là bắt buộc.',
+            'status.boolean' => 'Trạng thái phải là true hoặc false.',
             'parent_id.exists' => 'Danh mục cha không tồn tại.',
         ];
     }

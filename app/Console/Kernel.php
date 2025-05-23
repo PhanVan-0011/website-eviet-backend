@@ -4,9 +4,15 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
-
+use App\Console\Commands\MakeServiceCommand;
 class Kernel extends ConsoleKernel
 {
+     /**
+     * The Artisan commands provided by your application.
+     */
+    protected $commands = [
+        MakeServiceCommand::class, // ← Đăng ký command
+    ];
     /**
      * Define the application's command schedule.
      */
