@@ -188,12 +188,20 @@ class AuthController extends Controller
     //Login
     public function login(LoginRequest $request)
     {
-        $user = User::where('phone', $request->phone)->first();
+        // Kiểm tra xem login là email hay số điện thoại
+        $isEmail = filter_var($request->login, FILTER_VALIDATE_EMAIL);
+
+        // Chỉ tìm kiếm theo một trường duy nhất
+        $user = $isEmail
+            ? User::where('email', $request->login)->first()
+            : User::where('phone', $request->login)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Số điện thoại hoặc mật khẩu không đúng'
+                'message' => $isEmail
+                    ? 'Email hoặc mật khẩu không đúng'
+                    : 'Số điện thoại hoặc mật khẩu không đúng'
             ], 401);
         }
 
@@ -367,7 +375,7 @@ class AuthController extends Controller
         try {
             $user = User::where('phone', $request->phone)->first();
             if (!$user) {
-                return response()->json([ 
+                return response()->json([
                     'success' => false,
                     'message' => 'Không tìm thấy người dùng với số điện thoại này.',
                 ], 404);

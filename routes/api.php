@@ -1,9 +1,11 @@
 <?php
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SliderController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\Api\UserController;
 
 // Route::prefix('auth')->group(function () {
 //     Route::post('register', [AuthController::class, 'register']);
@@ -15,8 +17,7 @@ use App\Http\Controllers\CategoryController;
 Route::controller(AuthController::class)->group(function () {
     Route::post('/register', 'register');
     Route::post('/login', 'login');
-    Route::post('/reset-password-by-phone','resetPasswordByPhone');
-
+    Route::post('/reset-password-by-phone', 'resetPasswordByPhone');
 });
 //Route Slider
 Route::prefix('sliders')->controller(SliderController::class)->group(function () {
@@ -44,5 +45,11 @@ Route::middleware('auth:sanctum')->controller(AuthController::class)->group(func
     Route::delete('/users/{id}', 'deleteUser');
 });
 
-
-
+// User Routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users/{id}', [UserController::class, 'show']);
+    Route::post('/users', [UserController::class, 'store']);
+    Route::put('/users/{id}', [UserController::class, 'update']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+});
