@@ -22,10 +22,10 @@ class StoreCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:50|unique:categories,name',
-            'status' => 'boolean',
-            'parent_id' => 'nullable|exists:categories,id',
+            'name' => 'string|max:255|unique:categories,name,' . $this->route('category'),
             'description' => 'nullable|string',
+            'status' => 'boolean',
+            'parent_id' => 'nullable|exists:categories,id', // Thêm validation cho parent_id
         ];
     }
     public function messages(): array

@@ -54,4 +54,8 @@ class User extends Authenticatable
         'is_active' => 'boolean',
         'is_verified' => 'boolean',
     ];
+    public function otpVerifications()
+    {
+        return $this->hasMany(OtpVerification::class, 'user_id');
+    }
 }
