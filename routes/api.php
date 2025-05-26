@@ -53,13 +53,12 @@ Route::middleware('auth:sanctum')->controller(AuthController::class)->group(func
     Route::get('/users/me', 'me');
     Route::put('/user/update_profile', 'update_profile');
     Route::get('/users/getUsers', 'getUsers');
-    Route::delete('/users/{id}', 'deleteUser');
 });
-
 // User Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
     Route::get('/users/{id}', [UserController::class, 'show']);
+    Route::delete('/users/multi-delete', [UserController::class, 'multiDelete']);
     Route::post('/users', [UserController::class, 'store']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);

@@ -21,8 +21,7 @@ class UserService
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -93,5 +92,26 @@ class UserService
     {
         $user = User::findOrFail($id);
         return $user->delete();
+    }
+    // 
+
+    /**
+     * Xóa nhiều user cùng lúc
+     */
+    public function multiDelete($ids)
+    {
+        // Chuyển đổi chuỗi thành mảng
+        $ids = array_map('intval', explode(',', $ids));
+
+        // // // Kiểm tra các ID có tồn tại không
+        $existingIds = User::whereIn('id', $ids)->pluck('id')->toArray();
+        $nonExistingIds = array_diff($ids, $existingIds);
+
+        if (!empty($nonExistingIds)) {
+            throw new ModelNotFoundException('Tồn tại ID cần xóa không tồn tại trong hệ thống');
+        }
+
+        // Xóa users
+        return User::whereIn('id', $ids)->delete();
     }
 }

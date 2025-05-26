@@ -131,4 +131,32 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Xóa nhiều user cùng lúc
+     */
+    public function multiDelete(Request $request)
+    {
+        try {
+
+
+            $deletedCount = $this->userService->multiDelete($request->ids);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Đã xóa thành công {$deletedCount} người dùng"
+            ]);
+        } catch (ModelNotFoundException $e) {
+            error_log('Lỗi 404: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi xóa người dùng'
+            ], 500);
+        }
+    }
 }
