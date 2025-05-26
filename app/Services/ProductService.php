@@ -69,7 +69,6 @@ class ProductService
             throw $e;
         }
     }
-
     /**
      * Cập nhật thông tin một sản phẩm
      *
@@ -85,7 +84,6 @@ class ProductService
             if (!$product) {
                 throw new Exception('Sản phẩm không tồn tại');
             }
-
             $product->update($data);
             $product->load('category');
             return $product;

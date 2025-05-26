@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 class ProductSeeder extends Seeder
@@ -15,7 +14,7 @@ class ProductSeeder extends Seeder
         DB::table('products')->insert([
             [
                 'name' => 'Cà phê đen',
-                'description' => 'Cà phê đen đâm',
+                'description' => 'Cà phê đen không đường',
                 'size' => 'L',
                 'original_price' => 15000,
                 'sale_price' => 20000,
@@ -24,11 +23,11 @@ class ProductSeeder extends Seeder
                 'status' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
-                'category_id' => 12, 
+                'category_id' => 1, 
             ],
             [
                 'name' => 'Bánh tráng',
-                'description' => 'Bánh tráng phơi sương,bánh tráng xì ke ăn vaywj',
+                'description' => 'Bánh tráng phơi sương,bánh tráng xì ke',
                 'size' => null,
                 'original_price' => 5000,
                 'sale_price' => 6000,
@@ -37,7 +36,7 @@ class ProductSeeder extends Seeder
                 'status' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
-                'category_id' => 13, 
+                'category_id' => 2, 
             ],
         ]);
     }   

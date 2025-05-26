@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -26,6 +25,14 @@ class CategoriesSeeder extends Seeder
                 'name' => 'Ăn vặt',
                 'status' => true,
                 'description' => 'Danh mục ăn vặt',
+                'parent_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Trái cây',
+                'status' => true,
+                'description' => 'Danh mục trái cây',
                 'parent_id' => null,
                 'created_at' => now(),
                 'updated_at' => now(),

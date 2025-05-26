@@ -37,6 +37,7 @@ Route::prefix('categories')->group(function () {
     Route::post('/', [CategoryController::class, 'store']);
     Route::put('/{id}', [CategoryController::class, 'update']);
     Route::delete('/{id}', [CategoryController::class, 'destroy']);
+    Route::post('/multi-delete', [CategoryController::class, 'multiDelete']);
 });
 //Products
 Route::prefix('products')->group(function () {
