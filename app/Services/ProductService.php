@@ -2,24 +2,84 @@
 
 namespace App\Services;
 
-use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Exception;
 
 class ProductService
 {
-    /**
-     * Lấy danh sách tất cả sản phẩm (có phân trang)
+        /**
+     * Lấy danh sách tất cả sản phẩm với phân trang thủ công, tìm kiếm và sắp xếp
      *
-     * @param int $perPage
-     * @return \Illuminate\Pagination\LengthAwarePaginator
+     * @param \Illuminate\Http\Request $request
+     * @return array Mảng chứa dữ liệu sản phẩm và thông tin phân trang
      * @throws Exception
      */
-    public function getAllProducts($perPage = 10)
+    public function getAllProducts($request): array
     {
         try {
-            return Product::with('category')->paginate($perPage);
+            // Chuẩn hóa các tham số đầu vào
+            $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
+            $currentPage = max(1, (int) $request->input('page', 1));
+            $keyword = (string) $request->input('keyword', '');
+
+            // Khởi tạo truy vấn cơ bản
+            $query = Product::query();
+
+            // Áp dụng tìm kiếm nếu có từ khóa
+            if (!empty($keyword)) {
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('name', 'like', "%{$keyword}%")
+                        ->orWhere('description', 'like', "%{$keyword}%")
+                        ->orWhere('size', 'like', "%{$keyword}%");
+                });
+            }
+
+            // Sắp xếp theo thời gian tạo mới nhất
+            $query->orderBy('created_at', 'desc');
+
+            // Chỉ lấy các trường cần thiết
+            $query->select([
+                'id',
+                'name',
+                'description',
+                'original_price',
+                'sale_price',
+                'stock_quantity',
+                'status',
+                'image_url',
+                'size', // Thêm trường size
+                'created_at',
+                'updated_at',
+                'category_id',
+            ]);
+
+            // Tải quan hệ category
+            $query->with(['category']);
+
+            // Tính tổng số bản ghi
+            $total = $query->count();
+
+            // Thực hiện phân trang thủ công
+            $offset = ($currentPage - 1) * $perPage;
+            $products = $query->skip($offset)->take($perPage)->get();
+
+            // Tính toán thông tin phân trang
+            $lastPage = (int) ceil($total / $perPage);
+            $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;
+            $prevPage = $currentPage > 1 ? $currentPage - 1 : null;
+
+            // Trả về mảng dữ liệu và thông tin phân trang
+            return [
+                'data' => $products,
+                'page' => $currentPage,
+                'total' => $total,
+                'last_page' => $lastPage,
+                'next_page' => $nextPage,
+                'pre_page' => $prevPage,
+            ];
         } catch (Exception $e) {
             Log::error('Error retrieving products: ' . $e->getMessage());
             throw $e;
@@ -53,19 +113,19 @@ class ProductService
      * @return Product
      * @throws Exception
      */
-    public function createProduct(array $data)
+    public function createProduct(array $data): Product
     {
         try {
-            // Kiểm tra giá nếu cả original_price và sale_price đều được cung cấp
-            if (isset($data['original_price'], $data['sale_price']) && $data['sale_price'] > $data['original_price']) {
-                throw new Exception('Giá khuyến mãi phải nhỏ hơn hoặc bằng giá gốc');
+            if (isset($data['original_price']) && isset($data['sale_price']) && $data['sale_price'] > $data['original_price']) {
+                throw new Exception('Giá khuyến mãi không được lớn hơn giá gốc.');
             }
-    
             $product = Product::create($data);
-            $product->load('category');
-            return $product;
-        } catch (Exception $e) {
+            return $product->load(['category']);
+        } catch (QueryException $e) {
             Log::error('Error creating product: ' . $e->getMessage());
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('Unexpected error creating product: ' . $e->getMessage());
             throw $e;
         }
     }
@@ -77,39 +137,72 @@ class ProductService
      * @return Product
      * @throws Exception
      */
-    public function updateProduct($id, array $data)
+    public function updateProduct($id, array $data): Product
     {
         try {
-            $product = Product::find($id);
-            if (!$product) {
-                throw new Exception('Sản phẩm không tồn tại');
+            $product = Product::findOrFail($id);
+            if (isset($data['original_price']) && isset($data['sale_price']) && $data['sale_price'] > $data['original_price']) {
+                throw new Exception('Giá khuyến mãi không được lớn hơn giá gốc.');
             }
             $product->update($data);
-            $product->load('category');
-            return $product;
-        } catch (Exception $e) {
+            return $product->refresh()->load(['category']);
+        } catch (ModelNotFoundException $e) {
+            Log::error('Product not found for update: ' . $e->getMessage());
+            throw $e;
+        } catch (QueryException $e) {
             Log::error('Error updating product: ' . $e->getMessage());
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('Unexpected error updating product: ' . $e->getMessage());
             throw $e;
         }
     }
-
     /**
      * Xóa một sản phẩm
      *
-     * @param int $id
+     * @param int $id ID của sản phẩm
      * @return bool
-     * @throws Exception
+     * @throws ModelNotFoundException
      */
-    public function deleteProduct($id)
+    public function deleteProduct($id): bool
     {
         try {
-            $product = Product::find($id);
-            if (!$product) {
-                throw new Exception('Sản phẩm không tồn tại');
-            }
+            $product = Product::findOrFail($id);
             return $product->delete();
+        } catch (ModelNotFoundException $e) {
+            Log::error('Product not found for deletion: ' . $e->getMessage(), ['exception' => $e]);
+            throw $e;
         } catch (Exception $e) {
-            Log::error('Error deleting product: ' . $e->getMessage());
+            Log::error('Unexpected error deleting product: ' . $e->getMessage(), ['exception' => $e]);
+            throw $e;
+        }
+    }
+    /**
+     * Xóa nhiều sản phẩm cùng lúc
+     *
+     * @param string $ids Chuỗi ID cách nhau bởi dấu phẩy (ví dụ: "1,2,3")
+     * @return int Số lượng bản ghi đã xóa
+     * @throws ModelNotFoundException
+     */
+    public function multiDeleteProducts($ids): int
+    {
+        try {
+            $ids = array_map('intval', explode(',', $ids));
+
+            $existingIds = Product::whereIn('id', $ids)->pluck('id')->toArray();
+            $nonExistingIds = array_diff($ids, $existingIds);
+
+            if (!empty($nonExistingIds)) {
+                Log::error('IDs not found for deletion: ' . implode(',', $nonExistingIds));
+                throw new ModelNotFoundException('ID cần xóa không tồn tại trong hệ thống');
+            }
+
+            return Product::whereIn('id', $ids)->delete();
+        } catch (ModelNotFoundException $e) {
+            Log::error('Error in multi-delete products: ' . $e->getMessage(), ['exception' => $e]);
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('Unexpected error in multi-delete products: ' . $e->getMessage(), ['exception' => $e]);
             throw $e;
         }
     }

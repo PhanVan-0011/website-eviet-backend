@@ -184,7 +184,7 @@ class CategoryService
 
             if (!empty($nonExistingIds)) {
                 Log::error('IDs not found for deletion: ' . implode(',', $nonExistingIds));
-                throw new ModelNotFoundException('Tồn tại ID cần xóa không tồn tại trong hệ thống');
+                throw new ModelNotFoundException('ID cần xóa không tồn tại trong hệ thống');
             }
 
             return Category::whereIn('id', $ids)->delete();

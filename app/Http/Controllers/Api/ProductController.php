@@ -5,8 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Services\ProductService;
 use App\Http\Requests\Api\Product\StoreProductRequest;
 use App\Http\Requests\Api\Product\UpdateProductRequest;
-use App\Http\Controllers\Controller; 
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Http\Resources\ProductResource;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
@@ -15,29 +20,35 @@ class ProductController extends Controller
     {
         $this->productService = $productService;
     }
-    public function index()
+    /**
+     * Lấy danh sách tất cả sản phẩm
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function index(Request $request)
     {
         try {
-            $perPage = request()->input('per_page', 10); // Lấy số lượng sản phẩm mỗi trang từ query string
-            $products = $this->productService->getAllProducts($perPage);
-
+            $data = $this->productService->getAllProducts($request);
             return response()->json([
                 'success' => true,
-                'data' => $products->items(), // Dữ liệu sản phẩm
-                'pagination' => [ // Thông tin phân trang
-                    'current_page' => $products->currentPage(),
-                    'total_pages' => $products->lastPage(),
-                    'total_items' => $products->total(),
-                    'per_page' => $products->perPage(),
+                'data' => ProductResource::collection($data['data']),
+                'pagination' => [
+                    'page' => $data['page'],
+                    'total' => $data['total'],
+                    'last_page' => $data['last_page'],
+                    'next_page' => $data['next_page'],
+                    'pre_page' => $data['pre_page'],
                 ],
                 'message' => 'Lấy danh sách sản phẩm thành công',
-                'timestamp' => now()->format('d-m-Y H:i:s')
+                'timestamp' => now()->format('Y-m-d H:i:s'),
             ], 200);
         } catch (Exception $e) {
+            Log::error('Controller error retrieving products: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy danh sách sản phẩm',
-                'errors' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -47,18 +58,25 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request)
     {
         try {
-            $product = $this->productService->createProduct($request->only(['name', 'description', 'size', 'original_price', 'sale_price', 'stock_quantity', 'image_url', 'status', 'category_id']));
+            $product = $this->productService->createProduct($request->validated());
 
             return response()->json([
                 'success' => true,
-                'data' => $product,
+                'data' => new ProductResource($product),
                 'message' => 'Tạo sản phẩm thành công'
             ], 201);
+        }  catch (QueryException $e) {
+            Log::error('Error creating product: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Tên sản phẩm đã tồn tại',
+            ], 409);
         } catch (Exception $e) {
+            Log::error('Unexpected error creating product: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi tạo sản phẩm',
-                'errors' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -73,20 +91,20 @@ class ProductController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $product,
+                'data' => new ProductResource($product),
                 'message' => 'Lấy thông tin sản phẩm thành công',
-                'timestamp' => now()->format('Y-m-d H:i:s')
             ], 200);
-        } catch (Exception $e) {
+        } catch (ModelNotFoundException $e) {
+            Log::error('Product not found: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Không tìm thấy sản phẩm',
             ], 404);
         } catch (Exception $e) {
+            Log::error('Error retrieving product: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy thông tin sản phẩm',
-                'errors' => $e->getMessage()
             ], 500);
         }
     }
@@ -100,23 +118,30 @@ class ProductController extends Controller
     public function update(UpdateProductRequest $request, $id)
     {
         try {
-            $product = $this->productService->updateProduct($id, $request->only(['name', 'description', 'size', 'original_price', 'sale_price', 'stock_quantity', 'image_url', 'status', 'category_id']));
-
+            $product = $this->productService->updateProduct($id, $request->validated());
             return response()->json([
                 'success' => true,
-                'data' => $product,
+                'data' => new ProductResource($product),
                 'message' => 'Cập nhật sản phẩm thành công'
             ], 200);
-        } catch (Exception $e) {
+        }  catch (ModelNotFoundException $e) {
+            Log::error('Product not found for update: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Không tìm thấy sản phẩm',
             ], 404);
+        } catch (QueryException $e) {
+            Log::error('Error updating product: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Tên sản phẩm đã tồn tại',
+            ], 409);
         } catch (Exception $e) {
+            Log::error('Unexpected error updating product: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi cập nhật sản phẩm',
-                'errors' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -127,33 +152,54 @@ class ProductController extends Controller
     public function destroy($id)
     {
         try {
-            $deleted = $this->productService->deleteProduct($id);
-
-            if (!$deleted) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Xóa sản phẩm thất bại',
-                    'timestamp' => now()->format('d-m-Y H:i:s')
-                ], 500);
-            }
-
+            $this->productService->deleteProduct($id);
             return response()->json([
                 'success' => true,
                 'message' => 'Xóa sản phẩm thành công',
-                'timestamp' => now()->format('d-m-Y H:i:s')
             ], 200);
-        } catch (Exception $e) {
+        }catch (ModelNotFoundException $e) {
+            Log::error('Product not found for deletion: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
-                'timestamp' => now()->format('d-m-Y H:i:s')
+                'message' => 'Không tìm thấy sản phẩm',
             ], 404);
         } catch (Exception $e) {
+            Log::error('Unexpected error deleting product: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi xóa sản phẩm',
-                'errors' => $e->getMessage(),
-                'timestamp' => now()->format('d-m-Y H:i:s')
+            ], 500);
+        }
+    }
+         /**
+     * Xóa nhiều sản phẩm cùng lúc
+     */
+    public function multiDelete(Request $request)
+    {
+        try {
+            if (!$request->has('ids') || empty($request->ids)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Danh sách ID không hợp lệ',
+                ], 400);
+            }
+
+            $deletedCount = $this->productService->multiDeleteProducts($request->ids);
+            return response()->json([
+                'success' => true,
+                'message' => "Đã xóa thành công {$deletedCount} sản phẩm",
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            Log::error('Error in multi-delete products: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 404);
+        } catch (Exception $e) {
+            Log::error('Unexpected error in multi-delete products: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi xóa sản phẩm',
             ], 500);
         }
     }
