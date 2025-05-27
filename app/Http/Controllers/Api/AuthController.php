@@ -17,382 +17,327 @@ use App\Models\User;
 use App\Services\SmsService;
 use App\Models\otpVerification;
 use Illuminate\Support\Facades\Log;
+use App\Services\AuthUserService;
+use App\Http\Resources\UserResource;
 
 class AuthController extends Controller
 {
-    //Register
+    protected $authUserService;
+
+    public function __construct(AuthUserService $authUserService)
+    {
+        $this->authUserService = $authUserService;
+    }
+     /**
+     * Đăng ký người dùng.
+     *
+     * @param \App\Http\Requests\Api\Auth\RegisterRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function register(RegisterRequest $request)
     {
         try {
-            $validated = $request->validated();
-            $validated['password'] = Hash::make($validated['password']);
-            $validated['is_active'] = true;
-            $validated['is_verified'] = false;
-            $user = User::create($validated);
-            // Create access token
+            $user = $this->authUserService->register($request->validated());
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
                 'success' => true,
                 'message' => 'Đăng ký thành công',
                 'data' => [
-                    'user' => $user,
+                    'user' => new UserResource($user),
                     'access_token' => $token,
                     'token_type' => 'Bearer',
-                ]
+                ],
             ], 201);
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
+            Log::error('Error during registration: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Email hoặc số điện thoại đã tồn tại',
             ], 409);
+        } catch (\Throwable $e) {
+            Log::error('Unexpected error during registration: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Đã xảy ra lỗi không mong muốn.',
+            ], 500);
         }
     }
-    // public function register(Request $request)
-    // {
-    //     // Validate dữ liệu đầu vào
-    //     $request->validate([
-    //         'name' => 'required|string|max:255',
-    //         'email' => 'required|string|email|max:255|unique:users,email',
-    //         'phone' => 'required|string|regex:/^0[0-9]{9}$/|unique:users,phone',
-    //         'password' => 'required|string|min:8|confirmed',
-    //         'gender' => 'nullable|in:male,female,other',
-    //         'date_of_birth' => 'nullable|date|before:today',
-    //     ]);
-
-    //     // Tạo mã OTP
-    //     $otpCode = rand(100000, 999999);
-    //     $expireAt = Carbon::now()->addMinutes(5);
-
-    //     // Xóa OTP cũ nếu có
-    //     otpVerification::where('phone_number', $request->phone)
-    //         ->where('purpose', 'register')
-    //         ->delete();
-
-    //     // Lưu OTP vào bảng otp_verifications
-    //     OtpVerification::create([
-    //         'phone_number' => $request->phone,
-    //         'otp_code' => $otpCode,
-    //         'used' => false,
-    //         'expire_at' => $expireAt,
-    //         'purpose' => 'register',
-    //         'user_id' => null, // Chưa có user
-    //     ]);
-
-    //     // Gửi OTP qua SMS
-    //     $smsService = new SmsService();
-    //     if ($smsService->sendOtp($request->phone, $otpCode)) {
-    //         return response()->json([
-    //             'message' => 'OTP đã được gửi đến số điện thoại của bạn.',
-    //             'phone' => $request->phone,
-    //         ], 200);
-    //     } else {
-    //         return response()->json([
-    //             'message' => 'Không thể gửi OTP. Vui lòng thử lại.',
-    //         ], 500);
-    //     }
-    // }
-    // public function verifyOtp(Request $request)
-    // {
-    //     // Validate dữ liệu đầu vào
-    //     $request->validate([
-    //         'phone' => 'required|string|regex:/^0[0-9]{9}$/',
-    //         'otp_code' => 'required|numeric|digits:6',
-    //         'name' => 'required|string|max:255',
-    //         'email' => 'required|string|email|max:255|unique:users,email',
-    //         'password' => 'required|string|min:8',
-    //         'gender' => 'nullable|in:male,female,other',
-    //         'date_of_birth' => 'nullable|date|before:today',
-    //     ]);
-
-    //     // Tìm OTP
-    //     $otp = OtpVerification::where('phone_number', $request->phone)
-    //         ->where('otp_code', $request->otp_code)
-    //         ->where('purpose', 'register')
-    //         ->where('used', false)
-    //         ->where('expire_at', '>', Carbon::now())
-    //         ->first();
-
-    //     if (!$otp) {
-    //         return response()->json([
-    //             'message' => 'Mã OTP không hợp lệ, đã được sử dụng hoặc đã hết hạn.',
-    //         ], 422);
-    //     }
-
-    //     // Tạo user
-    //     $user = User::create([
-    //         'name' => $request->name,
-    //         'email' => $request->email,
-    //         'phone' => $request->phone,
-    //         'gender' => $request->gender,
-    //         'date_of_birth' => $request->date_of_birth,
-    //         'password' => Hash::make($request->password),
-    //         'is_active' => true,
-    //         'is_verified' => true,
-    //         'phone_verified_at' => Carbon::now(),
-    //     ]);
-
-    //     // Đánh dấu OTP đã sử dụng
-    //     $otp->update([
-    //         'used' => true,
-    //         'user_id' => $user->id,
-    //     ]);
-
-    //     // Tạo token
-    //     $token = $user->createToken('auth_token')->plainTextToken;
-
-    //     return response()->json([
-    //         'message' => 'Đăng ký thành công!',
-    //         'user' => $user,
-    //         'token' => $token,
-    //     ], 201);
-    // }
-    // public function resendOtp(Request $request)
-    // {
-    //     // Validate dữ liệu đầu vào
-    //     $request->validate([
-    //         'phone' => 'required|string|regex:/^0[0-9]{9}$/',
-    //     ]);
-
-    //     // Xóa OTP cũ
-    //     OtpVerification::where('phone_number', $request->phone)
-    //         ->where('purpose', 'register')
-    //         ->delete();
-
-    //     // Tạo mã OTP mới
-    //     $otpCode = rand(100000, 999999);
-    //     $expireAt = Carbon::now()->addMinutes(5);
-
-    //     OtpVerification::create([
-    //         'phone_number' => $request->phone,
-    //         'otp_code' => $otpCode,
-    //         'used' => false,
-    //         'expire_at' => $expireAt,
-    //         'purpose' => 'register',
-    //         'user_id' => null,
-    //     ]);
-
-    //     // Gửi OTP
-    //     $smsService = new SmsService();
-    //     if ($smsService->sendOtp($request->phone, $otpCode)) {
-    //         return response()->json([
-    //             'message' => 'OTP đã được gửi lại.',
-    //             'phone' => $request->phone,
-    //         ], 200);
-    //     } else {
-    //         return response()->json([
-    //             'message' => 'Không thể gửi OTP. Vui lòng thử lại.',
-    //         ], 500);
-    //     }
-    // }
+    /**
+     * Đăng nhập người dùng.
+     *
+     * @param \App\Http\Requests\Api\Auth\LoginRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     //Login
     public function login(LoginRequest $request)
     {
-        // Kiểm tra xem login là email hay số điện thoại
-        $isEmail = filter_var($request->login, FILTER_VALIDATE_EMAIL);
+        try {
+            $user = $this->authUserService->login($request->login, $request->password);
 
-        // Chỉ tìm kiếm theo một trường duy nhất
-        $user = $isEmail
-            ? User::where('email', $request->login)->first()
-            : User::where('phone', $request->login)->first();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => filter_var($request->login, FILTER_VALIDATE_EMAIL)
+                        ? 'Email hoặc mật khẩu không đúng'
+                        : 'Số điện thoại hoặc mật khẩu không đúng',
+                ], 401);
+            }
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đăng nhập thành công',
+                'data' => [
+                    'user' => new UserResource($user),
+                    'access_token' => $token,
+                    'token_type' => 'Bearer',
+                ],
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Error during login: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
-                'message' => $isEmail
-                    ? 'Email hoặc mật khẩu không đúng'
-                    : 'Số điện thoại hoặc mật khẩu không đúng'
-            ], 401);
+                'message' => 'Đã xảy ra lỗi không mong muốn.',
+            ], 500);
         }
-
-        // Optional: Kiểm tra tài khoản bị khóa
-        if (! $user->is_active) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tài khoản đã bị khóa'
-            ], 403);
-        }
-        // Tạo access token
-        $token = $user->createToken('auth_token')->plainTextToken;
-        // Cập nhật thời gian đăng nhập cuối cùng
-        $user->last_login_at = now();
-        $user->save();
-        return response()->json([
-            'success' => true,
-            'message' => 'Đăng nhập thành công',
-            'data' => [
-                'user' => $user,
-                'access_token' => $token,
-                'token_type' => 'Bearer',
-            ]
-        ]);
     }
-    //Logout
+     /**
+     * Đăng xuất người dùng.
+     *
+     * @param \App\Http\Requests\Api\Auth\LogoutRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function logout(LogoutRequest $request)
     {
         try {
-            $token = $request->user()?->currentAccessToken();
+            $isLoggedOut = $this->authUserService->logout($request);
 
-            // Kiểm tra nếu có token thì xóa
-            if ($token) {
-                $token->delete();
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Đăng xuất thành công'
-                ]);
-            }
             return response()->json([
                 'success' => true,
-                'message' => 'Đã đăng xuất hoặc không có token hợp lệ'
-            ]);
+                'message' => $isLoggedOut ? 'Đăng xuất thành công' : 'Đã đăng xuất hoặc không có token hợp lệ',
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ], 200);
         } catch (QueryException $e) {
+            Log::error('Database error during logout: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi cơ sở dữ liệu'
+                'message' => 'Lỗi cơ sở dữ liệu.',
             ], 500);
         } catch (\Throwable $e) {
-            Log::error('Lỗi khi đăng xuất: ' . $e->getMessage());
+            Log::error('Error during logout: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã xảy ra lỗi khi đăng xuất.',
             ], 500);
         }
     }
-    //Get chi tiết người dùng đăng nhập
+
+    /**
+     * Lấy thông tin chi tiết của người dùng hiện tại.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function me(Request $request)
     {
         try {
-            $user = $request->user();
+            $user = $this->authUserService->getUserProfile($request->user());
             if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Không tìm thấy người dùng.',
-                    'data' => null
+                    'data' => null,
                 ], 404);
             }
+
             return response()->json([
                 'success' => true,
-                "message" => "Lấy thông tin người dùng thành công",
-                'data' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'gender' => $user->gender,
-                    'date_of_birth' => $user->date_of_birth
-                        ? Carbon::parse($user->date_of_birth)->format('d/m/Y')
-                        : null,
-                ],
-
+                'message' => 'Lấy thông tin người dùng thành công',
+                'data' => new UserResource($user),
+                'timestamp' => now()->format('Y-m-d H:i:s'),
             ], 200);
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (QueryException $e) {
+            Log::error('Database error fetching user info: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi cơ sở dữ liệu. Vui lòng kiểm tra dữ liệu gửi lên.',
+                'message' => 'Lỗi cơ sở dữ liệu. Vui lòng thử lại sau.',
             ], 500);
         } catch (\Throwable $e) {
-            Log::error('Lỗi khi lấy thông tin chi tiết người dùng: ' . $e->getMessage());
+            Log::error('Error fetching user info: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
-                'message' => 'Đã xảy ra lỗi khi lấy chi tiết thông tin người dùng.',
+                'message' => 'Đã xảy ra lỗi khi lấy thông tin người dùng.',
             ], 500);
         }
     }
-    //Update profile user
+
+    /**
+     * Cập nhật thông tin hồ sơ người dùng.
+     *
+     * @param \App\Http\Requests\Api\Auth\UpdateProfileRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function update_profile(UpdateProfileRequest $request)
     {
         try {
-            $user = $request->user();
-
-            $user->update($request->validated());
+            $user = $this->authUserService->updateProfile($request->user(), $request->validated());
 
             return response()->json([
                 'success' => true,
                 'message' => 'Cập nhật thông tin thành công',
-                'data' => $user,
-            ]);
-        } catch (\Illuminate\Database\QueryException $e) {
+                'data' => new UserResource($user),
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ], 200);
+        } catch (QueryException $e) {
+            Log::error('Database error updating user profile: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi cơ sở dữ liệu. Vui lòng kiểm tra dữ liệu gửi lên.',
             ], 500);
         } catch (\Throwable $e) {
-            Log::error('Lỗi khi cập nhật thông tin người dùng: ' . $e->getMessage());
+            Log::error('Error updating user profile: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã xảy ra lỗi khi cập nhật thông tin người dùng.',
             ], 500);
         }
     }
-    //Get list User
+
+    /**
+     * Lấy danh sách người dùng với phân trang và tìm kiếm.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getUsers(Request $request)
     {
         try {
-            $users = User::all();
+            $users = $this->authUserService->getUsers($request);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Lấy danh sách người dùng thành công.',
-                'data' => $users
+                'data' => UserResource::collection($users->items()),
+                'pagination' => [
+                    'page' => $users->currentPage(),
+                    'total' => $users->total(),
+                    'last_page' => $users->lastPage(),
+                    'next_page' => $users->nextPageUrl() ? $users->currentPage() + 1 : null,
+                    'pre_page' => $users->previousPageUrl() ? $users->currentPage() - 1 : null,
+                ],
+                'timestamp' => now()->format('Y-m-d H:i:s'),
             ], 200);
         } catch (\Throwable $e) {
-            Log::error('Lỗi khi lấy danh sách user: ' . $e->getMessage());
+            Log::error('Error fetching user list: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã xảy ra lỗi khi lấy danh sách người dùng.',
             ], 500);
         }
     }
+
+    /**
+     * Xóa một người dùng theo ID.
+     *
+     * @param int $id ID của người dùng
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function deleteUser($id)
     {
         try {
-            $user = User::find($id);
+            $isDeleted = $this->authUserService->deleteUser($id);
 
-            if (!$user) {
+            if (!$isDeleted) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Người dùng không tồn tại.'
+                    'message' => 'Người dùng không tồn tại.',
                 ], 404);
             }
 
-            $user->delete();
-
             return response()->json([
                 'success' => true,
-                'message' => 'Xoá người dùng thành công.'
+                'message' => 'Xóa người dùng thành công.',
+                'timestamp' => now()->format('Y-m-d H:i:s'),
             ], 200);
         } catch (\Throwable $e) {
-            Log::error('Lỗi khi xoá user: ' . $e->getMessage());
-
+            Log::error('Error deleting user: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
-                'message' => 'Đã xảy ra lỗi khi xoá người dùng.',
+                'message' => 'Đã xảy ra lỗi khi xóa người dùng.',
             ], 500);
         }
     }
-    public function resetPasswordByPhone(ResetPasswordRequest $request)
+
+    /**
+     * Đặt lại mật khẩu bằng số điện thoại - Bước 1: Gửi OTP xác minh.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function requestResetPasswordByPhone(Request $request)
     {
         try {
-            $user = User::where('phone', $request->phone)->first();
-            if (!$user) {
+            $result = $this->authUserService->requestResetPassword($request->phone);
+
+            if (!$result['success']) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Không tìm thấy người dùng với số điện thoại này.',
+                    'message' => $result['message'],
                 ], 404);
             }
-            $user->password = Hash::make($request->new_password);
-            $user->save();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Mật khẩu đã được cập nhật thành công.',
+                'message' => $result['message'],
+                'data' => ['phone' => $result['phone']],
+                'timestamp' => now()->format('Y-m-d H:i:s'),
             ], 200);
-        } catch (\Illuminate\Database\QueryException $e) {
+        } catch (\Throwable $e) {
+            Log::error('Error sending OTP for password reset: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Đã xảy ra lỗi không mong muốn.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Đặt lại mật khẩu bằng số điện thoại - Bước 2: Xác minh OTP và đặt lại mật khẩu.
+     *
+     * @param \App\Http\Requests\Api\Auth\ResetPasswordRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function resetPasswordByPhone(ResetPasswordRequest $request)
+    {
+        try {
+            $result = $this->authUserService->resetPassword(
+                $request->phone,
+                $request->otp_code,
+                $request->new_password
+            );
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'],
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ], 200);
+        } catch (QueryException $e) {
+            Log::error('Database error resetting password: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi cơ sở dữ liệu. Vui lòng thử lại sau.',
             ], 500);
         } catch (\Throwable $e) {
-            Log::error('Lỗi khi đặt lại mật khẩu bằng số điện thoại: ' . $e->getMessage());
+            Log::error('Error resetting password: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã xảy ra lỗi không mong muốn.',

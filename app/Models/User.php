@@ -23,6 +23,7 @@ class User extends Authenticatable
         'phone',
         'gender',
         'password',
+        'address',
         'is_active',
         'is_verified',
         'last_login_at',
@@ -51,7 +52,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'phone_verified_at' => 'datetime',
         'last_login_at' => 'datetime',
-        'date_of_birth' => 'date',
+        'date_of_birth' => 'date', 
         'is_active' => 'boolean',
         'is_verified' => 'boolean',
     ];

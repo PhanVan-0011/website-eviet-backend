@@ -8,22 +8,41 @@ class LoginRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * @return bool
      */
-    public function authorize(): bool
+    public function authorize()
     {
+        // Cho phép tất cả người dùng đăng nhập
         return true;
     }
 
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array
      */
-    public function rules(): array
+    public function rules()
     {
         return [
-            'login' => 'required|string',
-            'password' => 'required|string',
+            'login' => 'required|min:6',
+            'password' => 'required|string|min:6',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array
+     */
+    public function messages()
+    {
+        return [
+            'login.required' => 'Vui lòng nhập email hoặc số điện thoại.',
+            'login.min' => 'Email hoặc số điện thoại phải có ít nhất 6 ký tự.',
+            'password.required' => 'Vui lòng nhập mật khẩu.',
+            'password.string' => 'Mật khẩu phải là chuỗi ký tự.',
+            'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
         ];
     }
 }

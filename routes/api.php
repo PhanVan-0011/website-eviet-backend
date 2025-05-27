@@ -67,6 +67,7 @@ Route::middleware('auth:sanctum')->controller(AuthController::class)->group(func
     Route::get('/users/me', 'me');
     Route::put('/user/update_profile', 'update_profile');
     Route::get('/users/getUsers', 'getUsers');
+    Route::delete('/users/deleteUser/{id}', 'deleteUser');
 });
 // User Routes
 
