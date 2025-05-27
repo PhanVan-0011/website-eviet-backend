@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\PostController;
 
 
 // Route::prefix('auth')->group(function () {
@@ -38,6 +39,7 @@ Route::prefix('categories')->group(function () {
     Route::post('/', [CategoryController::class, 'store']);
     Route::put('/{id}', [CategoryController::class, 'update']);
     Route::delete('/{id}', [CategoryController::class, 'destroy']);
+    Route::post('/multi-delete', [CategoryController::class, 'multiDelete']);
 });
 //Products
 Route::prefix('products')->group(function () {
@@ -46,7 +48,18 @@ Route::prefix('products')->group(function () {
     Route::post('/', [ProductController::class, 'store']);
     Route::put('/{id}', [ProductController::class, 'update']);
     Route::delete('/{id}', [ProductController::class, 'destroy']);
+    Route::post('/multi-delete', [ProductController::class, 'multiDelete']);
 });
+//Post
+Route::prefix('posts')->group(function () {
+    Route::get('/', [PostController::class, 'index']);
+    Route::get('/{id}', [PostController::class, 'show']);
+    Route::post('/', [PostController::class, 'store']);
+    Route::put('/{id}', [PostController::class, 'update']);
+    Route::delete('/{id}', [PostController::class, 'destroy']);
+    Route::post('/multi-delete', [PostController::class, 'multiDelete']);
+});
+
 
 // Auth - Protected
 Route::middleware('auth:sanctum')->controller(AuthController::class)->group(function () {

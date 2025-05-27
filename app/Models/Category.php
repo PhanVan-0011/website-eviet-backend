@@ -27,4 +27,12 @@ class Category extends Model
     {
         return $this->hasMany(Category::class, 'parent_id');
     }
+    /**
+     * Quan hệ nhiều-nhiều với Post
+     */
+    public function posts()
+    {
+        return $this->belongsToMany(Post::class, 'category_post', 'category_id', 'post_id')
+                    ->withTimestamps();
+    }
 }

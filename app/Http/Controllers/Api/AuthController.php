@@ -329,7 +329,6 @@ class AuthController extends Controller
     {
         try {
             $users = User::all();
-
             return response()->json([
                 'success' => true,
                 'message' => 'Lấy danh sách người dùng thành công.',

@@ -5,146 +5,194 @@ namespace App\Services;
 use App\Models\Category;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 
 class CategoryService
 {
-    /**
-     * Lấy danh sách tất cả danh mục (có phân trang)
+     /**
+     * Lấy danh sách tất cả danh mục với phân trang thủ công, tìm kiếm và sắp xếp
      *
-     * @param int $perPage
-     * @return \Illuminate\Pagination\LengthAwarePaginator
+     * @param \Illuminate\Http\Request $request
+     * @return array Mảng chứa dữ liệu danh mục và thông tin phân trang
      * @throws Exception
      */
-    public function getAllCategories($perPage = 10)
+    public function getAllCategories($request)
     {
         try {
-            return Category::with(['products', 'parent', 'children'])->paginate($perPage);
+            // Chuẩn hóa các tham số đầu vào
+            $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
+            $currentPage = max(1, (int) $request->input('page', 1));
+            $keyword = (string) $request->input('keyword', '');
+
+            // Khởi tạo truy vấn cơ bản
+            $query = Category::query();
+
+            // Áp dụng tìm kiếm nếu có từ khóa
+            if (!empty($keyword)) {
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('name', 'like', "%{$keyword}%")
+                        ->orWhere('description', 'like', "%{$keyword}%");
+                });
+            }
+
+            // Sắp xếp theo thời gian tạo mới nhất
+            $query->orderBy('created_at', 'desc');
+
+            // Chỉ lấy các trường cần thiết
+            $query->select([
+                'id',
+                'name',
+                'description',
+                'status',
+                'parent_id',
+                'created_at',
+                'updated_at',
+            ]);
+
+            // Tải quan hệ parent và children
+            $query->with(['parent', 'children']);
+
+            // Tính tổng số bản ghi
+            $total = $query->count();
+
+            // Thực hiện phân trang thủ công
+            $offset = ($currentPage - 1) * $perPage;
+            $categories = $query->skip($offset)->take($perPage)->get();
+
+            // Tính toán thông tin phân trang
+            $lastPage = (int) ceil($total / $perPage);
+            $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;
+            $prevPage = $currentPage > 1 ? $currentPage - 1 : null;
+
+            // Trả về mảng dữ liệu và thông tin phân trang
+            return [
+                'data' => $categories,
+                'page' => $currentPage,
+                'total' => $total,
+                'last_page' => $lastPage,
+                'next_page' => $nextPage,
+                'pre_page' => $prevPage,
+            ];
         } catch (Exception $e) {
             Log::error('Error retrieving categories: ' . $e->getMessage());
             throw $e;
         }
     }
 
-    /**
+       /**
      * Lấy thông tin chi tiết một danh mục
      *
-     * @param int $id
-     * @return Category|null
-     * @throws Exception
+     * @param int $id ID của danh mục
+     * @return \App\Models\Category
+     * @throws ModelNotFoundException
      */
     public function getCategoryById($id)
     {
         try {
-            $category = Category::with(['products', 'parent', 'children'])->find($id);
-            if (!$category) {
-                throw new Exception('Danh mục không tồn tại');
-            }
-            return $category;
+            return Category::with(['parent', 'children'])->findOrFail($id);
+        } catch (ModelNotFoundException $e) {
+            Log::error('Category not found: ' . $e->getMessage());
+            throw $e;
         } catch (Exception $e) {
             Log::error('Error retrieving category: ' . $e->getMessage());
             throw $e;
         }
     }
 
-    /**
+        /**
      * Tạo mới một danh mục
      *
-     * @param array $data
-     * @return Category
-     * @throws Exception
+     * @param array $data Dữ liệu danh mục
+     * @return \App\Models\Category
+     * @throws QueryException
      */
-    public function createCategory(array $data)
+    public function createCategory(array $data): Category
     {
         try {
-            // Kiểm tra vòng lặp danh mục (không cho phép danh mục cha là chính nó hoặc con của nó)
-            if (isset($data['parent_id']) && $data['parent_id']) {
-                $parent = Category::find($data['parent_id']);
-                if (!$parent) {
-                    throw new Exception('Danh mục cha không tồn tại');
-                }
-            }
-
-            $category = Category::create($data);
-            $category->load(['products', 'parent', 'children']);
-            return $category;
-        } catch (Exception $e) {
+            return Category::create($data);
+        } catch (QueryException $e) {
             Log::error('Error creating category: ' . $e->getMessage());
+            throw $e; // Ném lại ngoại lệ gốc
+        } catch (Exception $e) {
+            Log::error('Unexpected error creating category: ' . $e->getMessage());
             throw $e;
         }
     }
 
-    /**
+      /**
      * Cập nhật thông tin một danh mục
      *
-     * @param int $id
-     * @param array $data
-     * @return Category
-     * @throws Exception
+     * @param int $id ID của danh mục
+     * @param array $data Dữ liệu cập nhật
+     * @return \App\Models\Category
+     * @throws ModelNotFoundException
+     * @throws QueryException
      */
-    public function updateCategory($id, array $data)
+    public function updateCategory($id, array $data): Category
     {
         try {
-            $category = Category::find($id);
-            if (!$category) {
-                throw new Exception('Danh mục không tồn tại');
-            }
-
-            // Kiểm tra vòng lặp danh mục
-            if (isset($data['parent_id'])) {
-                if ($data['parent_id'] == $id) {
-                    throw new Exception('Danh mục không thể là cha của chính nó');
-                }
-                if ($data['parent_id']) {
-                    $parent = Category::find($data['parent_id']);
-                    if (!$parent) {
-                        throw new Exception('Danh mục cha không tồn tại');
-                    }
-                    // Kiểm tra xem parent_id có phải là con của danh mục hiện tại không
-                    $childrenIds = $category->children()->pluck('id')->toArray();
-                    if (in_array($data['parent_id'], $childrenIds)) {
-                        throw new Exception('Danh mục cha không thể là danh mục con của chính nó');
-                    }
-                }
-            }
-
-            // Loại bỏ các trường null để tránh cập nhật không cần thiết
-            $data = array_filter($data, function ($value) {
-                return !is_null($value);
-            });
-
-            // Kiểm tra xem có thay đổi nào không
-            $changes = array_intersect_key($data, $category->toArray());
-            if (empty($changes)) {
-                return $category;
-            }
-
+            $category = Category::findOrFail($id);
             $category->update($data);
-            $category->load(['products', 'parent', 'children']);
-            return $category;
-        } catch (Exception $e) {
+            return $category->refresh()->load(['parent', 'children']);
+        } catch (ModelNotFoundException $e) {
+            Log::error('Category not found for update: ' . $e->getMessage());
+            throw $e;
+        } catch (QueryException $e) {
             Log::error('Error updating category: ' . $e->getMessage());
+            throw $e; // Ném lại ngoại lệ gốc
+        } catch (Exception $e) {
+            Log::error('Unexpected error updating category: ' . $e->getMessage());
             throw $e;
         }
     }
 
-    /**
+       /**
      * Xóa một danh mục
      *
-     * @param int $id
+     * @param int $id ID của danh mục
      * @return bool
-     * @throws Exception
+     * @throws ModelNotFoundException
      */
-    public function deleteCategory($id)
+    public function deleteCategory($id): bool
     {
         try {
-            $category = Category::find($id);
-            if (!$category) {
-                throw new Exception('Danh mục không tồn tại');
+            $category = Category::findOrFail($id);
+            return $category->delete();
+        } catch (ModelNotFoundException $e) {
+            Log::error('Category not found for deletion: ' . $e->getMessage());
+            throw $e;
+        } catch (Exception $e) {
+            Log::error('Unexpected error deleting category: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+        /**
+     * Xóa nhiều danh mục cùng lúc
+     *
+     * @param string $ids Chuỗi ID cách nhau bởi dấu phẩy (ví dụ: "1,2,3")
+     * @return int Số lượng bản ghi đã xóa
+     * @throws ModelNotFoundException
+     */
+    public function multiDelete($ids): int
+    {
+        try {
+            $ids = array_map('intval', explode(',', $ids));
+
+            $existingIds = Category::whereIn('id', $ids)->pluck('id')->toArray();
+            $nonExistingIds = array_diff($ids, $existingIds);
+
+            if (!empty($nonExistingIds)) {
+                Log::error('IDs not found for deletion: ' . implode(',', $nonExistingIds));
+                throw new ModelNotFoundException('ID cần xóa không tồn tại trong hệ thống');
             }
 
-            return $category->delete();
+            return Category::whereIn('id', $ids)->delete();
+        } catch (ModelNotFoundException $e) {
+            Log::error('Error in multi-delete: ' . $e->getMessage());
+            throw $e;
         } catch (Exception $e) {
-            Log::error('Error deleting category: ' . $e->getMessage());
+            Log::error('Unexpected error in multi-delete: ' . $e->getMessage());
             throw $e;
         }
     }
