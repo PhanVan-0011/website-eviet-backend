@@ -19,6 +19,7 @@ class UserController extends Controller
 
     public function __construct(UserService $userService)
     {
+        error_log("=== UserController được khởi tạo ===");
         $this->userService = $userService;
     }
 
@@ -66,14 +67,14 @@ class UserController extends Controller
      */
     public function store(UserRequest $request)
     {
+
         try {
             $user = $this->userService->createUser($request->validated());
-            return new UserResource($user);
-        } catch (QueryException $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Email hoặc số điện thoại đã tồn tại'
-            ], 409);
+                'success' => true,
+                'message' => 'Tạo người dùng thành công',
+                'data' => new UserResource($user)
+            ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

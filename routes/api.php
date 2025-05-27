@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\ProductController;
 
 // Auth - Public
 Route::controller(AuthController::class)->group(function () {
+    // Route tạo user không cần auth
     Route::post('/register', 'register');
     Route::post('/login', 'login');
     Route::post('/reset-password-by-phone', 'resetPasswordByPhone');
@@ -55,11 +56,13 @@ Route::middleware('auth:sanctum')->controller(AuthController::class)->group(func
     Route::get('/users/getUsers', 'getUsers');
 });
 // User Routes
+
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
     Route::get('/users/{id}', [UserController::class, 'show']);
-    Route::delete('/users/multi-delete', [UserController::class, 'multiDelete']);
     Route::post('/users', [UserController::class, 'store']);
+    Route::delete('/users/multi-delete', [UserController::class, 'multiDelete']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 });

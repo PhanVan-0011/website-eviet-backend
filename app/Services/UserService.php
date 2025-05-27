@@ -69,11 +69,17 @@ class UserService
 
     public function createUser($data)
     {
+
         $data['password'] = Hash::make($data['password']);
         $data['is_active'] = true;
         $data['is_verified'] = false;
 
-        return User::create($data);
+        $user = User::create($data);
+        if (!$user) {
+            throw new \Exception('Không thể tạo người dùng');
+        }
+
+        return $user;
     }
 
     public function updateUser($id, $data)
