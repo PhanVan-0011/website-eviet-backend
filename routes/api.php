@@ -65,7 +65,7 @@ Route::prefix('posts')->group(function () {
 Route::middleware('auth:sanctum')->controller(AuthController::class)->group(function () {
     Route::post('/logout', 'logout');
     Route::get('/users/me', 'me');
-    Route::put('/user/update_profile', 'update_profile');
+    Route::put('/users/update_profile', 'update_profile');
     Route::get('/users/getUsers', 'getUsers');
     Route::delete('/users/deleteUser/{id}', 'deleteUser');
 });

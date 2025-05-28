@@ -133,7 +133,6 @@ class AuthController extends Controller
             ], 500);
         }
     }
-
     /**
      * Lấy thông tin chi tiết của người dùng hiện tại.
      *
@@ -151,7 +150,6 @@ class AuthController extends Controller
                     'data' => null,
                 ], 404);
             }
-
             return response()->json([
                 'success' => true,
                 'message' => 'Lấy thông tin người dùng thành công',
@@ -172,7 +170,6 @@ class AuthController extends Controller
             ], 500);
         }
     }
-
     /**
      * Cập nhật thông tin hồ sơ người dùng.
      *
@@ -204,7 +201,6 @@ class AuthController extends Controller
             ], 500);
         }
     }
-
     /**
      * Lấy danh sách người dùng với phân trang và tìm kiếm.
      *
@@ -287,7 +283,6 @@ class AuthController extends Controller
                     'message' => $result['message'],
                 ], 404);
             }
-
             return response()->json([
                 'success' => true,
                 'message' => $result['message'],
