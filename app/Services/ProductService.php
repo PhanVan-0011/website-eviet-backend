@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Product;
+use App\Models\OrderDetail;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
@@ -10,7 +11,7 @@ use Exception;
 
 class ProductService
 {
-        /**
+    /**
      * Lấy danh sách tất cả sản phẩm với phân trang thủ công, tìm kiếm và sắp xếp
      *
      * @param \Illuminate\Http\Request $request
@@ -168,6 +169,13 @@ class ProductService
     {
         try {
             $product = Product::findOrFail($id);
+             // Kiểm tra xem sản phẩm có đang được dùng trong order_details không
+            $usedCount = OrderDetail::where('product_id', $id)->count();
+            if ($usedCount > 0) {
+                $message = "Có $usedCount sản phẩm đang được sử dụng, không thể xóa..";
+                Log::warning('Blocked product deletion: ' . $message);
+                throw new \Exception($message);
+            }
             return $product->delete();
         } catch (ModelNotFoundException $e) {
             Log::error('Product not found for deletion: ' . $e->getMessage(), ['exception' => $e]);
@@ -196,8 +204,12 @@ class ProductService
                 Log::error('IDs not found for deletion: ' . implode(',', $nonExistingIds));
                 throw new ModelNotFoundException('ID cần xóa không tồn tại trong hệ thống');
             }
-
-            return Product::whereIn('id', $ids)->delete();
+            // Kiểm tra sản phẩm đang được dùng trong order_details
+            $usedCount = OrderDetail::whereIn('product_id', $ids)->count();
+            if ($usedCount > 0) {
+                throw new \Exception("Có $usedCount sản phẩm đang được sử dụng, không thể xóa.");
+            }
+            return Product::whereIn('id', $ids)->forceDelete();
         } catch (ModelNotFoundException $e) {
             Log::error('Error in multi-delete products: ' . $e->getMessage(), ['exception' => $e]);
             throw $e;

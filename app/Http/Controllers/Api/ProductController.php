@@ -165,9 +165,15 @@ class ProductController extends Controller
             ], 404);
         } catch (Exception $e) {
             Log::error('Unexpected error deleting product: ' . $e->getMessage(), ['exception' => $e]);
+            if (str_contains($e->getMessage(), 'không thể xóa') || str_contains($e->getMessage(), 'đang được sử dụng')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 400);
+            }    
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi khi xóa sản phẩm',
+                'message' => 'Đã xảy ra lỗi khi xóa sản phẩm',
             ], 500);
         }
     }
@@ -177,14 +183,16 @@ class ProductController extends Controller
     public function multiDelete(Request $request)
     {
         try {
-            if (!$request->has('ids') || empty($request->ids)) {
+
+            $idsString = $request->header('ids');
+            if (empty($idsString)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Danh sách ID không hợp lệ',
+                    'message' => 'Danh sách ID không được để trống',
                 ], 400);
             }
 
-            $deletedCount = $this->productService->multiDeleteProducts($request->ids);
+            $deletedCount = $this->productService->multiDeleteProducts($idsString);
             return response()->json([
                 'success' => true,
                 'message' => "Đã xóa thành công {$deletedCount} sản phẩm",
@@ -197,9 +205,15 @@ class ProductController extends Controller
             ], 404);
         } catch (Exception $e) {
             Log::error('Unexpected error in multi-delete products: ' . $e->getMessage(), ['exception' => $e]);
+            if (str_contains($e->getMessage(), 'không thể xóa') || str_contains($e->getMessage(), 'đang được sử dụng')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 400);
+            } 
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi khi xóa sản phẩm',
+                'message' => 'Đã xảy ra lỗi khi xóa danh mục',
             ], 500);
         }
     }

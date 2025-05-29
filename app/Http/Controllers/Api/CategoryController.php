@@ -157,26 +157,28 @@ class CategoryController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Xóa danh mục thất bại',
-                    'timestamp' => now()->format('d-m-Y H:i:s')
                 ], 500);
             }
             return response()->json([
                 'success' => true,
                 'message' => 'Xóa danh mục thành công',
-                'timestamp' => now()->format('d-m-Y H:i:s')
             ], 200);
-        } catch (Exception $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
-                'timestamp' => now()->format('d-m-Y H:i:s')
+                'message' => 'Danh mục không tồn tại',
             ], 404);
         } catch (Exception $e) {
+            Log::error('Unexpected error in delete category: ' . $e->getMessage(), ['exception' => $e]);
+            if (str_contains($e->getMessage(), 'không thể xóa') || str_contains($e->getMessage(), 'đang được sử dụng')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 400);
+            }
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi khi xóa danh mục',
-                'errors' => $e->getMessage(),
-                'timestamp' => now()->format('d-m-Y H:i:s')
+                'message' =>'Đã xảy ra lỗi khi xóa danh mục',
             ], 500);
         }
     }
@@ -187,14 +189,12 @@ class CategoryController extends Controller
     {
         try {
             $idsString = $request->header('ids');
-
             if (empty($idsString)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Danh sách ID không được để trống',
                 ], 400);
             }
-
             $deletedCount = $this->categoryService->multiDelete($idsString);
             return response()->json([
                 'success' => true,
@@ -208,9 +208,15 @@ class CategoryController extends Controller
             ], 404);
         } catch (Exception $e) {
             Log::error('Unexpected error in multi-delete: ' . $e->getMessage(), ['exception' => $e]);
+            if (str_contains($e->getMessage(), 'không thể xóa') || str_contains($e->getMessage(), 'đang được sử dụng')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 400);
+            }  
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi khi xóa danh mục',
+                'message' => 'Đã xảy ra lỗi khi xóa danh mục', 
             ], 500);
         }
     }
