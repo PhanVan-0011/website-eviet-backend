@@ -39,8 +39,8 @@ Route::prefix('categories')->group(function () {
     Route::get('/{id}', [CategoryController::class, 'show']);
     Route::post('/', [CategoryController::class, 'store']);
     Route::put('/{id}', [CategoryController::class, 'update']);
+    Route::delete('/multi-delete', [CategoryController::class, 'multiDelete']);
     Route::delete('/{id}', [CategoryController::class, 'destroy']);
-    Route::post('/multi-delete', [CategoryController::class, 'multiDelete']);
 });
 //Products
 Route::prefix('products')->group(function () {
@@ -85,4 +85,3 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::put('/orders/{order}', [OrderController::class, 'update']);
 });
-

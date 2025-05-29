@@ -178,28 +178,22 @@ class CategoryController extends Controller
             }
             return response()->json([
                 'success' => false,
-                'message' =>'Đã xảy ra lỗi khi xóa danh mục',
+                'message' => 'Đã xảy ra lỗi khi xóa danh mục',
             ], 500);
         }
     }
-        /**
+    /**
      * Xóa nhiều danh mục cùng lúc
      */
     public function multiDelete(Request $request)
     {
         try {
-            $idsString = $request->header('ids');
-            if (empty($idsString)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Danh sách ID không được để trống',
-                ], 400);
-            }
-            $deletedCount = $this->categoryService->multiDelete($idsString);
+            $deletedCount = $this->categoryService->multiDelete($request->ids);
+
             return response()->json([
                 'success' => true,
-                'message' => "Đã xóa thành công {$deletedCount} danh mục",
-            ], 200);
+                'message' => "Đã xóa thành công {$deletedCount} người dùng"
+            ]);
         } catch (ModelNotFoundException $e) {
             Log::error('Error in multi-delete: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
@@ -213,10 +207,10 @@ class CategoryController extends Controller
                     'success' => false,
                     'message' => $e->getMessage(),
                 ], 400);
-            }  
+            }
             return response()->json([
                 'success' => false,
-                'message' => 'Đã xảy ra lỗi khi xóa danh mục', 
+                'message' => 'Đã xảy ra lỗi khi xóa danh mục',
             ], 500);
         }
     }

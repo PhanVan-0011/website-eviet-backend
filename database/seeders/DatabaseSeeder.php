@@ -23,6 +23,17 @@ class DatabaseSeeder extends Seeder
         //     'name' => 'Test User',
         //     'email' => 'test@example.com',
         // ]);
+        $this->call([
+            RoleSeeder::class,
+            PermissionSeeder::class,
+            RolePermissionSeeder::class,
+            UserSeeder::class,
+            RoleUserSeeder::class,
+            CategoriesSeeder::class,
+            ProductSeeder::class,
+            SliderSeeder::class,
+        ]);
+
         // Tạo 5 người dùng
         User::factory()->count(0)->create();
 
@@ -41,14 +52,5 @@ class DatabaseSeeder extends Seeder
             });
             $order->update(['total_amount' => $totalAmount + $order->shipping_fee]);
         }
-
-        $this->call([
-            RoleSeeder::class,
-            PermissionSeeder::class,
-            RolePermissionSeeder::class,
-            UserSeeder::class,
-            RoleUserSeeder::class,
-            SliderSeeder::class,
-        ]);
     }
 }

@@ -38,7 +38,7 @@ class CategoryService
             }
 
             // Sắp xếp theo thời gian tạo mới nhất
-            $query->orderBy('created_at', 'desc');
+            $query->orderBy('id', 'desc');
 
             // Chỉ lấy các trường cần thiết
             $query->select([

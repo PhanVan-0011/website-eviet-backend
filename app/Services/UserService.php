@@ -26,7 +26,7 @@ class UserService
         }
 
         // Sắp xếp theo created_at mới nhất
-        $query->orderBy('created_at', 'desc');
+        $query->orderBy('id', 'desc');
 
         // Chỉ lấy các trường cần thiết
         $fields = [
