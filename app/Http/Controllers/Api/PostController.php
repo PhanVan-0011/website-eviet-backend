@@ -215,15 +215,14 @@ class PostController extends Controller
     public function multiDelete(Request $request)
     {
         try {
-            // Kiểm tra xem trường ids có tồn tại và không rỗng không
-            if (!$request->has('ids') || empty($request->ids)) {
+            $idsString = $request->header('ids');
+            if (empty($idsString)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Danh sách ID không hợp lệ',
+                    'message' => 'Danh sách ID không được để trống',
                 ], 400);
             }
-
-            $deletedCount = $this->postService->multiDeletePosts($request->ids);
+            $deletedCount = $this->postService->multiDeletePosts($idsString);
             return response()->json([
                 'success' => true,
                 'message' => "Đã xóa thành công {$deletedCount} bài viết",
