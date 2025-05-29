@@ -48,7 +48,11 @@ class UserController extends Controller
     {
         try {
             $user = $this->userService->getUserById($id);
-            return new UserResource($user);
+            return response()->json([
+                'success' => true,
+                'message' => 'Lấy thông tin người dùng thành công',
+                'data' => new UserResource($user)
+            ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
@@ -88,9 +92,14 @@ class UserController extends Controller
      */
     public function update(UserRequest $request, $id)
     {
+        error_log(json_encode($request->all()));
         try {
-            $user = $this->userService->updateUser($id, $request->validated());
-            return new UserResource($user);
+            $user = $this->userService->updateUser($request->validated(), $id);
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật thông tin người dùng thành công',
+                'data' => new UserResource($user)
+            ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,

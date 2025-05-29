@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Requests\Api\Product;
 
 use Illuminate\Foundation\Http\FormRequest;
@@ -56,7 +57,7 @@ class UpdateProductRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'success' => false,
-            'message' => 'Lỗi ràng buộc',
+            'message' => $validator->errors()->first(),
             'errors' => $validator->errors(),
         ], 422));
     }

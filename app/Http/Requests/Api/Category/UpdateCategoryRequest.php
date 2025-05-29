@@ -57,7 +57,7 @@ class UpdateCategoryRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'success' => false,
-            'message' => 'Lỗi ràng buộc',
+            'message' => $validator->errors()->first(),
             'errors' => $validator->errors(),
         ], 422));
     }

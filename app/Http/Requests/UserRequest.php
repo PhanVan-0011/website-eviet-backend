@@ -22,6 +22,7 @@ class UserRequest extends FormRequest
             'password' => 'required|string|min:8',
             'gender' => 'nullable|in:male,female,other',
             'date_of_birth' => 'nullable|date|before:today',
+            'address' => 'required|string|max:255|regex:/^[\p{L}\p{N}\s,.-]+$/u',
         ];
 
         // Nếu là update thì bỏ unique cho email và phone
@@ -50,6 +51,10 @@ class UserRequest extends FormRequest
             'gender.in' => 'Giới tính không hợp lệ',
             'date_of_birth.date' => 'Ngày sinh không đúng định dạng',
             'date_of_birth.before' => 'Ngày sinh phải trước ngày hiện tại',
+            'address.required' => 'Vui lòng nhập địa chỉ.',
+            'address.string' => 'Địa chỉ phải là chuỗi ký tự.',
+            'address.max' => 'Địa chỉ không được vượt quá 255 ký tự.',
+            'address.regex' => 'Địa chỉ chỉ được chứa chữ cái, số, dấu cách, dấu phẩy, dấu chấm và dấu gạch ngang.',
         ];
     }
 
@@ -57,7 +62,7 @@ class UserRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'success' => false,
-            'message' => 'Lỗi ràng buộc',
+            'message' => $validator->errors()->first(),
             'errors' => $validator->errors(),
         ], 422));
     }

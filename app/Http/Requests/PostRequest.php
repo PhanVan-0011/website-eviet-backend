@@ -34,7 +34,7 @@ class PostRequest extends FormRequest
             'category_ids.*' => ['exists:categories,id'],
         ];
     }
-     /**
+    /**
      * Get custom messages for validation errors.
      *
      * @return array<string, string>
@@ -58,7 +58,7 @@ class PostRequest extends FormRequest
             'category_ids.*.exists' => 'Danh mục không tồn tại trong hệ thống.',
         ];
     }
-     /**
+    /**
      * Chuẩn hóa dữ liệu trước khi thực hiện validation.
      * Loại bỏ khoảng trắng thừa ở đầu và cuối của các trường title, slug, content.
      * Đảm bảo dữ liệu sạch trước khi kiểm tra.
@@ -125,7 +125,7 @@ class PostRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'success' => false,
-            'message' => 'Lỗi ràng buộc',
+            'message' => $validator->errors()->first(),
             'errors' => $validator->errors(),
         ], 422));
     }

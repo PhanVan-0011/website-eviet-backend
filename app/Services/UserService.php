@@ -82,14 +82,10 @@ class UserService
         return $user;
     }
 
-    public function updateUser($id, $data)
+    public function updateUser($data, $id)
     {
         $user = User::findOrFail($id);
-
-        if (isset($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        }
-
+        error_log(json_encode($data));
         $user->update($data);
         return $user;
     }

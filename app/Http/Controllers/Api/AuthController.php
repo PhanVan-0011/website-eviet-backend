@@ -28,7 +28,7 @@ class AuthController extends Controller
     {
         $this->authUserService = $authUserService;
     }
-     /**
+    /**
      * Đăng ký người dùng.
      *
      * @param \App\Http\Requests\Api\Auth\RegisterRequest $request
@@ -103,7 +103,7 @@ class AuthController extends Controller
             ], 500);
         }
     }
-     /**
+    /**
      * Đăng xuất người dùng.
      *
      * @param \App\Http\Requests\Api\Auth\LogoutRequest $request

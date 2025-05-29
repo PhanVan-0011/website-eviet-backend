@@ -1,5 +1,7 @@
 <?php
+
 namespace App\Http\Requests\Api\Category;
+
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -45,7 +47,7 @@ class StoreCategoryRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'success' => false,
-            'message' => 'Lỗi ràng buộc',
+            'message' => $validator->errors()->first(),
             'errors' => $validator->errors(),
         ], 422));
     }
