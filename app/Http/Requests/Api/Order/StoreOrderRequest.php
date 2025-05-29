@@ -22,7 +22,16 @@ class StoreOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'client_name' => 'required|string|max:50',
+            'client_phone' => 'required|string|max:11',
+            'shipping_address' => 'required|string|max:255',
+            'shipping_fee' => 'nullable|numeric',
+            'status' => 'required|in:pending,processing,shipped,delivered,cancelled',
+            'order_details' => 'required|array',
+            'order_details.*.product_id' => 'required|exists:products,id',
+            'order_details.*.quantity' => 'required|integer|min:1',
+
+            
         ];
     }
 }

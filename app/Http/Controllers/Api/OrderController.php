@@ -8,7 +8,7 @@ use App\Models\Order;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 use App\Http\Requests\Api\Order\StoreOrderRequest;  // Fix: Update namespace
-use App\Http\Requests\Api\Order\UpdateOrderRequest; 
+use App\Http\Requests\Api\Order\UpdateOrderRequest;
 
 class OrderController extends Controller
 {
@@ -26,8 +26,12 @@ class OrderController extends Controller
     }
     public function store(StoreOrderRequest $request)
     {
-        $user = $request->user(); // Giả sử sử dụng authentication
-        $order = $this->orderService->createOrder($request->validated(), $user);
+        $order = $this->orderService->createOrder($request->validated(),$request->user());
         return new OrderResource($order);
+    }
+    public function update(UpdateOrderRequest $request, Order $order)
+    {
+        $updatedOrder = $this->orderService->updateOrder($order, $request->validated());
+        return new OrderResource($updatedOrder);
     }
 }
