@@ -186,14 +186,16 @@ class CategoryController extends Controller
     public function multiDelete(Request $request)
     {
         try {
-            if (!$request->has('ids') || empty($request->ids)) {
+            $idsString = $request->header('ids');
+
+            if (empty($idsString)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Danh sách ID không hợp lệ',
+                    'message' => 'Danh sách ID không được để trống',
                 ], 400);
             }
 
-            $deletedCount = $this->categoryService->multiDelete($request->ids);
+            $deletedCount = $this->categoryService->multiDelete($idsString);
             return response()->json([
                 'success' => true,
                 'message' => "Đã xóa thành công {$deletedCount} danh mục",

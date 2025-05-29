@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class OrderResource extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+               'id' => $this->id,
+               'order_date' => $this->order_date,
+               'total_amount' => $this->total_amount,
+               'status' => $this->status,
+               'client_name' => $this->client_name,
+               'client_phone' => $this->client_phone,
+               'shipping_address' => $this->shipping_address,
+               'shipping_fee' => $this->shipping_fee,
+               'cancelled_at' => $this->cancelled_at,
+               'user' => new UserResource($this->whenLoaded('user')),
+               'order_details' => OrderDetailResource::collection($this->whenLoaded('orderDetails')),
+               'created_at' => $this->created_at,
+               'updated_at' => $this->updated_at,
+        ];
+    }
+}

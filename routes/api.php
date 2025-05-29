@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\OrderController;
 
 
 // Route::prefix('auth')->group(function () {
@@ -70,8 +71,6 @@ Route::middleware('auth:sanctum')->controller(AuthController::class)->group(func
     Route::delete('/users/deleteUser/{id}', 'deleteUser');
 });
 // User Routes
-
-
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
     Route::get('/users/{id}', [UserController::class, 'show']);
@@ -80,3 +79,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 });
+// Orders Routes
+Route::get('/orders', [OrderController::class, 'index']);
