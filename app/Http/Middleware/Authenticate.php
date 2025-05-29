@@ -12,9 +12,25 @@ class Authenticate extends Middleware
      */
     protected function redirectTo(Request $request): ?string
     {
-        return $request->expectsJson() ? null : route('login');
-        
-        
-        
+        //return $request->expectsJson() ? null : route('login');
+        // Nếu là request API, trả về JSON thay vì chuyển hướng
+        if ($request->expectsJson()) {
+            return null; // Không chuyển hướng
+        }
+
+        return route('login'); // Chuyển hướng nếu không phải API
+
+
+    }
+    /**
+     * Handle an unauthenticated user.
+     */
+    protected function unauthenticated($request, array $guards)
+    {
+        if ($request->expectsJson()) {
+            abort(response()->json(['error' => 'Unauthenticated'], 401));
+        }
+
+        parent::unauthenticated($request, $guards);
     }
 }
