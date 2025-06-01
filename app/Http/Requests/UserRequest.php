@@ -19,17 +19,19 @@ class UserRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email',
             'phone' => 'required|string|regex:/^0[0-9]{9}$/|unique:users,phone',
-            'password' => 'required|string|min:8',
+            'password' => 'required|string|min:6',
             'gender' => 'nullable|in:male,female,other',
             'date_of_birth' => 'nullable|date|before:today',
             'address' => 'required|string|max:255|regex:/^[\p{L}\p{N}\s,.-]+$/u',
+            'is_active' => 'nullable|boolean',
+            // Co thể null hoặc là 0 hoặc 1 int hoặc string (true hoặc false)
         ];
 
         // Nếu là update thì bỏ unique cho email và phone
         if ($this->isMethod('PUT')) {
             $rules['email'] = 'required|string|email|max:255|unique:users,email,' . $this->route('id');
             $rules['phone'] = 'required|string|regex:/^0[0-9]{9}$/|unique:users,phone,' . $this->route('id');
-            $rules['password'] = 'nullable|string|min:8';
+            $rules['password'] = 'nullable|string|min:6';
         }
 
         return $rules;
@@ -47,7 +49,7 @@ class UserRequest extends FormRequest
             'phone.regex' => 'Số điện thoại không đúng định dạng',
             'phone.unique' => 'Số điện thoại đã tồn tại',
             'password.required' => 'Mật khẩu không được để trống',
-            'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự',
+            'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự',
             'gender.in' => 'Giới tính không hợp lệ',
             'date_of_birth.date' => 'Ngày sinh không đúng định dạng',
             'date_of_birth.before' => 'Ngày sinh phải trước ngày hiện tại',
@@ -55,6 +57,7 @@ class UserRequest extends FormRequest
             'address.string' => 'Địa chỉ phải là chuỗi ký tự.',
             'address.max' => 'Địa chỉ không được vượt quá 255 ký tự.',
             'address.regex' => 'Địa chỉ chỉ được chứa chữ cái, số, dấu cách, dấu phẩy, dấu chấm và dấu gạch ngang.',
+            'is_active.boolean' => 'Trạng thái không hợp lệ',
         ];
     }
 

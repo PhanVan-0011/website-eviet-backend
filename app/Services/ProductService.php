@@ -169,7 +169,7 @@ class ProductService
     {
         try {
             $product = Product::findOrFail($id);
-             // Kiểm tra xem sản phẩm có đang được dùng trong order_details không
+            // Kiểm tra xem sản phẩm có đang được dùng trong order_details không
             $usedCount = OrderDetail::where('product_id', $id)->count();
             if ($usedCount > 0) {
                 $message = "Có $usedCount sản phẩm đang được sử dụng, không thể xóa..";

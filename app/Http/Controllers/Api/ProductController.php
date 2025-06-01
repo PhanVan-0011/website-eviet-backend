@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Api\Product\MultiDeleteProductRequest;
 
 class ProductController extends Controller
 {
@@ -65,7 +66,7 @@ class ProductController extends Controller
                 'data' => new ProductResource($product),
                 'message' => 'Tạo sản phẩm thành công'
             ], 201);
-        }  catch (QueryException $e) {
+        } catch (QueryException $e) {
             Log::error('Error creating product: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
@@ -124,7 +125,7 @@ class ProductController extends Controller
                 'data' => new ProductResource($product),
                 'message' => 'Cập nhật sản phẩm thành công'
             ], 200);
-        }  catch (ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             Log::error('Product not found for update: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
@@ -157,7 +158,7 @@ class ProductController extends Controller
                 'success' => true,
                 'message' => 'Xóa sản phẩm thành công',
             ], 200);
-        }catch (ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             Log::error('Product not found for deletion: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
@@ -170,29 +171,20 @@ class ProductController extends Controller
                     'success' => false,
                     'message' => $e->getMessage(),
                 ], 400);
-            }    
+            }
             return response()->json([
                 'success' => false,
                 'message' => 'Đã xảy ra lỗi khi xóa sản phẩm',
             ], 500);
         }
     }
-         /**
+    /**
      * Xóa nhiều sản phẩm cùng lúc
      */
-    public function multiDelete(Request $request)
+    public function multiDelete(MultiDeleteProductRequest $request)
     {
         try {
-
-            $idsString = $request->header('ids');
-            if (empty($idsString)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Danh sách ID không được để trống',
-                ], 400);
-            }
-
-            $deletedCount = $this->productService->multiDeleteProducts($idsString);
+            $deletedCount = $this->productService->multiDeleteProducts($request->validated()['ids']);
             return response()->json([
                 'success' => true,
                 'message' => "Đã xóa thành công {$deletedCount} sản phẩm",
@@ -210,10 +202,10 @@ class ProductController extends Controller
                     'success' => false,
                     'message' => $e->getMessage(),
                 ], 400);
-            } 
+            }
             return response()->json([
                 'success' => false,
-                'message' => 'Đã xảy ra lỗi khi xóa danh mục',
+                'message' => 'Đã xảy ra lỗi khi xóa sản phẩm',
             ], 500);
         }
     }

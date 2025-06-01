@@ -73,6 +73,8 @@ class UserController extends Controller
     {
 
         try {
+            // error_log(json_encode($request->all()));
+            // error_log(json_encode($request->validated()));
             $user = $this->userService->createUser($request->validated());
             return response()->json([
                 'success' => true,

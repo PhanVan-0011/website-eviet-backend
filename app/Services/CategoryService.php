@@ -40,19 +40,10 @@ class CategoryService
             // Sắp xếp theo thời gian tạo mới nhất
             $query->orderBy('id', 'desc');
 
-            // Chỉ lấy các trường cần thiết
-            $query->select([
-                'id',
-                'name',
-                'description',
-                'status',
-                'parent_id',
-                'created_at',
-                'updated_at',
-            ]);
+
 
             // Tải quan hệ parent và children
-            $query->with(['parent', 'children']);
+            $query->with(['parent', 'children'])->withCount('products');
 
             // Tính tổng số bản ghi
             $total = $query->count();

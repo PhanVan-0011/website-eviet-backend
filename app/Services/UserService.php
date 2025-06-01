@@ -69,9 +69,15 @@ class UserService
 
     public function createUser($data)
     {
-
         $data['password'] = Hash::make($data['password']);
-        $data['is_active'] = true;
+        if (isset($data['is_active'])) {
+            if ($data['is_active'] === '0' || $data['is_active'] === '1') {
+                $data['is_active'] = (int)$data['is_active'];
+                error_log(json_encode($data));
+            }
+        } else {
+            $data['is_active'] = true;
+        }
         $data['is_verified'] = false;
 
         $user = User::create($data);

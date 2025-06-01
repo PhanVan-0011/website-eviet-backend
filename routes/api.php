@@ -48,8 +48,8 @@ Route::prefix('products')->group(function () {
     Route::get('/{id}', [ProductController::class, 'show']);
     Route::post('/', [ProductController::class, 'store']);
     Route::put('/{id}', [ProductController::class, 'update']);
+    Route::delete('/multi-delete', [ProductController::class, 'multiDelete']);
     Route::delete('/{id}', [ProductController::class, 'destroy']);
-    Route::post('/multi-delete', [ProductController::class, 'multiDelete']);
 });
 //Post
 Route::prefix('posts')->group(function () {

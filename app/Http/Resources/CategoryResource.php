@@ -27,6 +27,7 @@ class CategoryResource extends JsonResource
             'children' => $this->whenLoaded('children', fn() => CategoryResource::collection($this->children)),
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
+            'products_count' => $this->products_count,
         ];
     }
 }
