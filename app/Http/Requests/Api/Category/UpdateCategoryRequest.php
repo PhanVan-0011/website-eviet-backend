@@ -24,7 +24,7 @@ class UpdateCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'string|max:255|unique:categories,name,' . $this->route('category'),
+            'name' => 'string|max:255' . $this->route('category'),
             'description' => 'nullable|string',
             'status' => 'boolean',
             'parent_id' => 'nullable|exists:categories,id', // Thêm validation cho parent_id
@@ -40,7 +40,6 @@ class UpdateCategoryRequest extends FormRequest
         return [
             'name.string' => 'Tên danh mục phải là chuỗi ký tự.',
             'name.max' => 'Tên danh mục không được dài quá 50 ký tự.',
-            'name.unique' => 'Tên danh mục đã tồn tại.',
             'description.string' => 'Mô tả phải là chuỗi ký tự.',
             'status.boolean' => 'Trạng thái phải là true hoặc false.',
             'parent_id.exists' => 'Danh mục cha không tồn tại.',

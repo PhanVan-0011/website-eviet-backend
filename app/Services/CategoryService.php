@@ -104,10 +104,10 @@ class CategoryService
         try {
             return Category::create($data);
         } catch (QueryException $e) {
-            Log::error('Error creating category: ' . $e->getMessage());
-            throw $e; // Ném lại ngoại lệ gốc
+            Log::error('Lỗi khi tạo danh mục: ' . $e->getMessage());
+            throw $e; 
         } catch (Exception $e) {
-            Log::error('Unexpected error creating category: ' . $e->getMessage());
+            Log::error('Lỗi không mong muốn khi tạo danh mục: ' . $e->getMessage());
             throw $e;
         }
     }

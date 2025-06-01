@@ -193,7 +193,7 @@ class CategoryController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Đã xóa thành công {$deletedCount} người dùng"
+                'message' => "Đã xóa thành công {$deletedCount} danh mục"
             ]);
         } catch (ModelNotFoundException $e) {
             Log::error('Error in multi-delete: ' . $e->getMessage(), ['exception' => $e]);
