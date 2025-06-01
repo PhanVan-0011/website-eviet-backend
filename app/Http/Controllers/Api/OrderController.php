@@ -26,8 +26,19 @@ class OrderController extends Controller
     }
     public function store(StoreOrderRequest $request)
     {
-        $order = $this->orderService->createOrder($request->validated(),$request->user());
-        return new OrderResource($order);
+        try {
+            $order = $this->orderService->createOrder($request->validated(), $request->user());
+            return response()->json([
+                'success' => true,
+                'message' => 'Tạo đơn hàng thành công',
+                'data' => new OrderResource($order)
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' =>  $e->getMessage()
+            ],400);
+        }
     }
     public function update(UpdateOrderRequest $request, Order $order)
     {
