@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-
+use App\Http\Requests\Api\User\MultiDeleteUserRequest;
 
 class UserController extends Controller
 {
@@ -147,12 +147,11 @@ class UserController extends Controller
     /**
      * Xóa nhiều user cùng lúc
      */
-    public function multiDelete(Request $request)
+    public function multiDelete(MultiDeleteUserRequest $request)
     {
         try {
 
-
-            $deletedCount = $this->userService->multiDelete($request->ids);
+            $deletedCount = $this->userService->multiDelete($request->validated()['ids']);
 
             return response()->json([
                 'success' => true,

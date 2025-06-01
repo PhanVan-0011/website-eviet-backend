@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\Category\MultiDeleteCategoryRequest;
 use App\Http\Requests\Api\Category\StoreCategoryRequest;
 use App\Http\Requests\Api\Category\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
@@ -185,10 +186,10 @@ class CategoryController extends Controller
     /**
      * Xóa nhiều danh mục cùng lúc
      */
-    public function multiDelete(Request $request)
+    public function multiDelete(MultiDeleteCategoryRequest $request)
     {
         try {
-            $deletedCount = $this->categoryService->multiDelete($request->ids);
+            $deletedCount = $this->categoryService->multiDelete($request->validated()['ids']);
 
             return response()->json([
                 'success' => true,
