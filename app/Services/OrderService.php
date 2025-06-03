@@ -46,7 +46,6 @@ class OrderService
                 if ($product->stock_quantity < $detailData['quantity']) {
                      $errors[] = $product->name;
                 }
-
                 $product->decrement('stock_quantity', $detailData['quantity']);
                 //Tạo chi tiết đơn hàng
                 $orderDetail = OrderDetail::create([

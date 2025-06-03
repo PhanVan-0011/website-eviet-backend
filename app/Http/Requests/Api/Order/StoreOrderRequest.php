@@ -30,9 +30,7 @@ class StoreOrderRequest extends FormRequest
             'status' => 'required|in:pending,processing,shipped,delivered,cancelled',
             'order_details' => 'required|array',
             'order_details.*.product_id' => 'required|exists:products,id',
-            'order_details.*.quantity' => 'required|integer|min:1',
-
-            
+            'order_details.*.quantity' => 'required|integer|min:1',    
         ];
     }
     public function messages()
