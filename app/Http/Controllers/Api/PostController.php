@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\PostRequest;
+use App\Http\Requests\Api\Post\StorePostRequest;
+use App\Http\Requests\Api\Post\UpdatePostRequest;
 use App\Http\Resources\PostResource;
 use App\Services\PostService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -100,7 +101,7 @@ class PostController extends Controller
      * @param \App\Http\Requests\PostRequest $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(PostRequest $request)
+    public function store(StorePostRequest $request)
     {
         try {
             $post = $this->postService->createPost($request->validated());
@@ -135,7 +136,7 @@ class PostController extends Controller
      * @param int $id ID của bài viết
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(PostRequest $request, $id)
+    public function update(UpdatePostRequest $request, $id)
     {
         try {
             $post = $this->postService->updatePost($id, $request->validated());
@@ -215,7 +216,7 @@ class PostController extends Controller
     public function multiDelete(Request $request)
     {
         try {
-            $idsString = $request->header('ids');
+            $idsString = $request->query('ids');
             if (empty($idsString)) {
                 return response()->json([
                     'success' => false,

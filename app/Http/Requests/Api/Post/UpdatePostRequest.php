@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Api\Post;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class PostRequest extends FormRequest
+class UpdatePostRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,45 +25,38 @@ class PostRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => ['required', 'string', 'max:255', Rule::unique('posts')->ignore($this->post)],
-            'content' => ['nullable', 'string'],
-            'slug' => ['nullable', 'string', 'max:255', Rule::unique('posts')->ignore($this->post)],
+            'title' => ['required', 'string', 'max:255', Rule::unique('posts')->ignore($this->route('id'))],
+            'content' => ['nullable', 'string', 'max:65535'],
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('posts')->ignore($this->route('id'))],
             'status' => ['required', 'boolean'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
             'image_url' => ['nullable', 'url', 'max:2048'],
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['exists:categories,id'],
         ];
     }
-    /**
-     * Get custom messages for validation errors.
-     *
-     * @return array<string, string>
-     */
     public function messages(): array
     {
         return [
             'title.required' => 'Tiêu đề bài viết là bắt buộc.',
             'title.string' => 'Tiêu đề bài viết phải là chuỗi ký tự.',
             'title.max' => 'Tiêu đề bài viết không được vượt quá 255 ký tự.',
-            'title.unique' => 'Tiêu đề bài viết đã tồn tại. Vui lòng chọn tiêu đề khác.',
             'content.string' => 'Nội dung bài viết phải là chuỗi ký tự.',
+            'content.max' => 'Nội dung bài viết không được vượt quá 65,535 ký tự.',
             'slug.string' => 'Slug phải là chuỗi ký tự.',
             'slug.max' => 'Slug không được vượt quá 255 ký tự.',
             'slug.unique' => 'Slug đã tồn tại. Vui lòng chọn slug khác.',
             'status.required' => 'Trạng thái bài viết là bắt buộc.',
-            'status.boolean' => 'Trạng thái bài viết phải là true hoặc false.',
+            'image.image' => 'Tệp tải lên phải là hình ảnh.',
+            'image.mimes' => 'Hình ảnh phải có định dạng jpeg, png, jpg hoặc gif.',
+            'image.max' => 'Hình ảnh không được vượt quá 2MB.',
             'image_url.url' => 'URL hình ảnh không hợp lệ.',
             'image_url.max' => 'URL hình ảnh không được vượt quá 2048 ký tự.',
             'category_ids.array' => 'Danh sách danh mục phải là một mảng.',
             'category_ids.*.exists' => 'Danh mục không tồn tại trong hệ thống.',
         ];
     }
-    /**
-     * Chuẩn hóa dữ liệu trước khi thực hiện validation.
-     * Loại bỏ khoảng trắng thừa ở đầu và cuối của các trường title, slug, content.
-     * Đảm bảo dữ liệu sạch trước khi kiểm tra.
-     */
-    protected function prepareForValidation(): void
+     protected function prepareForValidation(): void
     {
         if ($this->has('title')) {
             $this->merge([
@@ -83,14 +76,6 @@ class PostRequest extends FormRequest
             ]);
         }
     }
-
-    /**
-     * Tùy chỉnh dữ liệu đã validate trước khi trả về.
-     * Chuyển các trường nullable (content, slug, image_url) thành null nếu chúng là chuỗi rỗng.
-     * Điều này giúp tránh lưu chuỗi rỗng vào cơ sở dữ liệu, giữ dữ liệu sạch sẽ.
-     *
-     * @return array
-     */
     public function validated($key = null, $default = null): array
     {
         $validated = parent::validated();
@@ -104,7 +89,7 @@ class PostRequest extends FormRequest
             $validated['slug'] = null;
         }
 
-        if (empty($validated['image_url'])) {
+        if (empty($validated['image']) && empty($validated['image_url'])) {
             $validated['image_url'] = null;
         }
 
@@ -129,4 +114,5 @@ class PostRequest extends FormRequest
             'errors' => $validator->errors(),
         ], 422));
     }
+
 }

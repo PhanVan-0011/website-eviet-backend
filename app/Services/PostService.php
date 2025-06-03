@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Intervention\Image\Facades\Image;
+use Illuminate\Support\Facades\Storage;
 class PostService
 {
    /**
@@ -130,7 +132,19 @@ class PostService
             if (Post::where('slug', $data['slug'])->exists()) {
                 throw new Exception('Slug đã tồn tại. Vui lòng chọn tiêu đề hoặc slug khác.');
             }
+            // Xử lý ảnh (image_url) chưa cắt ảnh lưu trong storage/app/public/posts_images/yyyy/mm
+            if (isset($data['image']) && $data['image'] instanceof \Illuminate\Http\UploadedFile) {
+                $year = now()->format('Y');
+                $month = now()->format('m');
+                $slug = Str::slug($data['title']);
 
+                $path = "posts_images/{$year}/{$month}";
+                $filename = uniqid($slug . '-') . '.' . $data['image']->getClientOriginalExtension();
+                $fullPath = $data['image']->storeAs($path, $filename, 'public');
+
+                $data['image_url'] = $fullPath;
+                unset($data['image']);
+            }
             $post = Post::create($data);
 
             // Gắn categories nếu có
@@ -173,6 +187,25 @@ class PostService
                     throw new Exception('Slug đã tồn tại. Vui lòng chọn tiêu đề hoặc slug khác.');
                 }
             }
+            // Xử lý ảnh nếu có ảnh mới được tải lên
+            if (isset($data['image']) && $data['image'] instanceof \Illuminate\Http\UploadedFile) {
+                // Xóa ảnh cũ nếu có
+                if ($post->image_url && Storage::disk('public')->exists($post->image_url)) {
+                    Storage::disk('public')->delete($post->image_url);
+                }
+
+                // Lưu ảnh mới
+                $year = now()->format('Y');
+                $month = now()->format('m');
+                $slug = Str::slug($data['title'] ?? $post->title);
+
+                $path = "posts_images/{$year}/{$month}";
+                $filename = uniqid($slug . '-') . '.' . $data['image']->getClientOriginalExtension();
+                $fullPath = $data['image']->storeAs($path, $filename, 'public');
+
+                $data['image_url'] = $fullPath;
+                unset($data['image']);
+            }
 
             $post->update($data);
 
@@ -205,6 +238,10 @@ class PostService
     {
         try {
             $post = Post::findOrFail($id);
+             // Xóa ảnh nếu có
+            if ($post->image_url && Storage::disk('public')->exists($post->image_url)) {
+                Storage::disk('public')->delete($post->image_url);
+            }
             return $post->delete();
         } catch (ModelNotFoundException $e) {
             Log::error('Post not found for deletion: ' . $e->getMessage(), ['exception' => $e]);
@@ -226,6 +263,7 @@ class PostService
     {
         try {
             $ids = array_map('intval', explode(',', $ids));
+            $posts = Post::whereIn('id', $ids)->get();
 
             $existingIds = Post::whereIn('id', $ids)->pluck('id')->toArray();
             $nonExistingIds = array_diff($ids, $existingIds);
@@ -234,7 +272,12 @@ class PostService
                 Log::error('IDs not found for deletion: ' . implode(',', $nonExistingIds));
                 throw new ModelNotFoundException('ID cần xóa không tồn tại trong hệ thống');
             }
-
+            // Xóa ảnh của từng bài viết
+            foreach ($posts as $post) {
+                if ($post->image_url && Storage::disk('public')->exists($post->image_url)) {
+                    Storage::disk('public')->delete($post->image_url);
+                }
+            }
             return Post::whereIn('id', $ids)->delete();
         } catch (ModelNotFoundException $e) {
             Log::error('Error in multi-delete posts: ' . $e->getMessage(), ['exception' => $e]);
