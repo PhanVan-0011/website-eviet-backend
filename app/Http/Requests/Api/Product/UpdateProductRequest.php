@@ -30,7 +30,7 @@ class UpdateProductRequest extends FormRequest
             'original_price' => 'nullable|numeric|min:0', // Cập nhật thành nullable
             'sale_price' => 'nullable|numeric|min:0',
             'stock_quantity' => 'integer|min:0',
-            'image_url' => 'nullable|string|max:200',
+            'image_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'status' => 'boolean',
             'category_id' => 'exists:categories,id',
         ];
@@ -48,7 +48,9 @@ class UpdateProductRequest extends FormRequest
             'sale_price.min' => 'Giá khuyến mãi không được nhỏ hơn 0.',
             'stock_quantity.integer' => 'Số lượng tồn kho phải là số nguyên.',
             'stock_quantity.min' => 'Số lượng tồn kho không được nhỏ hơn 0.',
-            'image_url.max' => 'Đường dẫn hình ảnh không được dài quá 200 ký tự.',
+            'image_url.image' => 'File phải là hình ảnh.',
+            'image_url.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
             'status.boolean' => 'Trạng thái phải là true hoặc false.',
             'category_id.exists' => 'Danh mục không tồn tại.',
         ];

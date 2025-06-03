@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ImageController;
 
 
 // Route::prefix('auth')->group(function () {
@@ -47,7 +48,7 @@ Route::prefix('products')->group(function () {
     Route::get('/', [ProductController::class, 'index']);
     Route::get('/{id}', [ProductController::class, 'show']);
     Route::post('/', [ProductController::class, 'store']);
-    Route::put('/{id}', [ProductController::class, 'update']);
+    Route::post('/{id}', [ProductController::class, 'update']);
     Route::delete('/multi-delete', [ProductController::class, 'multiDelete']);
     Route::delete('/{id}', [ProductController::class, 'destroy']);
 });
@@ -85,3 +86,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders', [OrderController::class, 'store']);
     Route::put('/orders/{order}', [OrderController::class, 'update']);
 });
+
+// Route hiển thị hình ảnh
+Route::get('images/{path}', [ImageController::class, 'show'])->where('path', '.*');

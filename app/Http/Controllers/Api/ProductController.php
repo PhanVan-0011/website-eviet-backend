@@ -13,9 +13,12 @@ use Illuminate\Database\QueryException;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use App\Http\Requests\Api\Product\MultiDeleteProductRequest;
+use App\Traits\FileUploadTrait;
 
 class ProductController extends Controller
 {
+    use FileUploadTrait;
+
     protected $productService;
     public function __construct(ProductService $productService)
     {
@@ -59,7 +62,14 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request)
     {
         try {
-            $product = $this->productService->createProduct($request->validated());
+            $data = $request->validated();
+
+            // Xử lý upload file ảnh
+            if ($request->hasFile('image_url')) {
+                $data['image_url'] = $this->uploadFile($request->file('image_url'));
+            }
+
+            $product = $this->productService->createProduct($data);
 
             return response()->json([
                 'success' => true,
@@ -119,7 +129,17 @@ class ProductController extends Controller
     public function update(UpdateProductRequest $request, $id)
     {
         try {
-            $product = $this->productService->updateProduct($id, $request->validated());
+            // Lấy toàn bộ dữ liệu từ form-data
+            $data = $request->all();
+            // Validate dữ liệu (sử dụng validated để lấy các trường hợp lệ)
+            $validated = $request->validated();
+            // Gộp validated vào data để đảm bảo chỉ lấy trường hợp lệ
+            $data = array_merge($data, $validated);
+            // Xử lý upload file ảnh nếu có
+            if ($request->hasFile('image_url')) {
+                $data['image_url'] = $this->uploadFile($request->file('image_url'));
+            }
+            $product = $this->productService->updateProduct($id, $data);
             return response()->json([
                 'success' => true,
                 'data' => new ProductResource($product),

@@ -26,11 +26,11 @@ class StoreProductRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'size' => 'nullable|string|max:10', // Cập nhật thành nullable
-            'original_price' => 'nullable|numeric|min:0', // Cập nhật thành nullable
+            'size' => 'nullable|string|max:10',
+            'original_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
             'stock_quantity' => 'required|integer|min:0',
-            'image_url' => 'nullable|string|max:200',
+            'image_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'status' => 'required|boolean',
             'category_id' => 'required|exists:categories,id',
         ];
@@ -49,7 +49,9 @@ class StoreProductRequest extends FormRequest
             'stock_quantity.required' => 'Số lượng tồn kho là bắt buộc.',
             'stock_quantity.integer' => 'Số lượng tồn kho phải là số nguyên.',
             'stock_quantity.min' => 'Số lượng tồn kho không được nhỏ hơn 0.',
-            'image_url.max' => 'Đường dẫn hình ảnh không được dài quá 200 ký tự.',
+            'image_url.image' => 'File phải là hình ảnh.',
+            'image_url.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
             'status.required' => 'Trạng thái là bắt buộc.',
             'status.boolean' => 'Trạng thái phải là true hoặc false.',
             'category_id.required' => 'Danh mục là bắt buộc.',

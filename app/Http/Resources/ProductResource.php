@@ -24,7 +24,7 @@ class ProductResource extends JsonResource
             'stock_quantity' => $this->stock_quantity,
             'status' => $this->status,
             'image_url' => $this->image_url,
-            'size' => $this->size, // Thêm trường size
+            'size' => $this->size,
             'category_id' => $this->category_id,
             'category' => $this->whenLoaded('category', fn() => new CategoryResource($this->category)),
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
