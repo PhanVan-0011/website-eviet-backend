@@ -153,9 +153,9 @@ class ProductService
     public function createProduct(array $data): Product
     {
         try {
-            if (isset($data['original_price']) && isset($data['sale_price']) && $data['sale_price'] > $data['original_price']) {
-                throw new Exception('Giá khuyến mãi không được lớn hơn giá gốc.');
-            }
+            // if (isset($data['original_price']) && isset($data['sale_price']) && $data['sale_price'] > $data['original_price']) {
+            //     throw new Exception('Giá khuyến mãi không được lớn hơn giá gốc.');
+            // }
             $product = Product::create($data);
             return $product->load(['category']);
         } catch (QueryException $e) {
@@ -178,9 +178,9 @@ class ProductService
     {
         try {
             $product = Product::findOrFail($id);
-            if (isset($data['original_price']) && isset($data['sale_price']) && $data['sale_price'] > $data['original_price']) {
-                throw new Exception('Giá khuyến mãi không được lớn hơn giá gốc.');
-            }
+            // if (isset($data['original_price']) && isset($data['sale_price']) && $data['sale_price'] > $data['original_price']) {
+            //     throw new Exception('Giá khuyến mãi không được lớn hơn giá gốc.');
+            // }
             $product->update($data);
             return $product->refresh()->load(['category']);
         } catch (ModelNotFoundException $e) {
