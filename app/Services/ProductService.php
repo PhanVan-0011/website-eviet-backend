@@ -22,9 +22,16 @@ class ProductService
     {
         try {
             // Chuẩn hóa các tham số đầu vào
-            $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
+            $perPage = max(1, min(100, (int) $request->input('limit', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
             $keyword = (string) $request->input('keyword', '');
+            $categoryId = $request->input('category_id');
+            $originalPriceFrom = $request->input('original_price_from');
+            $originalPriceTo = $request->input('original_price_to');
+            $salePriceFrom = $request->input('sale_price_from');
+            $salePriceTo = $request->input('sale_price_to');
+            $stockQuantity = $request->input('stock_quantity');
+            $status = $request->input('status');
 
             // Khởi tạo truy vấn cơ bản
             $query = Product::query();
@@ -36,6 +43,35 @@ class ProductService
                         ->orWhere('description', 'like', "%{$keyword}%")
                         ->orWhere('size', 'like', "%{$keyword}%");
                 });
+            }
+
+            // Lọc theo category_id
+            if (!empty($categoryId)) {
+                $query->where('category_id', $categoryId);
+            }
+            // Lọc theo original_price_from
+            if (!empty($originalPriceFrom)) {
+                $query->where('original_price', '>=', $originalPriceFrom);
+            }
+            // Lọc theo original_price_to
+            if (!empty($originalPriceTo)) {
+                $query->where('original_price', '<=', $originalPriceTo);
+            }
+            // Lọc theo sale_price_from
+            if (!empty($salePriceFrom)) {
+                $query->where('sale_price', '>=', $salePriceFrom);
+            }
+            // Lọc theo sale_price_to
+            if (!empty($salePriceTo)) {
+                $query->where('sale_price', '<=', $salePriceTo);
+            }
+            // Lọc theo stock_quantity
+            if (!empty($stockQuantity)) {
+                $query->where('stock_quantity', $stockQuantity);
+            }
+            // Lọc theo status
+            if ($status !== null && $status !== '') {
+                $query->where('status', $status);
             }
 
             // Sắp xếp theo thời gian tạo mới nhất
