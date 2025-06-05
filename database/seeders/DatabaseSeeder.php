@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
             CategoriesSeeder::class,
             ProductSeeder::class,
             SliderSeeder::class,
+            PostSeeder::class,
         ]);
 
         // Tạo 5 người dùng

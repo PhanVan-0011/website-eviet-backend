@@ -57,9 +57,9 @@ Route::prefix('posts')->group(function () {
     Route::get('/', [PostController::class, 'index']);
     Route::get('/{id}', [PostController::class, 'show']);
     Route::post('/', [PostController::class, 'store']);
-    Route::put('/{id}', [PostController::class, 'update']);
+    Route::post('/{id}', [PostController::class, 'update']);
+    Route::delete('/multi-delete', [PostController::class, 'multiDelete']);
     Route::delete('/{id}', [PostController::class, 'destroy']);
-    Route::post('/multi-delete', [PostController::class, 'multiDelete']);
 });
 
 

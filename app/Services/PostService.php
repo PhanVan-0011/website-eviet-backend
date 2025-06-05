@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Services;
+
 use App\Models\Post;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -9,9 +10,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Intervention\Image\Facades\Image;
 use Illuminate\Support\Facades\Storage;
+
 class PostService
 {
-   /**
+    /**
      * Lấy danh sách tất cả bài viết với phân trang, tìm kiếm và sắp xếp
      *
      * @param \Illuminate\Http\Request $request
@@ -25,7 +27,8 @@ class PostService
             $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
             $keyword = (string) $request->input('keyword', '');
-
+            $status = $request->input('status');
+            $categoryId = $request->input('category_id');
             // Khởi tạo truy vấn cơ bản
             $query = Post::query();
 
@@ -35,6 +38,15 @@ class PostService
                     $q->where('title', 'like', "%{$keyword}%")
                         ->orWhere('content', 'like', "%{$keyword}%");
                 });
+            }
+
+
+            if ($status !== null && $status !== '') {
+                $query->where('status', $status);
+            }
+
+            if (!empty($categoryId)) {
+                $query->where('category_id', $categoryId);
             }
 
             // Sắp xếp theo thời gian tạo mới nhất
@@ -132,18 +144,15 @@ class PostService
             if (Post::where('slug', $data['slug'])->exists()) {
                 throw new Exception('Slug đã tồn tại. Vui lòng chọn tiêu đề hoặc slug khác.');
             }
-            // Xử lý ảnh (image_url) chưa cắt ảnh lưu trong storage/app/public/posts_images/yyyy/mm
-            if (isset($data['image']) && $data['image'] instanceof \Illuminate\Http\UploadedFile) {
+            // Xử lý upload ảnh nếu có file image_url
+            if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
                 $year = now()->format('Y');
                 $month = now()->format('m');
                 $slug = Str::slug($data['title']);
-
                 $path = "posts_images/{$year}/{$month}";
-                $filename = uniqid($slug . '-') . '.' . $data['image']->getClientOriginalExtension();
-                $fullPath = $data['image']->storeAs($path, $filename, 'public');
-
+                $filename = uniqid($slug . '-') . '.' . $data['image_url']->getClientOriginalExtension();
+                $fullPath = $data['image_url']->storeAs($path, $filename, 'public');
                 $data['image_url'] = $fullPath;
-                unset($data['image']);
             }
             $post = Post::create($data);
 
@@ -187,26 +196,20 @@ class PostService
                     throw new Exception('Slug đã tồn tại. Vui lòng chọn tiêu đề hoặc slug khác.');
                 }
             }
-            // Xử lý ảnh nếu có ảnh mới được tải lên
-            if (isset($data['image']) && $data['image'] instanceof \Illuminate\Http\UploadedFile) {
+            // Xử lý upload ảnh nếu có file image_url khi update
+            if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
                 // Xóa ảnh cũ nếu có
                 if ($post->image_url && Storage::disk('public')->exists($post->image_url)) {
                     Storage::disk('public')->delete($post->image_url);
                 }
-
-                // Lưu ảnh mới
                 $year = now()->format('Y');
                 $month = now()->format('m');
                 $slug = Str::slug($data['title'] ?? $post->title);
-
                 $path = "posts_images/{$year}/{$month}";
-                $filename = uniqid($slug . '-') . '.' . $data['image']->getClientOriginalExtension();
-                $fullPath = $data['image']->storeAs($path, $filename, 'public');
-
+                $filename = uniqid($slug . '-') . '.' . $data['image_url']->getClientOriginalExtension();
+                $fullPath = $data['image_url']->storeAs($path, $filename, 'public');
                 $data['image_url'] = $fullPath;
-                unset($data['image']);
             }
-
             $post->update($data);
 
             // Cập nhật categories nếu có
@@ -238,7 +241,7 @@ class PostService
     {
         try {
             $post = Post::findOrFail($id);
-             // Xóa ảnh nếu có
+            // Xóa ảnh nếu có
             if ($post->image_url && Storage::disk('public')->exists($post->image_url)) {
                 Storage::disk('public')->delete($post->image_url);
             }

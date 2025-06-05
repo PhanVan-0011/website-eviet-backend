@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Faker\Factory as FakerFactory;
 
 class CategoriesSeeder extends Seeder
 {
@@ -12,31 +13,18 @@ class CategoriesSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('categories')->insert([
-            [
-                'name' => 'Đồ uống',
-                'status' => true,
-                'description' => 'Danh mục nước uống',
+        $faker = FakerFactory::create('vi_VN');
+        $categories = [];
+        for ($i = 1; $i <= 20; $i++) {
+            $categories[] = [
+                'name' => $faker->unique()->words(rand(1, 3), true),
+                'status' => $faker->boolean(90), // 90% là hiển thị
+                'description' => $faker->sentence(8, true),
                 'parent_id' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
-            [
-                'name' => 'Ăn vặt',
-                'status' => true,
-                'description' => 'Danh mục ăn vặt',
-                'parent_id' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'name' => 'Trái cây',
-                'status' => true,
-                'description' => 'Danh mục trái cây',
-                'parent_id' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
+            ];
+        }
+        DB::table('categories')->insert($categories);
     }
 }

@@ -29,13 +29,12 @@ class StorePostRequest extends FormRequest
             'content' => ['nullable', 'string', 'max:65535'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('posts')],
             'status' => ['required', 'boolean'],
-            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
-            'image_url' => ['nullable', 'url', 'max:2048'],
+            'image_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['exists:categories,id'],
         ];
     }
-     public function messages(): array
+    public function messages(): array
     {
         return [
             'title.required' => 'Tiêu đề bài viết là bắt buộc.',
@@ -48,16 +47,14 @@ class StorePostRequest extends FormRequest
             'slug.max' => 'Slug không được vượt quá 255 ký tự.',
             'slug.unique' => 'Slug đã tồn tại. Vui lòng chọn slug khác.',
             'status.required' => 'Trạng thái bài viết là bắt buộc.',
-            'image.image' => 'Tệp tải lên phải là hình ảnh.',
-            'image.mimes' => 'Hình ảnh phải có định dạng jpeg, png, jpg hoặc gif.',
-            'image.max' => 'Hình ảnh không được vượt quá 2MB.',
-            'image_url.url' => 'URL hình ảnh không hợp lệ.',
-            'image_url.max' => 'URL hình ảnh không được vượt quá 2048 ký tự.',
+            'image_url.image' => 'File phải là hình ảnh.',
+            'image_url.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
             'category_ids.array' => 'Danh sách danh mục phải là một mảng.',
             'category_ids.*.exists' => 'Danh mục không tồn tại trong hệ thống.',
         ];
     }
-     protected function prepareForValidation(): void
+    protected function prepareForValidation(): void
     {
         if ($this->has('title')) {
             $this->merge([
@@ -77,7 +74,7 @@ class StorePostRequest extends FormRequest
             ]);
         }
     }
-     public function validated($key = null, $default = null): array
+    public function validated($key = null, $default = null): array
     {
         $validated = parent::validated();
 
