@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Payment;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\User;
@@ -9,58 +10,150 @@ use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\OrderResource;
+use Illuminate\Support\Facades\Log;
 
 class OrderService
 {
+    public function getAllOrders($request)
+    {
+        try {
+            // Lấy các tham số đầu vào
+            $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
+            $currentPage = max(1, (int) $request->input('page', 1));
+
+            $status = $request->input('status');
+            $clientName = $request->input('client_name');
+            $clientPhone = $request->input('client_phone');
+            $orderDate = $request->input('order_date');
+            $userId = $request->input('user_id');
+
+            // Tạo query cơ bản
+            $query = Order::query()
+                ->with(['user', 'orderDetails.product', 'payment']);
+
+            // Áp dụng tìm kiếm
+            if (!empty($status)) {
+                $query->where('status', $status);
+            }
+
+            if (!empty($clientName)) {
+                $query->where('client_name', 'like', '%' . $clientName . '%');
+            }
+
+            if (!empty($clientPhone)) {
+                $query->where('client_phone', 'like', '%' . $clientPhone . '%');
+            }
+
+            if (!empty($orderDate)) {
+                $query->whereDate('order_date', $orderDate);
+            }
+
+            if (!empty($userId)) {
+                $query->where('user_id', $userId);
+            }
+
+            // Sắp xếp theo thời gian tạo mới nhất
+            $query->orderBy('id', 'desc');
+
+            // Tính tổng số bản ghi
+            $total = $query->count();
+
+            // Phân trang thủ công
+            $offset = ($currentPage - 1) * $perPage;
+            $orders = $query->skip($offset)->take($perPage)->get();
+
+            // Tính phân trang
+            $lastPage = (int) ceil($total / $perPage);
+            $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;
+            $prevPage = $currentPage > 1 ? $currentPage - 1 : null;
+
+            // Trả kết quả
+            return [
+                'data' => $orders,
+                'page' => $currentPage,
+                'total' => $total,
+                'last_page' => $lastPage,
+                'next_page' => $nextPage,
+                'prev_page' => $prevPage,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Lỗi lấy danh sách đơn hàng: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+    public function getOrderById(int $id)
+    {
+        $order = Order::with(['user', 'orderDetails.product', 'payment'])->find($id);
+
+        if (!$order) {
+            throw new \Exception("Đơn hàng không tồn tại.");
+        }
+
+        return $order;
+    }
     /**
      * Tạo một đơn hàng mới
      */
     public function createOrder(array $data, User $user)
     {
-        // $user = Auth::guard('sanctum')->user();
-        // if (!$user) {
-        //     throw new \Exception('Người dùng chưa đăng nhập.');
-        // }
-        //Bắt đầu transaction để đảm bảo tính toàn vẹn dữ liệu
-        return DB::transaction(function () use ($data, $user) {
-            $order = Order::create([
-                'order_date' => now(),
-                'total_amount' => 0, // Sẽ tính sau
-                'status' => $data['status'] ?? 'pending',
-                'client_name' => $data['client_name'],
-                'client_phone' => $data['client_phone'],
-                'shipping_address' => $data['shipping_address'],
-                'shipping_fee' => 0.00,
-                'cancelled_at' => null,
-                'user_id' => $user->id,
-            ]);
 
-            // Thêm chi tiết đơn hàng
-            foreach ($data['order_details'] as $detailData) {
-                $product = Product::findOrFail($detailData['product_id']);
-                $unitPrice = $product->sale_price;
-                if (!$product) {
-                    $errors[] = "Sản phẩm không tồn tại.";
-                    continue;
+        //Bắt đầu transaction để đảm bảo tính toàn vẹn dữ liệu
+        try {
+            return DB::transaction(function () use ($data, $user) {
+                $order = Order::create([
+                    'order_date' => now(),
+                    'total_amount' => 0, // Sẽ tính sau
+                    'status' => $data['status'] ?? 'pending',
+                    'client_name' => $data['client_name'],
+                    'client_phone' => $data['client_phone'],
+                    'shipping_address' => $data['shipping_address'],
+                    'shipping_fee' => 0.00,
+                    'cancelled_at' => null,
+                    'user_id' => $user->id,
+                ]);
+
+                // Thêm chi tiết đơn hàng
+                foreach ($data['order_details'] as $detailData) {
+                    $product = Product::findOrFail($detailData['product_id']);
+                    if ($product->stock_quantity < $detailData['quantity']) {
+                        throw new \Exception("Sản phẩm '{$product->name}' không đủ hàng trong kho.");
+                    }
+                    //trừ tồn kho khi tạo đơn hàng
+                    $product->decrement('stock_quantity', $detailData['quantity']);
+                    //Tạo chi tiết đơn hàng
+                    $orderDetail = OrderDetail::create([
+                        'order_id' => $order->id,
+                        'product_id' => $product->id,
+                        'quantity' => $detailData['quantity'],
+                        'unit_price' => $product->sale_price,
+                    ]);
                 }
-                if ($product->stock_quantity < $detailData['quantity']) {
-                     $errors[] = $product->name;
+                // Cập nhật total_amount
+                $this->updateTotalAmount($order);
+                //Nếu có thông tin thanh toán, tạo payment record
+                if (!empty($data['payment'])) {
+                    $paymentData = $data['payment'];
+
+                    Payment::create([
+                        'gateway' => $paymentData['gateway'] ?? 'COD',
+                        'status' => $paymentData['status'] ?? 'pending',
+                        'amount' => $order->total_amount,
+                        'transaction_id' => $paymentData['transaction_id'] ?? null,
+                        'paid_at' => $paymentData['paid_at'] ?? null,
+                        'callback_data' => $paymentData['callback_data'] ?? null,
+                        'is_active' => true,
+                        'order_id' => $order->id,
+                    ]);
                 }
-                $product->decrement('stock_quantity', $detailData['quantity']);
-                //Tạo chi tiết đơn hàng
-                $orderDetail = OrderDetail::create([
-                    'order_id' => $order->id,
-                    'product_id' => $product->id,
-                    'quantity' => $detailData['quantity'],
-                    'unit_price' => $unitPrice,
-                ]);                   
-            }
-            // Cập nhật total_amount
-            $this->updateTotalAmount($order);
-            // Load quan hệ user trước khi trả về
-            $order->load('user', 'orderDetails.product');
-            return new OrderResource($order);
-        });
+                Log::info('Payment data:', $paymentData ?? []);
+                // Load quan hệ user trước khi trả về
+                $order = $order->fresh(['user', 'orderDetails.product', 'payment']);
+                return new OrderResource($order);
+            });
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi tạo đơn hàng: " . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
@@ -68,65 +161,154 @@ class OrderService
      */
     public function updateOrder(Order $order, array $data)
     {
-        return DB::transaction(function () use ($order, $data) {
-            $newStatus = $data['status'] ?? $order->status;
-            $cancelledAt = ($newStatus === 'delivered' || $newStatus === 'pending') ? null : $order->cancelled_at;
-
-            $order->update([
-                'status' => $newStatus,
-                'client_name' => $data['client_name'] ?? $order->client_name,
-                'client_phone' => $data['client_phone'] ?? $order->client_phone,
-                'shipping_address' => $data['shipping_address'] ?? $order->shipping_address,
-                'shipping_fee' => 0.00,
-                'cancelled_at' => $cancelledAt,
-            ]);
-
-            if (isset($data['order_details'])) {
-                $existingQuantities = $order->orderDetails->pluck('quantity', 'product_id')->toArray();
-                OrderDetail::where('order_id', $order->id)->delete();
-
-                foreach ($data['order_details'] as $detailData) {
-                    $product = Product::findOrFail($detailData['product_id']);
-                    $unitPrice = $product->sale_price;
-                    if ($unitPrice === null) {
-                        throw new \Exception("Giá sale_price của sản phẩm ID {$product->id} không được định nghĩa.");
+        try {
+            return DB::transaction(function () use ($order, $data) {
+                $newStatus = $data['status'] ?? $order->status;
+                $cancelledAt = ($newStatus === 'delivered' || $newStatus === 'pending') ? null : $order->cancelled_at;
+                //Cập nhật Order
+                $order->update([
+                    'status' => $newStatus,
+                    'client_name' => $data['client_name'] ?? $order->client_name,
+                    'client_phone' => $data['client_phone'] ?? $order->client_phone,
+                    'shipping_address' => $data['shipping_address'] ?? $order->shipping_address,
+                    'shipping_fee' => 0.00,
+                    'cancelled_at' => $cancelledAt,
+                ]);
+                //Kiểm tra và cập nhật Order_details
+                if (isset($data['order_details'])) {
+                    // Hoàn tồn kho cũ
+                    foreach ($order->orderDetails as $oldDetail) {
+                        $product = Product::findOrFail($oldDetail->product_id);
+                        $product->increment('stock_quantity', $oldDetail->quantity);
                     }
-                    $newQuantity = $detailData['quantity'];
-                    $oldQuantity = $existingQuantities[$detailData['product_id']] ?? 0;
-                    $quantityChange = $newQuantity - $oldQuantity;
+                    // Xoá chi tiết cũ
+                    OrderDetail::where('order_id', $order->id)->delete();
 
-                    if ($product->stock_quantity < $quantityChange) {
-                        throw new \Exception("Số lượng tồn kho không đủ cho sản phẩm ID {$product->id}.");
+                    foreach ($data['order_details'] as $detailData) {
+                        $product = Product::findOrFail($detailData['product_id']);
+                        // Kiểm tra tồn kho
+                        if ($product->stock_quantity < $detailData['quantity']) {
+                            throw new \Exception("Số lượng tồn kho không đủ cho sản phẩm ID {$product->id}.");
+                        }
+                        $product->decrement('stock_quantity', $detailData['quantity']);
+                        OrderDetail::create([
+                            'order_id' => $order->id,
+                            'product_id' => $product->id,
+                            'quantity' =>  $detailData['quantity'],
+                            'unit_price' => $product->sale_price,
+                        ]);
                     }
-                    if ($quantityChange > 0) {
-                        $product->decrement('stock_quantity', $quantityChange);
-                    } elseif ($quantityChange < 0) {
-                        $product->increment('stock_quantity', abs($quantityChange));
-                    }
-                    OrderDetail::create([
-                        'order_id' => $order->id,
-                        'product_id' => $product->id,
-                        'quantity' => $newQuantity,
-                        'unit_price' => $unitPrice,
-                    ]);
                 }
+                //Cập nhất lại tổng tiền của đơn hàng
                 $this->updateTotalAmount($order);
-            }
+                // Cập nhật hoặc tạo mới thông tin thanh toán nếu có
+                if (isset($data['payment'])) {
+                    $paymentData = $data['payment'];
+                    $payment = $order->payment;
 
-            $order->load('user', 'orderDetails.product');
-
-            return new OrderResource($order);
-        });
+                    if ($payment) {
+                        $payment->update([
+                            'gateway' => $paymentData['gateway'] ?? $payment->gateway,
+                            'status' => $paymentData['status'] ?? $payment->status,
+                            'transaction_id' => $paymentData['transaction_id'] ?? $payment->transaction_id,
+                            'paid_at' => $paymentData['paid_at'] ?? $payment->paid_at,
+                            'callback_data' => $paymentData['callback_data'] ?? $payment->callback_data,
+                            'amount' => $order->total_amount,
+                        ]);
+                    } else {
+                        Payment::create([
+                            'gateway' => $paymentData['gateway'] ?? 'COD',
+                            'status' => $paymentData['status'] ?? 'pending',
+                            'transaction_id' => $paymentData['transaction_id'] ?? null,
+                            'paid_at' => $paymentData['paid_at'] ?? null,
+                            'callback_data' => $paymentData['callback_data'] ?? null,
+                            'is_active' => true,
+                            'amount' => $order->total_amount,
+                            'order_id' => $order->id,
+                        ]);
+                    }
+                }
+                // Load lại quan hệ trước khi trả về
+                $order = $order->fresh(['user', 'orderDetails.product', 'payment']);
+                return new OrderResource($order);
+            });
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi cập nhật đơn hàng: " . $e->getMessage());
+            throw $e;
+        }
     }
-
     /**
      * Cập nhật total_amount của đơn hàng
      */
     protected function updateTotalAmount(Order $order)
     {
+        // Load lại orderDetails từ database
+        $order->load('orderDetails');
         $totalAmount = $order->orderDetails->sum(function ($detail) {
             return $detail->quantity * $detail->unit_price;
         });
         $order->update(['total_amount' => $totalAmount + $order->shipping_fee]);
+    }
+    public function deleteOrder(Order $order)
+    {
+        try {
+            return DB::transaction(function () use ($order) {
+                // Hoàn tồn kho trước khi xoá
+                foreach ($order->orderDetails as $detail) {
+                    $product = Product::find($detail->product_id);
+                    if ($product) {
+                        $product->increment('stock_quantity', $detail->quantity);
+                    } else {
+                        Log::warning("Không tìm thấy sản phẩm ID {$detail->product_id} khi hoàn tồn kho. Bỏ qua.");
+                    }
+                }
+
+                // Xoá payment nếu có
+                if ($order->payment) {
+                    $order->payment->delete();
+                }
+
+                // Xoá chi tiết đơn hàng
+                $order->orderDetails()->delete();
+
+                // Xoá đơn hàng
+                $order->delete();
+
+                return response()->json(['message' => 'Đã xoá đơn hàng thành công.']);
+            });
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi xoá đơn hàng: " . $e->getMessage());
+            throw $e;
+        }
+    }
+    public function deleteMultipleOrders(array $ids)
+    {
+        try {
+            return DB::transaction(function () use ($ids) {
+                $orders = Order::with(['orderDetails', 'payment'])->whereIn('id', $ids)->get();
+
+                foreach ($orders as $order) {
+                    // Hoàn tồn kho
+                    foreach ($order->orderDetails as $detail) {
+                        $product = Product::findOrFail($detail->product_id);
+                        $product->increment('stock_quantity', $detail->quantity);
+                    }
+                    // Xoá payment nếu có
+                    if ($order->payment) {
+                        $order->payment->delete();
+                    }
+                    //Xoá chi tiết đơn hàng
+                    $order->orderDetails()->delete();
+                    // Xoá đơn hàng
+                    $order->delete();
+                    Log::info("Đã xoá đơn hàng ID {$order->id} thành công.");
+                }
+
+                return response()->json(['message' => 'Đã xoá các đơn hàng thành công.']);
+            });
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi xoá nhiều đơn hàng: " . $e->getMessage());
+            throw $e;
+        }
     }
 }

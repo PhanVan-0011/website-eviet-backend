@@ -17,6 +17,7 @@ class OrderDetailResource extends JsonResource
         return [ 
         'id' => $this->id,
         'order_id' => $this->order_id,
+        'product_id' => $this->product_id,
         'product' => new ProductResource($this->whenLoaded('product')),
         'quantity' => $this->quantity,
         'unit_price' => $this->unit_price,

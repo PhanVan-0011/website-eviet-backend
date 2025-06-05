@@ -17,7 +17,7 @@ class OrderResource extends JsonResource
         return [
                'id' => $this->id,
                'order_date' => $this->order_date,
-               'total_amount' => $this->total_amount,
+               'total_amount' => floatval($this->total_amount),
                'status' => $this->status,
                'client_name' => $this->client_name,
                'client_phone' => $this->client_phone,
@@ -26,6 +26,7 @@ class OrderResource extends JsonResource
                'cancelled_at' => $this->cancelled_at,
                'user' => new UserResource($this->whenLoaded('user')),
                'order_details' => OrderDetailResource::collection($this->whenLoaded('orderDetails')),
+               'payment' => new PaymentResource($this->whenLoaded('payment')),
                'created_at' => $this->created_at,
                'updated_at' => $this->updated_at,
         ];
