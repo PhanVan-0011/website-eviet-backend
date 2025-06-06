@@ -36,11 +36,7 @@ class UpdateSliderRequest extends FormRequest
     public function messages()
     {
         return [
-            'title.required' => 'Tiêu đề là bắt buộc.',
-            'image_url.required' => 'Đường dẫn ảnh là bắt buộc.',
-            'display_order.required' => 'Thứ tự hiển thị là bắt buộc.',
-            'display_order.integer' => 'Thứ tự hiển thị phải là số nguyên.',
-            'link_type.in' => 'Loại liên kết không hợp lệ.',
+             
         ];
     }
     protected function failedValidation(Validator $validator)
