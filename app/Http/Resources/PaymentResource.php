@@ -24,8 +24,8 @@ class PaymentResource extends JsonResource
             'callback_data'  => $this->callback_data ? json_decode($this->callback_data, true) : null, // nếu callback_data dạng JSON
             'paid_at'        => optional($this->paid_at)->toDateTimeString(),
             'order_id'       => $this->order_id,
-            'created_at'     => $this->created_at->toDateTimeString(),
-            'updated_at'     => $this->updated_at->toDateTimeString(),
+            'created_at'     => optional($this->created_at)->toDateTimeString(),
+            'updated_at'     => optional($this->updated_at)->toDateTimeString(),
         ];
     }
 }

@@ -9,6 +9,7 @@ use App\Services\OrderService;
 use Illuminate\Http\Request;
 use App\Http\Requests\Api\Order\StoreOrderRequest;  // Fix: Update namespace
 use App\Http\Requests\Api\Order\UpdateOrderRequest;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class OrderController extends Controller
 {
@@ -78,21 +79,28 @@ class OrderController extends Controller
             ], 400);
         }
     }
-    public function update(UpdateOrderRequest $request, Order $order)
+    public function update(UpdateOrderRequest $request, $id)
     {
         try {
+            $order = Order::findOrFail($id);
             $updatedOrder = $this->orderService->updateOrder($order, $request->validated());
             return response()->json([
                 'success' => true,
                 'message' => 'Cập nhật đơn hàng thành công',
                 'data' => new OrderResource($updatedOrder)
             ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => "Đơn hàng không tồn tại",
+                'error' => $e->getMessage()
+            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cập nhật đơn hàng thất bại',
                 'error' => $e->getMessage()
-            ], 400);
+            ], 500);
         }
     }
     public function destroy($id)

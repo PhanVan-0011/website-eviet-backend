@@ -21,35 +21,37 @@ class OrderService
             $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
 
+            $keyword = $request->input('keyword');
+
             $status = $request->input('status');
-            $clientName = $request->input('client_name');
-            $clientPhone = $request->input('client_phone');
-            $orderDate = $request->input('order_date');
-            $userId = $request->input('user_id');
+            $paymentMethod = $request->input('payment_method');
+            $orderFrom = $request->input('order_from');
+            $orderTo = $request->input('order_to');
+
+
 
             // Tạo query cơ bản
             $query = Order::query()
                 ->with(['user', 'orderDetails.product', 'payment']);
+            if (!empty($keyword)) {
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('client_name', 'like', "%{$keyword}%")
+                        ->orWhere('client_phone', 'like', "%{$keyword}%")
+                        ->orWhereHas('user', function ($uq) use ($keyword) {
+                            $uq->where('email', 'like', "%{$keyword}%");
+                        });
+                });
+            }
 
-            // Áp dụng tìm kiếm
+            // Lọc theo trạng thái đơn hàng
             if (!empty($status)) {
                 $query->where('status', $status);
             }
-
-            if (!empty($clientName)) {
-                $query->where('client_name', 'like', '%' . $clientName . '%');
-            }
-
-            if (!empty($clientPhone)) {
-                $query->where('client_phone', 'like', '%' . $clientPhone . '%');
-            }
-
-            if (!empty($orderDate)) {
-                $query->whereDate('order_date', $orderDate);
-            }
-
-            if (!empty($userId)) {
-                $query->where('user_id', $userId);
+            // Lọc theo phương thức thanh toán
+            if (!empty($paymentMethod)) {
+                $query->whereHas('payment', function ($q) use ($paymentMethod) {
+                    $q->where('gateway', 'like', "%{$paymentMethod}%");
+                });
             }
 
             // Sắp xếp theo thời gian tạo mới nhất
