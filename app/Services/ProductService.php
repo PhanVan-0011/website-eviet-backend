@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Exception;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class ProductService
 {
@@ -153,9 +155,18 @@ class ProductService
     public function createProduct(array $data): Product
     {
         try {
-            // if (isset($data['original_price']) && isset($data['sale_price']) && $data['sale_price'] > $data['original_price']) {
-            //     throw new Exception('Giá khuyến mãi không được lớn hơn giá gốc.');
-            // }
+            // Xử lý upload ảnh nếu có file ảnh truyền lên
+            if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
+                $year = now()->format('Y');
+                $month = now()->format('m');
+                $slug = \Illuminate\Support\Str::slug($data['name'] ?? 'product');
+                $path = "products_images/{$year}/{$month}";
+                $filename = uniqid($slug . '-') . '.' . $data['image_url']->getClientOriginalExtension();
+                $fullPath = $data['image_url']->storeAs($path, $filename, 'public');
+                $data['image_url'] = $fullPath;
+            } else {
+                unset($data['image_url']);
+            }
             $product = Product::create($data);
             return $product->load(['category']);
         } catch (QueryException $e) {
@@ -181,6 +192,21 @@ class ProductService
             // if (isset($data['original_price']) && isset($data['sale_price']) && $data['sale_price'] > $data['original_price']) {
             //     throw new Exception('Giá khuyến mãi không được lớn hơn giá gốc.');
             // }
+            // Xóa ảnh cũ nếu có truyền lên ảnh mới
+            if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
+                if ($product->image_url && Storage::disk('public')->exists($product->image_url)) {
+                    Storage::disk('public')->delete($product->image_url);
+                }
+                $year = now()->format('Y');
+                $month = now()->format('m');
+                $slug = Str::slug($data['name'] ?? $product->name);
+                $path = "products_images/{$year}/{$month}";
+                $filename = uniqid($slug . '-') . '.' . $data['image_url']->getClientOriginalExtension();
+                $fullPath = $data['image_url']->storeAs($path, $filename, 'public');
+                $data['image_url'] = $fullPath;
+            } else {
+                unset($data['image_url']);
+            }
             $product->update($data);
             return $product->refresh()->load(['category']);
         } catch (ModelNotFoundException $e) {

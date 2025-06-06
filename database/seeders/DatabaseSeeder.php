@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             SliderSeeder::class,
             PostSeeder::class,
+            OrderSeeder::class,
         ]);
 
         // Tạo 5 người dùng
@@ -40,11 +41,6 @@ class DatabaseSeeder extends Seeder
 
         // Tạo 5 sản phẩm
         Product::factory()->count(2)->create();
-
-        // Tạo 5 đơn hàng, mỗi đơn hàng có 1 chi tiết
-        Order::factory()->count(2)
-            ->has(OrderDetail::factory()->count(1))
-            ->create();
 
         // Cập nhật total_amount cho mỗi đơn hàng
         foreach (Order::all() as $order) {

@@ -63,14 +63,8 @@ class ProductController extends Controller
     {
         try {
             $data = $request->validated();
-
-            // Xử lý upload file ảnh
-            if ($request->hasFile('image_url')) {
-                $data['image_url'] = $this->uploadFile($request->file('image_url'));
-            }
-
+            // Không xử lý upload file ảnh ở controller, chỉ truyền file gốc vào service
             $product = $this->productService->createProduct($data);
-
             return response()->json([
                 'success' => true,
                 'data' => new ProductResource($product),
@@ -135,10 +129,6 @@ class ProductController extends Controller
             $validated = $request->validated();
             // Gộp validated vào data để đảm bảo chỉ lấy trường hợp lệ
             $data = array_merge($data, $validated);
-            // Xử lý upload file ảnh nếu có
-            if ($request->hasFile('image_url')) {
-                $data['image_url'] = $this->uploadFile($request->file('image_url'));
-            }
             $product = $this->productService->updateProduct($id, $data);
             return response()->json([
                 'success' => true,
