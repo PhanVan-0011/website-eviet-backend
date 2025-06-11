@@ -38,13 +38,13 @@ Route::prefix('sliders')->group(function () {
     Route::delete('/{id}', [SliderController::class, 'destroy']);  
 });
 //Route combos
-Route::prefix('combos')->group(function () {
+Route::middleware('auth:sanctum')->prefix('combos')->group(function () {
     Route::get('/', [ComboController::class, 'index']);
-    Route::get('/{id}', [ComboController::class, 'show']);
+    Route::delete('/multi-delete', [ComboController::class, 'multiDelete']);
     Route::post('/', [ComboController::class, 'store']);
+    Route::get('/{id}', [ComboController::class, 'show']);
     Route::post('/{id}', [ComboController::class, 'update']);
     Route::delete('/{id}', [ComboController::class, 'destroy']);
-    Route::delete('/multi-delete', [ComboController::class, 'multiDelete']);
 });
 //Categories
 Route::prefix('categories')->group(function () {

@@ -10,10 +10,17 @@ use Illuminate\Database\Eloquent\Model;
 class Combo extends Model
 {
     use HasFactory;
-     protected $fillable = [
-        'name', 'description', 'price', 'slug', 'image_url', 'start_date', 'end_date','is_active'
+    protected $fillable = [
+        'name',
+        'description',
+        'price',
+        'slug',
+        'image_url',
+        'start_date',
+        'end_date',
+        'is_active'
     ];
-       protected $casts = [
+    protected $casts = [
         'start_date' => 'datetime',
         'end_date' => 'datetime',
         'is_active' => 'boolean',
@@ -29,8 +36,7 @@ class Combo extends Model
     public function products()
     {
         return $this->belongsToMany(Product::class, 'combo_items')
-                    ->withPivot('quantity')
-                    ->withTimestamps();
+            ->withPivot('quantity')
+            ->withTimestamps();
     }
-
 }

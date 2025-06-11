@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\Combo;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
 
 class UpdateComboRequest extends FormRequest
 {
@@ -24,17 +25,21 @@ class UpdateComboRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'        => ['sometimes', 'required', 'string', 'max:200'],
-            'description' => ['sometimes', 'nullable', 'string','max:255'],
-            'price'       => ['sometimes', 'required', 'numeric', 'min:0'],
-            'slug'        => ['sometimes', 'nullable', 'string'],
-            'image_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'start_date'  => ['sometimes', 'nullable', 'date'],
-            'end_date'    => ['sometimes', 'nullable', 'date', 'after_or_equal:start_date'],
-            'is_active'   => ['sometimes', 'boolean'],
-            'items'       => ['sometimes', 'array', 'min:1'],
-            'items.*.product_id' => ['required_with:items', 'integer', 'exists:products,id'],
-            'items.*.quantity'   => ['required_with:items', 'integer', 'min:1'],
+            'name'                  => 'required|string|max:200',
+            'description'           => 'nullable|string|max:255',
+            'price'                 => 'nullable|numeric|min:0',
+            'slug'                  => [
+                'nullable',
+                'string',
+                Rule::unique('combos', 'slug')->ignore($this->route('combo')) // combo là tên route param
+            ],
+            'image_url'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'start_date'            => 'nullable|date',
+            'end_date'              => 'nullable|date|after_or_equal:start_date',
+            'is_active'             => 'boolean',
+            'items'                 => 'nullable|array|min:1',
+            'items.*.product_id'    => 'required|integer|exists:products,id',
+            'items.*.quantity'      => 'required|integer|min:1',
         ];
     }
     public function messages()

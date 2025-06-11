@@ -55,12 +55,16 @@ class SliderController extends Controller
         try {
             $slider = $this->sliderService->createSlider($request->validated());
             return response()->json([
-                'message' => 'Slider created successfully',
+                'success' => true,
+                'message' => 'Tạo slider thành công',
                 'data' => new SliderResource($slider),
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Slider store error: ' . $e->getMessage());
-            return response()->json(['message' => 'Failed to create slider'], 500);
+            Log::error('Lỗi khi tạo slider: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                 'message' => 'Lỗi khi tạo slider'
+            ], 500);
         }
     }
     // Xem chi tiết slider
@@ -140,8 +144,9 @@ class SliderController extends Controller
         }
     }
 
-    public function multiDelete(MultiDeleteSliderRequest $request){
-        try { 
+    public function multiDelete(MultiDeleteSliderRequest $request)
+    {
+        try {
             $deletedCount = $this->sliderService->deleteMultiple($request->validated()['ids']);
             return response()->json([
                 'success' => true,
@@ -152,7 +157,7 @@ class SliderController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(), // "ID cần xóa không tồn tại trong hệ thống"
             ], 404);
-        }catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Slider multiDelete error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
@@ -160,6 +165,5 @@ class SliderController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
-
-    }   
+    }
 }

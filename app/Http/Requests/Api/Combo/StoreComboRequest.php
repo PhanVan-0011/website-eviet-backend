@@ -24,17 +24,17 @@ class StoreComboRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'        => ['required', 'string', 'max:200'],
-            'description' => ['nullable', 'string', 'max:255'],
-            'price'       => ['required', 'numeric', 'min:0'],
-            'slug'        => ['nullable', 'string'],
-            'image_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'start_date'  => ['nullable', 'date'],
-            'end_date'    => ['nullable', 'date', 'after_or_equal:start_date'],
-            'is_active'   => ['boolean'],
-            'items'       => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
-            'items.*.quantity'   => ['required', 'integer', 'min:1'],
+            'name'                  => 'required|string|max:200',
+            'description'           => 'nullable|string|max:255',
+            'price'                 => 'nullable|numeric|min:0',
+            'slug'                  => 'nullable|string|unique:combos,slug',
+            'image_url'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'start_date'            => 'nullable|date',
+            'end_date'              => 'nullable|date|after_or_equal:start_date',
+            'is_active'             => 'boolean',
+            'items'                 => 'nullable|array|min:1',
+            'items.*.product_id'    => 'required|integer|exists:products,id',
+            'items.*.quantity'      => 'required|integer|min:1',
         ];
     }
     public function messages()

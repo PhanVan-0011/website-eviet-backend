@@ -24,7 +24,6 @@ class SliderResource extends JsonResource
             'is_active' => $this->is_active,
             'link_type' => $this->link_type,
             'combo_id' => $this->combo_id,
-            
             'combo' => new ComboResource($this->whenLoaded('combo')),
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),

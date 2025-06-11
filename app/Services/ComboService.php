@@ -20,24 +20,55 @@ class ComboService
             $keyword = trim((string) $request->input('keyword', ''));
             $isActive = $request->input('is_active'); // bool hoặc null
 
+            $minPrice = $request->input('min_price');
+            $maxPrice = $request->input('max_price');
+        
+            $startDateFrom = $request->input('start_date_from');
+            $startDateTo   = $request->input('start_date_to');
+
+            $endDateFrom   = $request->input('end_date_from');
+            $endDateTo     = $request->input('end_date_to');
+
             $query = Combo::query();
 
             if ($keyword !== '') {
                 $query->where(function ($q) use ($keyword) {
                     $q->where('name', 'like', "%{$keyword}%")
-                        ->orWhere('description', 'like', "%{$keyword}%");
+                        ->orWhere('description', 'like', "%{$keyword}%")
+                        ->orWhere('slug', 'like', "%{$keyword}%");
                 });
             }
 
             if (!is_null($isActive)) {
                 $query->where('is_active', filter_var($isActive, FILTER_VALIDATE_BOOLEAN));
             }
+            // Lọc theo khoảng giá min và max
+            if (!is_null($minPrice)) {
+                $query->where('price', '>=', (float)$minPrice);
+            }
+            if (!is_null($maxPrice)) {
+                $query->where('price', '<=', (float)$maxPrice);
+            }
 
+            // Lọc theo khoảng ngày bắt đầu
+            if ($startDateFrom) {
+                $query->where('start_date', '>=', $startDateFrom);
+            }
+            if ($startDateTo) {
+                $query->where('start_date', '<=', $startDateTo);
+            }
+             // Lọc theo khoảng ngày kết thúc
+        if ($endDateFrom) {
+            $query->where('end_date', '>=', $endDateFrom);
+        }
+        if ($endDateTo) {
+            $query->where('end_date', '<=', $endDateTo);
+        }
             $query->orderBy('created_at', 'desc');
 
             $total = $query->count();
             $offset = ($currentPage - 1) * $perPage;
-            $combos = $query->skip($offset)->take($perPage)->get();
+            $combos = $query->with(['comboItems.product'])->skip($offset)->take($perPage)->get();
 
             $lastPage = (int) ceil($total / $perPage);
             $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;
@@ -62,21 +93,21 @@ class ComboService
 
     public function getComboById(int $id): Combo
     {
-        return Combo::with('items')->findOrFail($id);
+        return Combo::with('items.product')->findOrFail($id);
     }
 
 
     public function createCombo(array $data): Combo
     {
         try {
-             // Tự động tạo slug từ title nếu không có
+            // Tự động tạo slug 
             if (empty($data['slug'])) {
                 $data['slug'] = Str::slug($data['name']);
             }
 
-            // Kiểm tra slug đã tồn tại chưa
+            // Kiểm tra slug trùng
             if (Combo::where('slug', $data['slug'])->exists()) {
-                throw new Exception('Slug đã tồn tại. Vui lòng chọn tiêu đề hoặc slug khác.');
+                throw new Exception('Slug đã tồn tại. Vui lòng chọn tên hoặc slug khác.');
             }
             // Xử lý ảnh nếu có
             if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
@@ -90,23 +121,37 @@ class ComboService
             } else {
                 unset($data['image_url']);
             }
-
-            return Combo::create($data);
+            // Lấy items ra và bỏ khỏi $data trước khi tạo combo
+            $items = $data['items'] ?? [];
+            unset($data['items']);
+            // Tạo combo
+            $combo = Combo::create($data);
+            // Ghi combo_items nếu có
+            foreach ($items as $item) {
+                $combo->items()->create([
+                    'product_id' => $item['product_id'],
+                    'quantity'   => $item['quantity'],
+                ]);
+            }
+            return $combo->load('items.product');
         } catch (QueryException $e) {
             Log::error('Lỗi khi tạo combo: ' . $e->getMessage());
             throw $e;
-        } catch (Exception $e) {
-            Log::error('Lỗi không xác định khi tạo combo: ' . $e->getMessage());
-            throw $e;
         }
     }
-
-
     public function updateCombo(int $id, array $data)
     {
         try {
-            $combo = Combo::findOrFail($id);
-
+            $combo = Combo::with('items')->findOrFail($id);
+            // Tạo lại slug nếu không có
+            if (empty($data['slug'])) {
+                $data['slug'] = Str::slug($data['name']);
+            }
+            // Kiểm tra trùng slug (trừ chính combo đang cập nhật)
+            if (Combo::where('slug', $data['slug'])->where('id', '!=', $id)->exists()) {
+                throw new \Exception('Slug đã tồn tại.');
+            }
+            //Xử lý ảnh
             if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
                 if ($combo->image_url && Storage::disk('public')->exists($combo->image_url)) {
                     Storage::disk('public')->delete($combo->image_url);
@@ -124,12 +169,19 @@ class ComboService
             }
 
             $combo->update($data);
-            return $combo;
+            // Cập nhật combo items nếu có
+            if (!empty($data['items'])) {
+                $combo->items()->delete();
+                foreach ($data['items'] as $item) {
+                    $combo->items()->create([
+                        'product_id' => $item['product_id'],
+                        'quantity'   => $item['quantity'],
+                    ]);
+                }
+            }
+            return $combo->fresh('items.product');
         } catch (QueryException $e) {
             Log::error('Lỗi khi cập nhật combo: ' . $e->getMessage());
-            throw $e;
-        } catch (Exception $e) {
-            Log::error('Lỗi không xác định khi cập nhật combo: ' . $e->getMessage());
             throw $e;
         }
     }

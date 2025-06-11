@@ -24,6 +24,7 @@ class ComboResource extends JsonResource
             'start_date'  => $this->start_date,
             'end_date'    => $this->end_date,
             'is_active'   => $this->is_active,
+            'items_count' => $this->items ? $this->items->count() : 0,
             'items'       => ComboItemResource::collection($this->whenLoaded('items')),
         ];
     }

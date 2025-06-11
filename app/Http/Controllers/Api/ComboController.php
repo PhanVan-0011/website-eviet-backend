@@ -55,7 +55,7 @@ class ComboController extends Controller
         try {
             $combo = $this->comboService->createCombo($request->validated());
             return response()->json([
-                'message' => 'Combo tạo thành công',
+                'message' => 'Tạo combo thành công',
                 'data' => new ComboResource($combo),
             ], 201);
         } catch (\Exception $e) {
@@ -128,7 +128,6 @@ class ComboController extends Controller
                     'message' => 'Combo không tồn tại'
                 ], 404);
             }
-
             return response()->json([
                 'success' => true,
                 'message' => 'Xóa combo thành công'
