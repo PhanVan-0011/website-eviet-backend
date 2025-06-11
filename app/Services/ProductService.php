@@ -133,16 +133,7 @@ class ProductService
      */
     public function getProductById($id)
     {
-        try {
-            $product = Product::with('category')->find($id);
-            if (!$product) {
-                throw new Exception('Sản phẩm không tồn tại');
-            }
-            return $product;
-        } catch (Exception $e) {
-            Log::error('Error retrieving product: ' . $e->getMessage());
-            throw $e;
-        }
+        return Product::with('category')->findOrFail($id);
     }
 
     /**
@@ -254,7 +245,7 @@ class ProductService
      * @return int Số lượng bản ghi đã xóa
      * @throws ModelNotFoundException
      */
-    public function multiDeleteProducts($ids): int
+    public function multiDeleteProducts($ids)
     {
         try {
             $ids = array_map('intval', explode(',', $ids));

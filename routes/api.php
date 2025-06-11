@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ImageController;
+use App\Http\Controllers\Api\ComboController;
+
 
 
 // Route::prefix('auth')->group(function () {
@@ -27,12 +29,22 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('/reset-password-by-phone', 'resetPasswordByPhone');
 });
 //Route Slider
-Route::prefix('sliders')->controller(SliderController::class)->group(function () {
-    Route::post('/', 'store');       // Add
-    Route::put('/{id}', 'update');   // Update
-    Route::delete('/{id}', 'destroy'); // Delete
-    Route::get('/{id}', 'detail');   // Detail
-    Route::get('/', 'index');        // List
+Route::prefix('sliders')->group(function () {
+    Route::get('/', [SliderController::class, 'index']);
+    Route::post('/', [SliderController::class, 'store']);
+    Route::delete('/multi-delete', [SliderController::class, 'multiDelete']);
+    Route::get('/{id}', [SliderController::class, 'show']);
+    Route::post('/{id}', [SliderController::class, 'update']);
+    Route::delete('/{id}', [SliderController::class, 'destroy']);  
+});
+//Route combos
+Route::prefix('combos')->group(function () {
+    Route::get('/', [ComboController::class, 'index']);
+    Route::get('/{id}', [ComboController::class, 'show']);
+    Route::post('/', [ComboController::class, 'store']);
+    Route::post('/{id}', [ComboController::class, 'update']);
+    Route::delete('/{id}', [ComboController::class, 'destroy']);
+    Route::delete('/multi-delete', [ComboController::class, 'multiDelete']);
 });
 //Categories
 Route::prefix('categories')->group(function () {
@@ -62,7 +74,6 @@ Route::prefix('posts')->group(function () {
     Route::delete('/{id}', [PostController::class, 'destroy']);
 });
 
-
 // Auth - Protected
 Route::middleware('auth:sanctum')->controller(AuthController::class)->group(function () {
     Route::post('/logout', 'logout');
@@ -89,7 +100,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/orders/{order}', [OrderController::class, 'destroy']);
      Route::post('/orders/multi-delete', [OrderController::class, 'multiDelete']);
 });
-
 
 // Route hiển thị hình ảnh
 Route::get('images/{path}', [ImageController::class, 'show'])->where('path', '.*');

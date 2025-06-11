@@ -101,7 +101,7 @@ class PostService
      * @return \App\Models\Post
      * @throws ModelNotFoundException
      */
-    public function getPostById($id): Post
+    public function getPostById($id)
     {
         try {
             return Post::with(['categories'])

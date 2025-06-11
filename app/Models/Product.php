@@ -16,4 +16,11 @@ class Product extends Model
     {
         return $this->belongsTo(Category::class, 'category_id');
     }
+    // Quan hệ với bảng combo thông qua bảng combo_items
+    public function combos()
+    {
+        return $this->belongsToMany(Combo::class, 'combo_items')
+            ->withPivot('quantity')
+            ->withTimestamps();
+    }
 }

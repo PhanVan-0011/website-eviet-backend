@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\OrderResource;
 use Illuminate\Support\Facades\Log;
-
 class OrderService
 {
     public function getAllOrders($request)
@@ -28,8 +27,6 @@ class OrderService
             $orderFrom = $request->input('order_from');
             $orderTo = $request->input('order_to');
 
-
-
             // Tạo query cơ bản
             $query = Order::query()
                 ->with(['user', 'orderDetails.product', 'payment']);
@@ -42,7 +39,6 @@ class OrderService
                         });
                 });
             }
-
             // Lọc theo trạng thái đơn hàng
             if (!empty($status)) {
                 $query->where('status', $status);
@@ -53,22 +49,17 @@ class OrderService
                     $q->where('gateway', 'like', "%{$paymentMethod}%");
                 });
             }
-
             // Sắp xếp theo thời gian tạo mới nhất
-            $query->orderBy('id', 'desc');
-
+            $query->orderBy('created_at', 'desc');
             // Tính tổng số bản ghi
             $total = $query->count();
-
             // Phân trang thủ công
             $offset = ($currentPage - 1) * $perPage;
             $orders = $query->skip($offset)->take($perPage)->get();
-
             // Tính phân trang
             $lastPage = (int) ceil($total / $perPage);
             $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;
             $prevPage = $currentPage > 1 ? $currentPage - 1 : null;
-
             // Trả kết quả
             return [
                 'data' => $orders,
@@ -86,11 +77,9 @@ class OrderService
     public function getOrderById(int $id)
     {
         $order = Order::with(['user', 'orderDetails.product', 'payment'])->find($id);
-
         if (!$order) {
             throw new \Exception("Đơn hàng không tồn tại.");
         }
-
         return $order;
     }
     /**
@@ -98,7 +87,6 @@ class OrderService
      */
     public function createOrder(array $data, User $user)
     {
-
         //Bắt đầu transaction để đảm bảo tính toàn vẹn dữ liệu
         try {
             return DB::transaction(function () use ($data, $user) {
@@ -113,7 +101,6 @@ class OrderService
                     'cancelled_at' => null,
                     'user_id' => $user->id,
                 ]);
-
                 // Thêm chi tiết đơn hàng
                 foreach ($data['order_details'] as $detailData) {
                     $product = Product::findOrFail($detailData['product_id']);
@@ -157,7 +144,6 @@ class OrderService
             throw $e;
         }
     }
-
     /**
      * Cập nhật thông tin đơn hàng
      */
@@ -264,12 +250,10 @@ class OrderService
                         Log::warning("Không tìm thấy sản phẩm ID {$detail->product_id} khi hoàn tồn kho. Bỏ qua.");
                     }
                 }
-
                 // Xoá payment nếu có
                 if ($order->payment) {
                     $order->payment->delete();
                 }
-
                 // Xoá chi tiết đơn hàng
                 $order->orderDetails()->delete();
 

@@ -63,20 +63,13 @@ class ProductController extends Controller
     {
         try {
             $data = $request->validated();
-            // Không xử lý upload file ảnh ở controller, chỉ truyền file gốc vào service
             $product = $this->productService->createProduct($data);
             return response()->json([
                 'success' => true,
                 'data' => new ProductResource($product),
                 'message' => 'Tạo sản phẩm thành công'
             ], 201);
-        } catch (QueryException $e) {
-            Log::error('Error creating product: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Tên sản phẩm đã tồn tại',
-            ], 409);
-        } catch (Exception $e) {
+        }catch (Exception $e) {
             Log::error('Unexpected error creating product: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
@@ -141,12 +134,6 @@ class ProductController extends Controller
                 'success' => false,
                 'message' => 'Không tìm thấy sản phẩm',
             ], 404);
-        } catch (QueryException $e) {
-            Log::error('Error updating product: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Tên sản phẩm đã tồn tại',
-            ], 409);
         } catch (Exception $e) {
             Log::error('Unexpected error updating product: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
