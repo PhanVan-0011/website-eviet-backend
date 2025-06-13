@@ -48,25 +48,6 @@ class ComboController extends Controller
             ], 500);
         }
     }
-
-    // Tạo combo mới
-    public function store(StoreComboRequest $request)
-    {
-        try {
-            $combo = $this->comboService->createCombo($request->validated());
-            return response()->json([
-                'message' => 'Tạo combo thành công',
-                'data' => new ComboResource($combo),
-            ], 201);
-        } catch (\Exception $e) {
-            Log::error('Lỗi tạo combo: ' . $e->getMessage());
-            return response()->json([
-                'message' => 'Lỗi khi tạo combo',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
     // Xem chi tiết combo
     public function show(int $id)
     {
@@ -89,14 +70,28 @@ class ComboController extends Controller
             ], 500);
         }
     }
-
+    // Tạo combo mới
+    public function store(StoreComboRequest $request)
+    {
+        try {
+            $combo = $this->comboService->createCombo($request->validated());
+            return response()->json([
+                'message' => 'Tạo combo thành công',
+                'data' => new ComboResource($combo),
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Lỗi tạo combo: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Lỗi khi tạo combo',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
     // Cập nhật combo
     public function update(UpdateComboRequest $request, int $id)
     {
         try {
-            $this->comboService->getComboById($id); // kiểm tra tồn tại
             $combo = $this->comboService->updateCombo($id, $request->all());
-
             return response()->json([
                 'success' => true,
                 'message' => 'Cập nhật combo thành công',

@@ -7,9 +7,12 @@ use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
-use App\Http\Requests\Api\Order\StoreOrderRequest;  // Fix: Update namespace
+use App\Http\Requests\Api\Order\StoreOrderRequest; 
 use App\Http\Requests\Api\Order\UpdateOrderRequest;
+use App\Http\Requests\Api\Order\UpdatePaymentStatusRequest;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Http\JsonResponse;
 
 class OrderController extends Controller
 {
@@ -41,25 +44,27 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    public function show($id)
+    public function show(int $id): JsonResponse
     {
         try {
-            $order = $this->orderService->getOrderById((int) $id);
+            $order = $this->orderService->getOrderById($id);
             return response()->json([
                 'success' => true,
+                'message' => "Lấy chi tiết đơn hàng thành công.",
                 'data' => new OrderResource($order),
-            ], 200);
-        } catch (\Exception $e) {
-            if ($e->getMessage() === "Đơn hàng không tồn tại.") {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage(),
-                ], 404);
-            }
+            ]);
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Đã xảy ra lỗi khi lấy chi tiết đơn hàng.',
-                'error' => $e->getMessage(),
+                'message' => "Đơn hàng với ID {$id} không tồn tại.",
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi lấy chi tiết đơn hàng #{$id}: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Đã có lỗi xảy ra, không thể lấy chi tiết đơn hàng.',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -79,23 +84,20 @@ class OrderController extends Controller
             ], 400);
         }
     }
-    public function update(UpdateOrderRequest $request, $id)
+    public function updateStatus(UpdateOrderRequest $request, Order $order)
     {
         try {
-            $order = Order::findOrFail($id);
-            $updatedOrder = $this->orderService->updateOrder($order, $request->validated());
+            $updatedOrder = $this->orderService->updateOrder(
+                $order,
+                $request->validated()
+            );
             return response()->json([
                 'success' => true,
-                'message' => 'Cập nhật đơn hàng thành công',
-                'data' => new OrderResource($updatedOrder)
+                'message' => 'Cập nhật đơn hàng thành công.',
+                'data' => new OrderResource($updatedOrder),
             ]);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => "Đơn hàng không tồn tại",
-                'error' => $e->getMessage()
-            ], 404);
         } catch (\Exception $e) {
+            Log::error("Lỗi khi cập nhật đơn hàng #{$order->id}: " . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Cập nhật đơn hàng thất bại',
@@ -103,53 +105,21 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    public function destroy($id)
+    public function updatePaymentStatus(UpdatePaymentStatusRequest $request, Order $order): JsonResponse
     {
         try {
-            // Tìm đơn hàng kèm các mối quan hệ cần thiết
-            $order = Order::with(['orderDetails', 'payment'])->find($id);
-            if (!$order) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Đơn hàng không tồn tại hoặc đã bị xóa.'
-                ], 404);
-            }
-            // Gọi service để xóa
-            $this->orderService->deleteOrder($order);
+            $updatedOrder = $this->orderService->updateOrderPaymentStatus($order, $request->validated());
+
             return response()->json([
                 'success' => true,
-                'message' => 'Đã xóa đơn hàng thành công.'
-            ], 200);
+                'message' => 'Cập nhật trạng thái thanh toán thành công.',
+                'data' => new OrderResource($updatedOrder),
+            ]);
         } catch (\Exception $e) {
+            Log::error("Lỗi khi cập nhật trạng thái thanh toán cho đơn hàng #{$order->id}: " . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Đã xảy ra lỗi khi xóa đơn hàng.',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-    public function multiDelete(Request $request)
-    {
-        $idsString = $request->query('ids');
-        $orderIds = array_filter(array_map('intval', explode(',', $idsString)));
-        // Kiểm tra đơn hàng còn tồn tại trong DB
-        $existingOrders = Order::whereIn('id', $orderIds)->pluck('id')->toArray();
-        if (empty($existingOrders)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Đơn hàng không tồn tại hoặc đã bị xóa.',
-            ], 404);
-        }
-        try {
-            $this->orderService->deleteMultipleOrders($orderIds);
-            return response()->json([
-                'success' => true,
-                'message' => 'Đã xóa đơn hàng thành công.'
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Đã xảy ra lỗi khi xóa các đơn hàng.',
-                'error' => $e->getMessage(),
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

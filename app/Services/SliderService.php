@@ -176,7 +176,6 @@ class SliderService
             if ($slider->image_url && Storage::disk('public')->exists($slider->image_url)) {
                 Storage::disk('public')->delete($slider->image_url);
             }
-
             return $slider->delete();
         } catch (ModelNotFoundException $e) {
             Log::warning("Slider ID {$id} không tồn tại.");

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class OrderDetail extends Model
 {
     use HasFactory;
-    protected $fillable = ['order_id', 'product_id', 'quantity', 'unit_price'];
+    protected $fillable = ['order_id', 'product_id', 'combo_id','quantity', 'unit_price'];
     protected $casts = [
         'unit_price' => 'decimal:2',
         'quantity' => 'integer',
@@ -18,9 +18,14 @@ class OrderDetail extends Model
     {
         return $this->belongsTo(Order::class);
     }
-     // Mối quan hệ với Product (bảng products)
-     public function product()
-     {
-         return $this->belongsTo(Product::class);
-     }
+    // Mối quan hệ với Product (bảng products)
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+    // Mối qua hệ với combo (Bảng combo)
+    public function combo()
+    {
+        return $this->belongsTo(Combo::class);
+    }
 }

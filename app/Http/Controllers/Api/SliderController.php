@@ -94,9 +94,6 @@ class SliderController extends Controller
     public function update(UpdateSliderRequest $request, int $id)
     {
         try {
-            // Kiểm tra tồn tại trước
-            $this->sliderService->getSliderById($id);
-            // Sử dụng all() thay vì validated() để giữ nguyên file ảnh
             $slider = $this->sliderService->updateSlider($id, $request->all());
 
             return response()->json([
