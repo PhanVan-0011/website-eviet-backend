@@ -10,9 +10,11 @@ use Illuminate\Http\Request;
 use App\Http\Requests\Api\Order\StoreOrderRequest; 
 use App\Http\Requests\Api\Order\UpdateOrderRequest;
 use App\Http\Requests\Api\Order\UpdatePaymentStatusRequest;
+use App\Http\Requests\Api\Order\MultiDeleteOrderRequest;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\JsonResponse;
+use App\Http\Requests\Api\Order\MultiCancelOrderRequest;
 
 class OrderController extends Controller
 {
@@ -105,11 +107,10 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    public function updatePaymentStatus(UpdatePaymentStatusRequest $request, Order $order): JsonResponse
+    public function updatePaymentStatus(UpdatePaymentStatusRequest $request, Order $order)
     {
         try {
             $updatedOrder = $this->orderService->updateOrderPaymentStatus($order, $request->validated());
-
             return response()->json([
                 'success' => true,
                 'message' => 'Cập nhật trạng thái thanh toán thành công.',
@@ -121,6 +122,29 @@ class OrderController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    public function multiCancel(MultiDeleteOrderRequest $request){
+        try {
+            
+            $result = $this->orderService->multiCancel($request->validated()['order_ids']);
+            $successCount = $result['success_count'];
+            $failedCount = count($result['failed_orders']);
+            $message = "Đã hủy thành công {$successCount} đơn hàng.";
+            if ($failedCount > 0) { $message .= " Thất bại {$failedCount} đơn hàng."; }
+
+            return response()->json([
+                'success' => true, 'message' => $message,
+                'details' => [
+                    'success_count' => $successCount,
+                    'failed_count' => $failedCount,
+                    'failed_orders' => $result['failed_orders']
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi hủy nhiều đơn hàng: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Đã có lỗi xảy ra trong quá trình xử lý.'], 500);
         }
     }
 }

@@ -91,13 +91,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 });
-// Orders Routes
+// Orders
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/orders/multi-cancel', [OrderController::class, 'multiCancel']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::post('/orders', [OrderController::class, 'store']);
     Route::put('/orders/{order}/status', [OrderController::class, 'update']);
     Route::put('/orders/{order}/payment-status', [OrderController::class, 'updatePaymentStatus']);
+    
 });
 
 // Route hiển thị hình ảnh

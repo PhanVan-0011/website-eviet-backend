@@ -16,27 +16,33 @@ class MultiDeleteOrderRequest extends FormRequest
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            'ids' => 'required|array|min:1',
-            'ids.*' => 'integer|exists:orders,id',
+            'ids' => ['required', 'string'],
+            'order_ids' => ['required', 'array', 'min:1'],
+            'order_ids.*' => ['integer', 'exists:orders,id'],
         ];
     }
      public function messages(): array
     {
         return [
-            'ids.required' => 'Danh sách ID đơn hàng là bắt buộc',
-            'ids.array' => 'Danh sách ID phải là mảng',
-            'ids.min' => 'Phải chọn ít nhất một ID để xóa',
-            'ids.*.integer' => 'ID phải là số nguyên',
-            'ids.*.exists' => 'Đơn hàng với ID :input không tồn tại',
+            'ids.required' => 'Vui lòng cung cấp danh sách ID đơn hàng trong URL',
+            'order_ids.required' => 'Vui lòng chọn ít nhất một đơn hàng để hủy.',
+            'order_ids.*.exists' => 'Một hoặc nhiều ID đơn hàng không tồn tại trong hệ thống.',
         ];
+    }
+    protected function prepareForValidation(): void
+    {
+        if ($this->query('ids')) {
+            $idsArray = explode(',', $this->query('ids'));
+            $filteredIds = array_filter($idsArray);
+            $sanitizedIds = array_map('intval', $filteredIds);
+
+            $this->merge([
+                'order_ids' => $sanitizedIds
+            ]);
+        }
     }
     protected function failedValidation(Validator $validator)
     {
