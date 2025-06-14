@@ -266,18 +266,28 @@ class OrderService
 
         // Load lại quan hệ để trả về dữ liệu mới nhất
         return $order->fresh('payment.method');
-    }
-
-    public function multiCancel(array $orderIds): array
+    }   
+     public function cancelMultipleOrders(array $orderIds): array
     {
         $cancelledCount = 0;
         $failedOrders = [];
 
-        $ordersToCancel = Order::with('orderDetails')->whereIn('id', $orderIds)->get();
+        // Lấy tất cả các đơn hàng và thông tin thanh toán liên quan để kiểm tra
+        $ordersToProcess = Order::with(['orderDetails', 'payment'])->whereIn('id', $orderIds)->get();
 
-        // Duyệt qua từng đơn hàng để xử lý riêng lẻ
-        foreach ($ordersToCancel as $order) {
-            // cho một đơn hàng phải thành công cùng nhau.
+        foreach ($ordersToProcess as $order) {
+            // Kiểm tra trạng thái vận hành
+            if (in_array($order->status, ['delivered', 'cancelled'])) {
+                $failedOrders[] = ['id' => $order->id, 'order_code' => $order->order_code, 'reason' => "Đơn hàng đã ở trạng thái '{$order->status}'."];
+                continue; // Bỏ qua và xử lý đơn hàng tiếp theo
+            }
+
+            // Kiểm tra trạng thái tài chính
+            if ($order->payment && $order->payment->status === 'success') {
+                $failedOrders[] = ['id' => $order->id, 'order_code' => $order->order_code, 'reason' => "Đơn hàng đã được thanh toán, cần xử lý hoàn tiền riêng."];
+                continue; // Bỏ qua và xử lý đơn hàng tiếp theo
+            }
+
             DB::beginTransaction();
             try {
                 // Kiểm tra nghiệp vụ: Chỉ hủy các đơn hàng chưa ở trạng thái cuối cùng
@@ -303,12 +313,9 @@ class OrderService
             } catch (\Exception $e) {
                 // tất cả các thay đổi cho đơn hàng NÀY sẽ bị hoàn tác (rollback).
                 DB::rollBack();
-                // Ghi nhận đơn hàng bị lỗi vào danh sách để báo cáo lại cho người dùng.
                 $failedOrders[] = ['id' => $order->id, 'order_code' => $order->order_code, 'reason' => $e->getMessage()];
             }
         }
-
-        // Trả về một mảng kết quả tổng hợp
         return [
             'success_count' => $cancelledCount,
             'failed_orders' => $failedOrders

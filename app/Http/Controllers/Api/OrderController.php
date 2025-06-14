@@ -125,11 +125,10 @@ class OrderController extends Controller
         }
     }
 
-    public function multiCancel(MultiDeleteOrderRequest $request)
-    {
+    public function multiCancel(MultiDeleteOrderRequest $request){
         try {
-
-            $result = $this->orderService->multiCancel($request->validated()['order_ids']);
+            
+            $result = $this->orderService->cancelMultipleOrders($request->validated()['order_ids']);
             $successCount = $result['success_count'];
             $failedCount = count($result['failed_orders']);
             $message = "Đã hủy thành công {$successCount} đơn hàng.";
