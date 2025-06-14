@@ -14,7 +14,7 @@ class ComboResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-       return [
+        return [
             'id'          => $this->id,
             'name'        => $this->name,
             'description' => $this->description,
@@ -24,6 +24,8 @@ class ComboResource extends JsonResource
             'start_date'  => $this->start_date,
             'end_date'    => $this->end_date,
             'is_active'   => $this->is_active,
+            'created_at'  => $this->created_at,
+            'updated_at'  => $this->updated_at,
             'items_count' => $this->items ? $this->items->count() : 0,
             'items'       => ComboItemResource::collection($this->whenLoaded('items')),
         ];

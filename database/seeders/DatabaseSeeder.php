@@ -34,6 +34,8 @@ class DatabaseSeeder extends Seeder
             SliderSeeder::class,
             PostSeeder::class,
             OrderSeeder::class,
+            ComboSeeder::class,
+            ComboItemSeeder::class,
         ]);
 
         // Tạo 5 người dùng

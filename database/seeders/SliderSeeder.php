@@ -45,4 +45,4 @@ class SliderSeeder extends Seeder
             ],
         ]);
     }
-} 
+}

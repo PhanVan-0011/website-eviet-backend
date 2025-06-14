@@ -22,7 +22,7 @@ class ComboService
 
             $minPrice = $request->input('min_price');
             $maxPrice = $request->input('max_price');
-        
+
             $startDateFrom = $request->input('start_date_from');
             $startDateTo   = $request->input('start_date_to');
 
@@ -57,18 +57,18 @@ class ComboService
             if ($startDateTo) {
                 $query->where('start_date', '<=', $startDateTo);
             }
-             // Lọc theo khoảng ngày kết thúc
-        if ($endDateFrom) {
-            $query->where('end_date', '>=', $endDateFrom);
-        }
-        if ($endDateTo) {
-            $query->where('end_date', '<=', $endDateTo);
-        }
+            // Lọc theo khoảng ngày kết thúc
+            if ($endDateFrom) {
+                $query->where('end_date', '>=', $endDateFrom);
+            }
+            if ($endDateTo) {
+                $query->where('end_date', '<=', $endDateTo);
+            }
             $query->orderBy('created_at', 'desc');
 
             $total = $query->count();
             $offset = ($currentPage - 1) * $perPage;
-            $combos = $query->with(['comboItems.product'])->skip($offset)->take($perPage)->get();
+            $combos = $query->with(['items.product'])->skip($offset)->take($perPage)->get();
 
             $lastPage = (int) ceil($total / $perPage);
             $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;

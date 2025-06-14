@@ -78,10 +78,12 @@ class ComboController extends Controller
             return response()->json([
                 'message' => 'Tạo combo thành công',
                 'data' => new ComboResource($combo),
+                'success' => true,
             ], 201);
         } catch (\Exception $e) {
             Log::error('Lỗi tạo combo: ' . $e->getMessage());
             return response()->json([
+                'success' => false,
                 'message' => 'Lỗi khi tạo combo',
                 'error' => $e->getMessage()
             ], 500);
@@ -103,11 +105,38 @@ class ComboController extends Controller
                 'message' => 'Combo không tồn tại',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Lỗi cập nhật combo: ' . $e->getMessage());
+            // Cách 1: Hiển thị toàn bộ exception
+            dd($e);
+
+            // Cách 2: Hiển thị thông tin chi tiết
+            // dd([
+            //     'message' => $e->getMessage(),
+            //     'file' => $e->getFile(),
+            //     'line' => $e->getLine(),
+            //     'trace' => $e->getTraceAsString(),
+            //     'code' => $e->getCode(),
+            //     'previous' => $e->getPrevious()
+            // ]);
+
+            // Cách 3: Hiển thị request data
+            // dd([
+            //     'request_data' => $request->all(),
+            //     'error' => $e->getMessage()
+            // ]);
+
+            Log::error('Lỗi cập nhật combo: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi cập nhật combo',
-                'error' => $e->getMessage()
+                'error' => [
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]
             ], 500);
         }
     }
