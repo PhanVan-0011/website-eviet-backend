@@ -79,6 +79,9 @@ class OrderService
             throw $e;
         }
     }
+    /**
+     *   Lấy thông tin chi tiết của một đơn hàng theo ID
+     */
     public function getOrderById(int $id)
     {
          return Order::with([

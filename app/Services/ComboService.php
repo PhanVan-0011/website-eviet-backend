@@ -68,7 +68,7 @@ class ComboService
 
             $total = $query->count();
             $offset = ($currentPage - 1) * $perPage;
-            $combos = $query->with(['comboItems.product'])->skip($offset)->take($perPage)->get();
+            $combos = $query->with(['items.product'])->skip($offset)->take($perPage)->get();
 
             $lastPage = (int) ceil($total / $perPage);
             $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;
