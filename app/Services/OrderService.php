@@ -31,11 +31,11 @@ class OrderService
                 $keyword = $request->input('keyword');
                 $query->where(function ($q) use ($keyword) {
                     $q->where('order_code', 'like', "%{$keyword}%")
-                    ->orWhere('client_name', 'like', "%{$keyword}%")
-                    ->orWhere('client_phone', 'like', "%{$keyword}%")
-                    ->orWhereHas('user', function ($uq) use ($keyword) {
-                        $uq->where('email', 'like', "%{$keyword}%");
-                    });
+                        ->orWhere('client_name', 'like', "%{$keyword}%")
+                        ->orWhere('client_phone', 'like', "%{$keyword}%")
+                        ->orWhereHas('user', function ($uq) use ($keyword) {
+                            $uq->where('email', 'like', "%{$keyword}%");
+                        });
                 });
             }
             // Lọc theo trạng thái đơn hàng
@@ -48,7 +48,7 @@ class OrderService
                     $q->where('code', $request->input('payment_method_code'));
                 });
             }
-             // Lọc theo khoảng thời gian
+            // Lọc theo khoảng thời gian
             if ($request->filled('start_date')) {
                 $query->whereDate('order_date', '>=', $request->input('start_date'));
             }
@@ -79,12 +79,15 @@ class OrderService
             throw $e;
         }
     }
+    /**
+     *   Lấy thông tin chi tiết của một đơn hàng theo ID
+     */
     public function getOrderById(int $id)
     {
-         return Order::with([
+        return Order::with([
             'orderDetails.product',
-            'payment.method',       
-            'user'                  
+            'payment.method',
+            'user'
         ])->findOrFail($id);
     }
     /**
@@ -235,7 +238,7 @@ class OrderService
             return $order;
         });
     }
-      public function updateOrderPaymentStatus(Order $order, array $data)
+    public function updateOrderPaymentStatus(Order $order, array $data)
     {
         $payment = $order->payment()->first();
 
@@ -243,7 +246,7 @@ class OrderService
         if (!$payment) {
             throw new \Exception("Đơn hàng này không có thông tin thanh toán để cập nhật.");
         }
-        
+
         // Kiểm tra logic nghiệp vụ: không cho cập nhật lại khi đã thành công
         if ($payment->status === 'success') {
             throw new \Exception("Thanh toán này đã được xác nhận thành công trước đó.");
@@ -263,5 +266,53 @@ class OrderService
 
         // Load lại quan hệ để trả về dữ liệu mới nhất
         return $order->fresh('payment.method');
+    }
+    
+     public function multiCancel(array $orderIds): array
+    {
+        $cancelledCount = 0;
+        $failedOrders = [];
+
+        $ordersToCancel = Order::with('orderDetails')->whereIn('id', $orderIds)->get();
+
+        // Duyệt qua từng đơn hàng để xử lý riêng lẻ
+        foreach ($ordersToCancel as $order) {
+            // cho một đơn hàng phải thành công cùng nhau.
+            DB::beginTransaction();
+            try {
+                // Kiểm tra nghiệp vụ: Chỉ hủy các đơn hàng chưa ở trạng thái cuối cùng
+                if (!in_array($order->status, ['delivered', 'cancelled'])) {
+                    
+                    //Cập nhật trạng thái đơn hàng
+                    $order->status = 'cancelled';
+                    $order->cancelled_at = now();
+                    $order->save();
+
+                    //Cộng trả lại tồn kho
+                    foreach ($order->orderDetails as $detail) {
+                        Product::find($detail->product_id)->increment('stock_quantity', $detail->quantity);
+                    } 
+                    // Nếu cả 2 hành động trên đều thành công, lưu lại thay đổi vào CSDL
+                    DB::commit();
+                    $cancelledCount++;
+
+                } else {
+                    // Nếu đơn hàng không đủ điều kiện để hủy, ghi nhận vào danh sách lỗi.
+                    $failedOrders[] = ['id' => $order->id, 'order_code' => $order->order_code, 'reason' => "Đơn hàng đã ở trạng thái '{$order->status}'."];
+                    DB::rollBack();
+                }
+            } catch (\Exception $e) { 
+                // tất cả các thay đổi cho đơn hàng NÀY sẽ bị hoàn tác (rollback).
+                DB::rollBack();
+                // Ghi nhận đơn hàng bị lỗi vào danh sách để báo cáo lại cho người dùng.
+                $failedOrders[] = ['id' => $order->id, 'order_code' => $order->order_code, 'reason' => $e->getMessage()];
+            }
+        }
+        
+        // Trả về một mảng kết quả tổng hợp
+        return [
+            'success_count' => $cancelledCount,
+            'failed_orders' => $failedOrders
+        ];
     }
 }

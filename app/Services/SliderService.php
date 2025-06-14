@@ -20,7 +20,7 @@ class SliderService
             $currentPage = max(1, (int) $request->input('page', 1));
             $keyword = trim((string) $request->input('keyword', ''));
             $isActive = $request->input('is_active'); // bool hoặc null
-            $linkType = $request->input('link_type'); // string hoặc null
+            $linkableType = $request->input('linkable_type');
 
             // 2. Khởi tạo query
             $query = Slider::query();
@@ -39,8 +39,11 @@ class SliderService
             }
 
             // 5. Lọc theo loại liên kết
-            if (!empty($linkType)) {
-                $query->where('link_type', $linkType);
+            if (!empty($linkableType)) {
+                $modelClass = $this->mapLinkableTypeToModelClass($linkableType);
+                if ($modelClass) {
+                    $query->where('linkable_type', $modelClass);
+                }
             }
 
             // 6. Sắp xếp
@@ -51,16 +54,15 @@ class SliderService
 
             // 8. Phân trang thủ công
             $offset = ($currentPage - 1) * $perPage;
-            $sliders = $query->with('combo')->skip($offset)->take($perPage)->get([
+            $sliders = $query->with('linkable')->skip($offset)->take($perPage)->get([
                 'id',
                 'title',
                 'description',
                 'image_url',
-                'link_url',
                 'display_order',
                 'is_active',
-                'link_type',
-                'combo_id',
+                'linkable_id',
+                'linkable_type',
                 'created_at',
                 'updated_at',
 
@@ -90,7 +92,7 @@ class SliderService
 
     public function getSliderById(int $id): Slider
     {
-        return Slider::with('combo')->findOrFail($id);
+      return Slider::with('linkable')->findOrFail($id);
     }
 
     public function createSlider(array $data): Slider
@@ -110,14 +112,14 @@ class SliderService
             } else {
                 unset($data['image_url']);
             }
-            // Gán combo_id nếu có
-            if (empty($data['combo_id'])) {
-                unset($data['combo_id']); // Không ghi đè nếu không truyền
+            // Ánh xạ linkable_type sang tên Model đầy đủ
+            if (isset($data['linkable_type'])) {
+                $data['linkable_type'] = $this->mapLinkableTypeToModelClass($data['linkable_type']);
             }
             // Tạo mới slider
             $slider = Slider::create($data);
-            // Load combo nếu có
-            return $slider->load('combo');
+            // Load quan hệ đa hình sau khi cập nhật
+            return $slider->load('linkable');
         } catch (QueryException $e) {
             Log::error('Error creating product: ' . $e->getMessage());
             throw $e;
@@ -149,16 +151,14 @@ class SliderService
                 // Nếu không có file mới, loại bỏ key để không ghi đè
                 unset($data['image_url']);
             }
-            // Gán combo_id nếu có
-            if (empty($data['combo_id'])) {
-                unset($data['combo_id']); // Không ghi đè nếu không truyền
+            // Ánh xạ linkable_type sang tên Model đầy đủ nếu có
+            if (isset($data['linkable_type'])) {
+                $data['linkable_type'] = $this->mapLinkableTypeToModelClass($data['linkable_type']);
             }
 
-        // Cập nhật dữ liệu
-        $slider->update($data);
-        // Load combo chi tiết sau khi update
-        return $slider->load('combo');
+            $slider->update($data);
 
+             return $slider->load('linkable');
         } catch (QueryException $e) {
             Log::error('Lỗi khi cập nhật slider: ' . $e->getMessage());
             throw $e;
@@ -187,16 +187,16 @@ class SliderService
     }
     public function deleteMultiple($ids)
     {
-         $ids = array_map('intval', explode(',', $ids));
-         $sliders = Slider::whereIn('id', $ids)->get();
+        $ids = array_map('intval', explode(',', $ids));
+        $sliders = Slider::whereIn('id', $ids)->get();
 
-            $existingIds = Slider::whereIn('id', $ids)->pluck('id')->toArray();
-            $nonExistingIds = array_diff($ids, $existingIds);
+        $existingIds = Slider::whereIn('id', $ids)->pluck('id')->toArray();
+        $nonExistingIds = array_diff($ids, $existingIds);
 
-            if (!empty($nonExistingIds)) {
-                Log::error('IDs not found for deletion: ' . implode(',', $nonExistingIds));
-                throw new ModelNotFoundException('ID cần xóa không tồn tại trong hệ thống');
-            }
+        if (!empty($nonExistingIds)) {
+            Log::error('IDs not found for deletion: ' . implode(',', $nonExistingIds));
+            throw new ModelNotFoundException('ID cần xóa không tồn tại trong hệ thống');
+        }
         $deletedCount = 0;
         $sliders = Slider::whereIn('id', $ids)->get();
 
@@ -214,5 +214,17 @@ class SliderService
             }
         }
         return $deletedCount;
+    }
+    private function mapLinkableTypeToModelClass(?string $type): ?string
+    {
+        if (!$type) return null;
+
+        $map = [
+            'product' => \App\Models\Product::class,
+            'combo' => \App\Models\Combo::class,
+            'post' => \App\Models\Post::class,
+        ];
+
+        return $map[$type] ?? null;
     }
 }

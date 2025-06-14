@@ -94,7 +94,7 @@ class SliderController extends Controller
     public function update(UpdateSliderRequest $request, int $id)
     {
         try {
-            $slider = $this->sliderService->updateSlider($id, $request->all());
+           $slider = $this->sliderService->updateSlider($id, $request->validated());
 
             return response()->json([
                 'success' => true,
