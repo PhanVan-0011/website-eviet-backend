@@ -38,10 +38,10 @@ class StoreSliderRequest extends FormRequest
             'display_order' => 'sometimes|integer|unique:sliders,display_order',
             'is_active' => 'sometimes|boolean',
             'linkable_type' => [
-                    'required',
-                    'string',
-                    Rule::in(['product', 'combo', 'post']), 
-                ],
+                'required',
+                'string',
+                Rule::in(['product', 'combo', 'post']),
+            ],
             'linkable_id' => [
                 'required',
                 'integer',
@@ -76,6 +76,7 @@ class StoreSliderRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'success' => false,
+            'message' => $validator->errors()->first(),
             'errors' => $validator->errors(),
         ], 422));
     }

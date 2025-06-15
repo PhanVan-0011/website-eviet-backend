@@ -7,7 +7,7 @@ use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
-use App\Http\Requests\Api\Order\StoreOrderRequest; 
+use App\Http\Requests\Api\Order\StoreOrderRequest;
 use App\Http\Requests\Api\Order\UpdateOrderRequest;
 use App\Http\Requests\Api\Order\UpdatePaymentStatusRequest;
 use App\Http\Requests\Api\Order\MultiDeleteOrderRequest;
@@ -125,17 +125,21 @@ class OrderController extends Controller
         }
     }
 
-    public function multiCancel(MultiDeleteOrderRequest $request){
+    public function multiCancel(MultiDeleteOrderRequest $request)
+    {
         try {
-            
+
             $result = $this->orderService->multiCancel($request->validated()['order_ids']);
             $successCount = $result['success_count'];
             $failedCount = count($result['failed_orders']);
             $message = "Đã hủy thành công {$successCount} đơn hàng.";
-            if ($failedCount > 0) { $message .= " Thất bại {$failedCount} đơn hàng."; }
+            if ($failedCount > 0) {
+                $message .= " Thất bại {$failedCount} đơn hàng.";
+            }
 
             return response()->json([
-                'success' => true, 'message' => $message,
+                'success' => true,
+                'message' => $message,
                 'details' => [
                     'success_count' => $successCount,
                     'failed_count' => $failedCount,

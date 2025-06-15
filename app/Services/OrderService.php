@@ -267,8 +267,8 @@ class OrderService
         // Load lại quan hệ để trả về dữ liệu mới nhất
         return $order->fresh('payment.method');
     }
-    
-     public function multiCancel(array $orderIds): array
+
+    public function multiCancel(array $orderIds): array
     {
         $cancelledCount = 0;
         $failedOrders = [];
@@ -282,7 +282,7 @@ class OrderService
             try {
                 // Kiểm tra nghiệp vụ: Chỉ hủy các đơn hàng chưa ở trạng thái cuối cùng
                 if (!in_array($order->status, ['delivered', 'cancelled'])) {
-                    
+
                     //Cập nhật trạng thái đơn hàng
                     $order->status = 'cancelled';
                     $order->cancelled_at = now();
@@ -291,24 +291,23 @@ class OrderService
                     //Cộng trả lại tồn kho
                     foreach ($order->orderDetails as $detail) {
                         Product::find($detail->product_id)->increment('stock_quantity', $detail->quantity);
-                    } 
+                    }
                     // Nếu cả 2 hành động trên đều thành công, lưu lại thay đổi vào CSDL
                     DB::commit();
                     $cancelledCount++;
-
                 } else {
                     // Nếu đơn hàng không đủ điều kiện để hủy, ghi nhận vào danh sách lỗi.
                     $failedOrders[] = ['id' => $order->id, 'order_code' => $order->order_code, 'reason' => "Đơn hàng đã ở trạng thái '{$order->status}'."];
                     DB::rollBack();
                 }
-            } catch (\Exception $e) { 
+            } catch (\Exception $e) {
                 // tất cả các thay đổi cho đơn hàng NÀY sẽ bị hoàn tác (rollback).
                 DB::rollBack();
                 // Ghi nhận đơn hàng bị lỗi vào danh sách để báo cáo lại cho người dùng.
                 $failedOrders[] = ['id' => $order->id, 'order_code' => $order->order_code, 'reason' => $e->getMessage()];
             }
         }
-        
+
         // Trả về một mảng kết quả tổng hợp
         return [
             'success_count' => $cancelledCount,

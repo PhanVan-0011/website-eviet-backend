@@ -35,7 +35,7 @@ Route::prefix('sliders')->group(function () {
     Route::delete('/multi-delete', [SliderController::class, 'multiDelete']);
     Route::get('/{id}', [SliderController::class, 'show']);
     Route::post('/{id}', [SliderController::class, 'update']);
-    Route::delete('/{id}', [SliderController::class, 'destroy']);  
+    Route::delete('/{id}', [SliderController::class, 'destroy']);
 });
 //Route combos
 Route::middleware('auth:sanctum')->prefix('combos')->group(function () {
@@ -97,9 +97,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders/multi-cancel', [OrderController::class, 'multiCancel']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::post('/orders', [OrderController::class, 'store']);
-    Route::put('/orders/{order}/status', [OrderController::class, 'update']);
+    Route::put('/orders/{order}/status', [OrderController::class, 'updateStatus']);
     Route::put('/orders/{order}/payment-status', [OrderController::class, 'updatePaymentStatus']);
-    
 });
 
 // Route hiển thị hình ảnh

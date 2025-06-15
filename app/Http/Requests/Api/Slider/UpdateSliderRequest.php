@@ -35,7 +35,7 @@ class UpdateSliderRequest extends FormRequest
             default => null,
         };
 
-        $sliderId = $this->route('id'); 
+        $sliderId = $this->route('id');
         return [
             'title' => 'sometimes|required|string|max:200',
             'description' => 'sometimes|nullable|string|max:255',
@@ -45,19 +45,19 @@ class UpdateSliderRequest extends FormRequest
                 'required',
                 'integer',
                 // Bỏ qua slider hiện tại khi kiểm tra unique
-               Rule::unique('sliders')->ignore($sliderId),
+                Rule::unique('sliders')->ignore($sliderId),
             ],
             'is_active' => 'sometimes|boolean',
 
             'linkable_type' => [
                 'sometimes',
-                'required', 
+                'required',
                 'string',
                 Rule::in(['product', 'combo', 'post']),
             ],
             'linkable_id' => [
                 'sometimes',
-                'required_with:linkable_type', 
+                'required_with:linkable_type',
                 'integer',
                 // Rule 'exists' sẽ kiểm tra ID trong bảng tương ứng
                 $tableName ? Rule::exists($tableName, 'id') : 'prohibited',
@@ -91,6 +91,7 @@ class UpdateSliderRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'success' => false,
+            'message' => $validator->errors()->first(),
             'errors' => $validator->errors(),
         ], 422));
     }

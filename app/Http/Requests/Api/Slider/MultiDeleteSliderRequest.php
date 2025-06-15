@@ -35,9 +35,10 @@ class MultiDeleteSliderRequest extends FormRequest
             'ids.regex' => 'Định dạng không hợp lệ. Ví dụ đúng: 1,2,3',
         ];
     }
-     protected function failedValidation(Validator $validator)
+    protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(response()->json([
+            'message' => $validator->errors()->first(),
             'success' => false,
             'errors' => $validator->errors(),
         ], 422));
