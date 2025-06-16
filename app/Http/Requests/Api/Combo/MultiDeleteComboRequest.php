@@ -40,6 +40,7 @@ class MultiDeleteComboRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'success' => false,
+            'message' => $validator->errors()->first(),
             'errors' => $validator->errors(),
         ], 422));
     }

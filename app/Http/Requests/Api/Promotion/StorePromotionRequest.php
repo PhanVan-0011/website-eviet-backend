@@ -28,7 +28,7 @@ class StorePromotionRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:50', 'unique:promotions,code'],
             'description' => ['nullable', 'string'],
-            'application_type' => ['required', 'string', Rule::in(['all_orders', 'specific_products', 'specific_categories', 'specific_combos'])],
+            'application_type' => ['required', 'string', Rule::in(['orders', 'products', 'categories', 'combos'])],
             'type' => ['required', 'string', Rule::in(['percentage', 'fixed_amount', 'free_shipping'])],
             'value' => ['required', 'numeric', 'min:0'],
             'min_order_value' => ['nullable', 'numeric', 'min:0'],
@@ -41,33 +41,43 @@ class StorePromotionRequest extends FormRequest
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
 
             // Validation cho các mảng ID liên kết
-            'product_ids' => ['required_if:application_type,specific_products', 'array'],
+            'product_ids' => ['required_if:application_type,products', 'nullable', 'array'],
             'product_ids.*' => ['integer', 'exists:products,id'],
-            'category_ids' => ['required_if:application_type,specific_categories', 'array'],
+            'category_ids' => ['required_if:application_type,categories', 'nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
-            'combo_ids' => ['required_if:application_type,specific_combos', 'array'],
+            'combo_ids' => ['required_if:application_type,combos', 'nullable', 'array'],
             'combo_ids.*' => ['integer', 'exists:combos,id'],
         ];
     }
     public function messages(): array
     {
         return [
+          
             'name.required' => 'Tên chương trình khuyến mãi không được để trống.',
-
             'code.required' => 'Mã khuyến mãi không được để trống.',
-            'code.unique' => 'Mã khuyến mãi này đã tồn tại.',
-
             'application_type.required' => 'Vui lòng chọn phạm vi áp dụng.',
             'type.required' => 'Vui lòng chọn loại khuyến mãi.',
             'value.required' => 'Giá trị khuyến mãi không được để trống.',
-            'is_combinable.required' => 'Vui lòng chọn cho phép kết hợp hay không.',
-            'is_active.required' => 'Vui lòng chọn trạng thái hoạt động.',
             'start_date.required' => 'Ngày bắt đầu là bắt buộc.',
+
+            'code.unique' => 'Mã khuyến mãi này đã tồn tại.',
+            'application_type.in' => 'Phạm vi áp dụng đã chọn không hợp lệ.',
+            'type.in' => 'Loại khuyến mãi đã chọn không hợp lệ.',
+            'value.numeric' => 'Giá trị khuyến mãi phải là một số.',
+            'value.min' => 'Giá trị khuyến mãi phải lớn hơn hoặc bằng 0.', // <-- **SỬA LỖI Ở ĐÂY**
+            'start_date.date' => 'Định dạng ngày bắt đầu không hợp lệ.',
+            'end_date.date' => 'Định dạng ngày kết thúc không hợp lệ.',
             'end_date.after_or_equal' => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.',
+
+
             'product_ids.required_if' => 'Vui lòng chọn ít nhất một sản phẩm.',
             'category_ids.required_if' => 'Vui lòng chọn ít nhất một danh mục.',
             'combo_ids.required_if' => 'Vui lòng chọn ít nhất một combo.',
-            '*.exists' => 'ID được chọn không hợp lệ hoặc không tồn tại.',
+
+
+            'product_ids.*.exists' => 'Một hoặc nhiều ID sản phẩm không tồn tại.',
+            'category_ids.*.exists' => 'Một hoặc nhiều ID danh mục không tồn tại.',
+            'combo_ids.*.exists' => 'Một hoặc nhiều ID combo không tồn tại.',
         ];
     }
 
@@ -75,6 +85,7 @@ class StorePromotionRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'success' => false,
+            'message' => $validator->errors()->first(),
             'errors' => $validator->errors(),
         ], 422));
     }

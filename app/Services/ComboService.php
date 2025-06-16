@@ -18,7 +18,7 @@ class ComboService
             $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
             $keyword = trim((string) $request->input('keyword', ''));
-            $isActive = $request->input('is_active'); // bool hoặc null
+            $isActive = $request->input('is_active');
 
             $minPrice = $request->input('min_price');
             $maxPrice = $request->input('max_price');
