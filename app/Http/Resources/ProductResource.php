@@ -29,6 +29,14 @@ class ProductResource extends JsonResource
             'category' => $this->whenLoaded('category', fn() => new CategoryResource($this->category)),
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
+             'promotions' => $this->whenLoaded('promotions', function () {
+                // Trả về một danh sách khuyến mãi đơn giản để tránh vòng lặp dữ liệu
+                return $this->promotions->map(fn($promo) => [
+                    'id' => $promo->id,
+                    'name' => $promo->name,
+                    'code' => $promo->code,
+                ]);
+            }),
         ];
     }
 }

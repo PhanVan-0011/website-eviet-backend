@@ -20,7 +20,9 @@ class Order extends Model
         'shipping_address',
         'shipping_fee',
         'cancelled_at',
-        'user_id'
+        'user_id',
+        'discount_amount',
+        'grand_total'
     ];
 
     protected $casts = [

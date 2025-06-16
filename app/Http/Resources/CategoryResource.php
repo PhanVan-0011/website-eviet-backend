@@ -28,6 +28,13 @@ class CategoryResource extends JsonResource
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
             'products_count' => $this->products_count,
+            'promotions' => $this->whenLoaded('promotions', function () {
+                return $this->promotions->map(fn($promo) => [
+                    'id' => $promo->id,
+                    'name' => $promo->name,
+                    'code' => $promo->code,
+                ]);
+            }),
         ];
     }
 }

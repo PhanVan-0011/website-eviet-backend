@@ -39,4 +39,11 @@ class Combo extends Model
             ->withPivot('quantity')
             ->withTimestamps();
     }
+     /**
+     * Lấy các chương trình khuyến mãi đang áp dụng cho combo này.
+     */
+    public function promotions()
+    {
+        return $this->belongsToMany(Promotion::class, 'promotion_combos')->withTimestamps();
+    }
 }

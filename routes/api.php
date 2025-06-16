@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ImageController;
 use App\Http\Controllers\Api\ComboController;
+use App\Http\Controllers\Api\PromotionController;
 
 
 
@@ -73,7 +74,15 @@ Route::prefix('posts')->group(function () {
     Route::delete('/multi-delete', [PostController::class, 'multiDelete']);
     Route::delete('/{id}', [PostController::class, 'destroy']);
 });
-
+// Promotions
+Route::prefix('promotions')->middleware('auth:sanctum')->group(function () {
+    Route::get('/', [PromotionController::class, 'index']);
+    Route::post('/', [PromotionController::class, 'store']);
+    Route::get('/{promotion}', [PromotionController::class, 'show']);
+    Route::put('/{promotion}', [PromotionController::class, 'update']);
+    Route::delete('/multi-delete', [PromotionController::class, 'multiDelete']);
+    Route::delete('/{promotion}', [PromotionController::class, 'destroy']);
+});
 // Auth - Protected
 Route::middleware('auth:sanctum')->controller(AuthController::class)->group(function () {
     Route::post('/logout', 'logout');

@@ -35,4 +35,11 @@ class Category extends Model
         return $this->belongsToMany(Post::class, 'category_post', 'category_id', 'post_id')
                     ->withTimestamps();
     }
+    /**
+     * Lấy các chương trình khuyến mãi đang áp dụng cho danh mục này.
+     */
+    public function promotions()
+    {
+        return $this->belongsToMany(Promotion::class, 'promotion_categories')->withTimestamps();
+    }
 }

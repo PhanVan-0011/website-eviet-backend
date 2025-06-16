@@ -9,7 +9,8 @@ class Product extends Model
 {
     use HasFactory;
     protected $table = 'products'; // Tùy chọn, nếu tên bảng đúng quy ước thì không cần
-    protected $fillable = ['name', 'description', 'size', 'original_price', 'sale_price', 'stock_quantity', 'image_url', 'status', 'category_id'];
+    protected $fillable = ['name', 'description', 'size', 'original_price',
+     'sale_price', 'stock_quantity', 'image_url', 'status', 'category_id'];
 
     // Quan hệ: Một sản phẩm thuộc về một danh mục
     public function category()
@@ -22,5 +23,12 @@ class Product extends Model
         return $this->belongsToMany(Combo::class, 'combo_items')
             ->withPivot('quantity')
             ->withTimestamps();
+    }
+    /**
+     * Lấy các chương trình khuyến mãi đang áp dụng cho sản phẩm này.
+     */
+    public function promotions()
+    {
+        return $this->belongsToMany(Promotion::class, 'promotion_products')->withTimestamps();
     }
 }

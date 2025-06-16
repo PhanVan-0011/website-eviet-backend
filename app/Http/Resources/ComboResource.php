@@ -28,6 +28,13 @@ class ComboResource extends JsonResource
             'updated_at'  => $this->updated_at,
             'items_count' => $this->items ? $this->items->count() : 0,
             'items'       => ComboItemResource::collection($this->whenLoaded('items')),
+            'promotions' => $this->whenLoaded('promotions', function () {
+                return $this->promotions->map(fn($promo) => [
+                    'id' => $promo->id,
+                    'name' => $promo->name,
+                    'code' => $promo->code,
+                ]);
+            }),
         ];
     }
 }
