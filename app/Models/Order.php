@@ -33,7 +33,17 @@ class Order extends Model
     ];
 
     /**
-     * The "booted" method of the model.
+     * Lấy các mã khuyến mãi đã được áp dụng cho đơn hàng này.
+     */
+    public function appliedPromotions()
+    {
+        // Quan hệ nhiều-nhiều thông qua bảng order_promotions
+        return $this->belongsToMany(Promotion::class, 'order_promotions')
+            ->withPivot('discount_amount') // Lấy thêm cột số tiền giảm
+            ->withTimestamps();
+    }
+
+    /**
      * Tự động sinh mã đơn hàng trước khi tạo mới.
      * @return void
      */
@@ -44,7 +54,7 @@ class Order extends Model
             if (empty($order->order_code)) {
                 do {
                     // Logic tạo mã: "HD" + NămThángNgày + 6 ký tự ngẫu nhiên
-                    $code = 'HD' . now()->format('Ymd') . strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+                    $code = '' . now()->format('Ymd') . strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
                 } while (self::where('order_code', $code)->exists());
 
                 $order->order_code = $code;
