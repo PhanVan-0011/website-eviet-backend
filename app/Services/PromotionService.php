@@ -84,15 +84,20 @@ class PromotionService
     {
         try {
             return DB::transaction(function () use ($data) {
+            $promotion = Promotion::create($data);
 
-                $relatedIds = $this->extractRelatedIds($data);
-                $promotion = Promotion::create($data);
+            if ($promotion->application_type === 'products' && !empty($data['product_ids'])) {
+                $promotion->products()->attach($data['product_ids']);
+            }
+            if ($promotion->application_type === 'categories' && !empty($data['category_ids'])) {
+                $promotion->categories()->attach($data['category_ids']);
+            }
+            if ($promotion->application_type === 'combos' && !empty($data['combo_ids'])) {
+                $promotion->combos()->attach($data['combo_ids']);
+            }
 
-                //Gắn các liên kết với sản phẩm, danh mục, combo (nếu có).
-                $this->attachRelations($promotion, $relatedIds);
-
-                return $promotion->load(['products', 'categories', 'combos']);
-            });
+            return $promotion;
+        });
         } catch (\Exception $e) {
             Log::error('Lỗi khi tạo khuyến mãi: ' . $e->getMessage());
             throw $e;
@@ -106,19 +111,16 @@ class PromotionService
     {
         try {
             return DB::transaction(function () use ($promotion, $data) {
-                $relatedIds = $this->extractRelatedIds($data);
 
-                //Cập nhật các trường thông tin chính trong bảng `promotions`.
                 $promotion->update($data);
+                $newApplicationType = $promotion->application_type;
 
-                // Đồng bộ hóa các liên kết.
-                // sync() nó sẽ tự động:
-                // Thêm các liên kết mới.
-                // Xóa các liên kết không còn được gửi lên.
-                // Giữ nguyên các liên kết đã có.
-                $this->syncRelations($promotion, $relatedIds);
+                 // Đồng bộ hóa các liên kết một cách cẩn thận
+                $promotion->products()->sync($newApplicationType === 'products' ? ($data['product_ids'] ?? []) : []);
+                $promotion->categories()->sync($newApplicationType === 'categories' ? ($data['category_ids'] ?? []) : []);
+                $promotion->combos()->sync($newApplicationType === 'combos' ? ($data['combo_ids'] ?? []) : []);
 
-                // Trả về đối tượng Promotion đã được làm mới với các quan hệ mới nhất.
+                // 4. Trả về đối tượng Promotion đã được làm mới với các quan hệ mới nhất
                 return $promotion->fresh(['products', 'categories', 'combos']);
             });
         } catch (\Exception $e) {
@@ -126,7 +128,6 @@ class PromotionService
             throw $e;
         }
     }
-
     /**
      * Xóa một chương trình khuyến mãi một cách an toàn.
      *

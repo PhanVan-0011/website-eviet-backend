@@ -40,12 +40,13 @@ class StorePromotionRequest extends FormRequest
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
 
-            // Validation cho các mảng ID liên kết
-            'product_ids' => ['required_if:application_type,products', 'nullable', 'array'],
+            'product_ids' => ['required_if:application_type,products', 'prohibited_unless:application_type,products', 'nullable', 'array'],
             'product_ids.*' => ['integer', 'exists:products,id'],
-            'category_ids' => ['required_if:application_type,categories', 'nullable', 'array'],
+            
+            'category_ids' => ['required_if:application_type,categories', 'prohibited_unless:application_type,categories', 'nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
-            'combo_ids' => ['required_if:application_type,combos', 'nullable', 'array'],
+            
+            'combo_ids' => ['required_if:application_type,combos', 'prohibited_unless:application_type,combos', 'nullable', 'array'],
             'combo_ids.*' => ['integer', 'exists:combos,id'],
         ];
     }
@@ -64,7 +65,7 @@ class StorePromotionRequest extends FormRequest
             'application_type.in' => 'Phạm vi áp dụng đã chọn không hợp lệ.',
             'type.in' => 'Loại khuyến mãi đã chọn không hợp lệ.',
             'value.numeric' => 'Giá trị khuyến mãi phải là một số.',
-            'value.min' => 'Giá trị khuyến mãi phải lớn hơn hoặc bằng 0.', // <-- **SỬA LỖI Ở ĐÂY**
+            'value.min' => 'Giá trị khuyến mãi phải lớn hơn hoặc bằng 0.', 
             'start_date.date' => 'Định dạng ngày bắt đầu không hợp lệ.',
             'end_date.date' => 'Định dạng ngày kết thúc không hợp lệ.',
             'end_date.after_or_equal' => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.',
@@ -78,6 +79,10 @@ class StorePromotionRequest extends FormRequest
             'product_ids.*.exists' => 'Một hoặc nhiều ID sản phẩm không tồn tại.',
             'category_ids.*.exists' => 'Một hoặc nhiều ID danh mục không tồn tại.',
             'combo_ids.*.exists' => 'Một hoặc nhiều ID combo không tồn tại.',
+
+            'product_ids.prohibited_unless' => 'Không được chọn sản phẩm vì loại áp dụng không phải là products.',
+            'category_ids.prohibited_unless' => 'Không được chọn danh mục vì loại áp dụng không phải là categories.',
+            'combo_ids.prohibited_unless' => 'Không được chọn combo vì loại áp dụng không phải là combos.',
         ];
     }
 
