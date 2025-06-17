@@ -27,13 +27,24 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class,
             UserSeeder::class,
+            // Seeder cho danh mục và sản phẩm
             CategoriesSeeder::class,
             ProductSeeder::class,
-            SliderSeeder::class,
-            PostSeeder::class,
-            OrderSeeder::class,
+
+            // Seeder cho combo
             ComboSeeder::class,
             ComboItemSeeder::class,
+
+            // Seeder cho slider và bài viết
+            SliderSeeder::class,
+            PostSeeder::class,
+
+            // Seeder cho đơn hàng
+            OrderSeeder::class,
+
+            // Seeder cho khuyến mãi
+            PromotionSeeder::class,
+            PromotionRelationSeeder::class,
         ]);
 
         // Cập nhật total_amount cho mỗi đơn hàng
