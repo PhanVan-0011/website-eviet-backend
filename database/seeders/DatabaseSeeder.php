@@ -36,6 +36,8 @@ class DatabaseSeeder extends Seeder
             OrderSeeder::class,
             ComboSeeder::class,
             ComboItemSeeder::class,
+            PromotionSeeder::class,
+            PromotionRelationSeeder::class,
         ]);
 
         // Tạo 5 người dùng
