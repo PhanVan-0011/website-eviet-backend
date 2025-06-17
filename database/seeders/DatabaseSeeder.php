@@ -23,12 +23,10 @@ class DatabaseSeeder extends Seeder
         //     'name' => 'Test User',
         //     'email' => 'test@example.com',
         // ]);
+
         $this->call([
-            RoleSeeder::class,
-            PermissionSeeder::class,
-            RolePermissionSeeder::class,
+            RolesAndPermissionsSeeder::class,
             UserSeeder::class,
-            RoleUserSeeder::class,
             CategoriesSeeder::class,
             ProductSeeder::class,
             SliderSeeder::class,
@@ -37,12 +35,6 @@ class DatabaseSeeder extends Seeder
             ComboSeeder::class,
             ComboItemSeeder::class,
         ]);
-
-        // Tạo 5 người dùng
-        User::factory()->count(0)->create();
-
-        // Tạo 5 sản phẩm
-        Product::factory()->count(2)->create();
 
         // Cập nhật total_amount cho mỗi đơn hàng
         foreach (Order::all() as $order) {
