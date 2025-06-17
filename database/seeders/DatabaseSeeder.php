@@ -24,18 +24,29 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
         $this->call([
-            RoleSeeder::class,
-            PermissionSeeder::class,
-            RolePermissionSeeder::class,
+            // Seeder cho quản lý người dùng và phân quyền
+            // RoleSeeder::class,
+            // PermissionSeeder::class,
+            // RolePermissionSeeder::class,
             UserSeeder::class,
-            RoleUserSeeder::class,
+            // RoleUserSeeder::class,
+
+            // Seeder cho danh mục và sản phẩm
             CategoriesSeeder::class,
             ProductSeeder::class,
-            SliderSeeder::class,
-            PostSeeder::class,
-            OrderSeeder::class,
+
+            // Seeder cho combo
             ComboSeeder::class,
             ComboItemSeeder::class,
+
+            // Seeder cho slider và bài viết
+            SliderSeeder::class,
+            PostSeeder::class,
+
+            // Seeder cho đơn hàng
+            OrderSeeder::class,
+
+            // Seeder cho khuyến mãi
             PromotionSeeder::class,
             PromotionRelationSeeder::class,
         ]);
