@@ -20,7 +20,7 @@ class OrderService
     {
         try {
             // Lấy các tham số đầu vào
-            $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
+            $perPage = max(1, min(100, (int) $request->input('limit', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
 
             // Tạo query cơ bản
@@ -266,8 +266,8 @@ class OrderService
 
         // Load lại quan hệ để trả về dữ liệu mới nhất
         return $order->fresh('payment.method');
-    }   
-     public function cancelMultipleOrders(array $orderIds): array
+    }
+    public function cancelMultipleOrders(array $orderIds): array
     {
         $cancelledCount = 0;
         $failedOrders = [];

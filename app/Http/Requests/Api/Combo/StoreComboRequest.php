@@ -45,7 +45,7 @@ class StoreComboRequest extends FormRequest
             'name.max' => 'Tên combo không được vượt quá 200 ký tự.',
 
             'description.string' => 'Mô tả phải là chuỗi.',
-            'description.max' => 'Tên combo không được vượt quá 255 ký tự.',
+            'description.max' => 'Mô tả không được vượt quá 255 ký tự.',
 
             'price.required' => 'Giá combo là bắt buộc.',
             'price.numeric' => 'Giá combo phải là số.',
