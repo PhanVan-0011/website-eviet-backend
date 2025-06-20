@@ -11,6 +11,7 @@ use App\Http\Requests\Api\Promotion\StorePromotionRequest;
 use App\Http\Requests\Api\Promotion\UpdatePromotionRequest;
 use App\Http\Requests\Api\Promotion\GetPromotionsRequest;
 use App\Http\Requests\Api\Promotion\MultiDeletePromotionRequest;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Exception;
 use Illuminate\Support\Facades\Log;
@@ -72,47 +73,61 @@ class PromotionController extends Controller
         }
     }
 
-    public function show(Promotion $promotion): PromotionResource
-    {
-        // Load các quan hệ để hiển thị chi tiết
-        $promotion->load(['products:id,name', 'categories:id,name', 'combos:id,name']);
-        return new PromotionResource($promotion);
-    }
-
-    public function update(UpdatePromotionRequest $request, Promotion $promotion)
+    public function show(int $id): JsonResponse
     {
         try {
+            $promotion = $this->promotionService->getPromotionById($id);
+            $promotion->load(['products:id,name', 'categories:id,name', 'combos:id,name']);
+            return response()->json([
+                'success' => true,
+                'message' => 'Lấy chi tiết khuyến mãi thành công.',
+                'data' => new PromotionResource($promotion)
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => "Không tìm thấy khuyến mãi với ID {$id}."
+            ], 404);
+        }catch (Exception $e) {
+            Log::error("Lỗi Controller khi xem chi tiết khuyến mãi ID: {$id}", ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi lấy chi tiết khuyến mãi.'
+            ], 500);
+        }
+    }
+
+    public function update(UpdatePromotionRequest $request, int $id)
+    {
+        try {
+            $promotion = $this->promotionService->getPromotionById($id);
             $updatedPromotion = $this->promotionService->updatePromotion($promotion, $request->validated());
             return response()->json([
                 'success' => true,
                 'message' => 'Cập nhật khuyến mãi thành công.',
                 'data' => new PromotionResource($updatedPromotion),
             ]);
-        } catch (\Exception $e) {
-             // Ghi lại log lỗi chi tiết
-            Log::error("Lỗi khi cập nhật khuyến mãi ID: {$promotion->id}", [
-                'message' => $e->getMessage(),
-                'data' => $request->all(),
-                'trace' => $e->getTraceAsString()
-            ]);
+        }  catch (ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => "Không tìm thấy khuyến mãi với ID {$id}."], 404);
+        } catch (Exception $e) {
+            Log::error("Lỗi Controller khi xóa khuyến mãi ID: {$id}", ['error' => $e->getMessage()]);
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
-    public function destroy(Promotion $promotion): JsonResponse
+    public function destroy(int $id): JsonResponse
     {
         try {
+            $promotion = $this->promotionService->getPromotionById($id);
             $isHardDeleted = $this->promotionService->deletePromotion($promotion);
             $message = $isHardDeleted 
                 ? 'Đã xóa vĩnh viễn khuyến mãi.' 
                 : 'Khuyến mãi đã được sử dụng nên chỉ vô hiệu hóa.';
             return response()->json(['success' => true, 'message' => $message]);
-        } catch (\Exception $e) {
-            // Ghi lại log lỗi chi tiết
-            Log::error("Lỗi khi xóa khuyến mãi ID: {$promotion->id}", [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+        }catch (ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => "Không tìm thấy khuyến mãi với ID {$id}."], 404);
+        } catch (Exception $e) {
+            Log::error("Lỗi Controller khi xóa khuyến mãi ID: {$id}", ['error' => $e->getMessage()]);
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
