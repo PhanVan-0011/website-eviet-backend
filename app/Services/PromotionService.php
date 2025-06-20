@@ -6,6 +6,7 @@ use App\Models\Promotion;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Requests\Api\Promotion\GetPromotionsRequest;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class PromotionService
 {
@@ -77,6 +78,15 @@ class PromotionService
             ];
         } catch (\Exception $e) {
             Log::error('Lỗi lấy danh sách khuyến mãi: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+    public function getPromotionById(int $id): Promotion
+    {
+        try {
+            return Promotion::findOrFail($id);
+        } catch (ModelNotFoundException $e) {
+            Log::warning("Khuyến mãi không tồn tại, ID: {$id}");
             throw $e;
         }
     }
