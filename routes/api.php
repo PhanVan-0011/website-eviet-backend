@@ -13,14 +13,12 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ImageController;
 use App\Http\Controllers\Api\ComboController;
 use App\Http\Controllers\Api\PromotionController;
+use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\PermissionController;
 
 
 
-// Route::prefix('auth')->group(function () {
-//     Route::post('register', [AuthController::class, 'register']);
-//     Route::post('verify-otp', [AuthController::class, 'verifyOtp']);
-//     Route::post('resend-otp', [AuthController::class, 'resendOtp']);
-// });
+
 
 // Auth - Public
 Route::controller(AuthController::class)->group(function () {
@@ -109,6 +107,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/orders/{order}/status', [OrderController::class, 'updateStatus']);
     Route::put('/orders/{order}/payment-status', [OrderController::class, 'updatePaymentStatus']);
 });
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+
+    Route::prefix('roles')->name('roles.')->group(function () {
+        Route::get('/', [RoleController::class, 'index'])->name('index');
+        Route::post('/', [RoleController::class, 'store'])->name('store');
+        Route::delete('/multi-delete', [RoleController::class, 'multiDelete'])->name('multiDelete');
+        Route::get('/{role}', [RoleController::class, 'show'])->name('show');
+        Route::put('/{role}', [RoleController::class, 'update'])->name('update');
+        Route::delete('/{role}', [RoleController::class, 'destroy'])->name('destroy');
+    });
+    Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
+});
+
 
 // Route hiển thị hình ảnh
 Route::get('images/{path}', [ImageController::class, 'show'])->where('path', '.*');

@@ -5,6 +5,8 @@ namespace App\Console;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use App\Console\Commands\MakeServiceCommand;
+use App\Console\Commands\PermissionCleanupCommand;
+
 class Kernel extends ConsoleKernel
 {
      /**
@@ -12,6 +14,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         MakeServiceCommand::class, // ← Đăng ký command
+       
     ];
     /**
      * Define the application's command schedule.
