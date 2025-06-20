@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Product;
 use App\Models\OrderDetail;
 use Illuminate\Database\Seeder;
+use Database\Seeders\PaymentMethodSeeder;
 
 
 class DatabaseSeeder extends Seeder
@@ -45,6 +46,9 @@ class DatabaseSeeder extends Seeder
             // Seeder cho khuyến mãi
             PromotionSeeder::class,
             PromotionRelationSeeder::class,
+
+            // Gọi seeder phương thức thanh toán
+            PaymentMethodSeeder::class,
         ]);
 
         // Cập nhật total_amount cho mỗi đơn hàng

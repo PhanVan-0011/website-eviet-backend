@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserResource;
 use App\Services\UserService;
 use Illuminate\Http\Request;
@@ -12,6 +11,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use App\Http\Requests\Api\User\MultiDeleteUserRequest;
+use App\Http\Requests\Api\User\UserRequest;
+
 
 class UserController extends Controller
 {
@@ -73,8 +74,6 @@ class UserController extends Controller
     {
 
         try {
-            // error_log(json_encode($request->all()));
-            // error_log(json_encode($request->validated()));
             $user = $this->userService->createUser($request->validated());
             return response()->json([
                 'success' => true,

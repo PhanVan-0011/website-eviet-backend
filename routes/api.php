@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\ComboController;
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\PaymentMethodController;
 
 
 
@@ -121,5 +122,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 });
 
 
-// Route hiển thị hình ảnh
-Route::get('images/{path}', [ImageController::class, 'show'])->where('path', '.*');
+
+// Route lấy phương thức thanh toán
+Route::get('/payment-methods', [PaymentMethodController::class, 'index']);

@@ -89,7 +89,7 @@ class StoreOrderRequest extends FormRequest
      * @param  \Illuminate\Validation\Validator  $validator
      * @return void
      */
-   public function withValidator($validator)
+    public function withValidator($validator)
     {
         $validator->after(function ($validator) {
             foreach ($this->input('items', []) as $key => $item) {
@@ -104,12 +104,12 @@ class StoreOrderRequest extends FormRequest
                     $product = Product::find($id);
                     if (!$product) {
                         $validator->errors()->add("items.{$key}.id", "Sản phẩm với ID {$id} không tồn tại.");
-                    } elseif ($product->status != 1) { 
+                    } elseif ($product->status != 1) {
                         $validator->errors()->add("items.{$key}.id", "Sản phẩm '{$product->name}' (ID: {$id}) đã ngừng kinh doanh.");
                     }
                 } elseif ($type === 'combo') {
-                    $combo = Combo::find($id); 
-                    
+                    $combo = Combo::find($id);
+
                     if (!$combo) {
                         // Nếu không tìm thấy, báo lỗi ID không tồn tại
                         $validator->errors()->add("items.{$key}.id", "Combo với ID {$id} không tồn tại.");

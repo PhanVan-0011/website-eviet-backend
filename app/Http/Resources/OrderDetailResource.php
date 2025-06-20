@@ -19,12 +19,14 @@ class OrderDetailResource extends JsonResource
             'order_id'   => $this->order_id,
             'product_id' => $this->product_id,
             'combo_id'   => $this->combo_id,
+            'combo_name' => optional($this->combo)->name,
             'product'    => new ProductResource($this->whenLoaded('product')),
             'combo'      => new ComboResource($this->whenLoaded('combo')),
             'quantity'   => $this->quantity,
             'unit_price' => $this->unit_price,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+
         ];
     }
 }

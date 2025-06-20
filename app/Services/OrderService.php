@@ -85,6 +85,7 @@ class OrderService
     public function getOrderById(int $id)
     {
         return Order::with([
+            'orderDetails.combo:id,name',
             'orderDetails.product',
             'payment.method',
             'user'
