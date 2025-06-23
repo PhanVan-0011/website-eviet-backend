@@ -18,13 +18,13 @@ class PermissionResource extends JsonResource
         // vd 'products.create' sẽ được tách thành:
         // - group: 'products'
         // - action: 'create'
-        [$group, $action] = explode('.', $this->name, 2);
-        
+         $parts = explode('.', $this->name, 2);
+
         return [
             'id' => $this->id,
             'name' => $this->name, // Tên đầy đủ, ví dụ: 'products.create'
-            'group' => $group,    // Tên nhóm, ví dụ: 'products'
-            'action' => $action    // Tên hành động, ví dụ: 'create'
+            'group' => $parts[0]?? 'other', // Thêm 'group' để Service có thể dùng groupBy()
+            'action' => $parts[1] ?? 'manage' // Nếu không có action, mặc định là 'manage'
         ];
     }
 }
