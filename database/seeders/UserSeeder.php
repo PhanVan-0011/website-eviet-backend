@@ -17,7 +17,7 @@ class UserSeeder extends Seeder
         DB::table('users')->insert([
             [
                 'name' => 'Admin',
-                'email' => 'admin@example.com',
+                'email' => 'admin123@example.com',
                 'phone' => '0123456789',
                 'password' => Hash::make('password'),
                 'is_active' => true,
@@ -29,7 +29,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Editor',
-                'email' => 'editor@example.com',
+                'email' => 'editor123@example.com',
                 'phone' => '0123456788',
                 'password' => Hash::make('password'),
                 'is_active' => true,
@@ -41,7 +41,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'User',
-                'email' => 'user@example.com',
+                'email' => 'user123@example.com',
                 'phone' => '0123456787',
                 'password' => Hash::make('password'),
                 'is_active' => true,
