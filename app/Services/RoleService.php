@@ -69,10 +69,10 @@ class RoleService
             throw $e;
         }
     }
-     public function getRoleById(int $id): Role
+    public function getRoleById(int $id): Role
     {
         try {
-               return Role::with('permissions')->findOrFail($id);
+            return Role::with('permissions')->findOrFail($id);
         } catch (ModelNotFoundException $e) {
             Log::warning("Không tìm thấy vai trò với ID {$id}.");
             throw $e;
@@ -138,7 +138,8 @@ class RoleService
         } catch (Exception $e) {
             Log::error("Lỗi Service khi xóa vai trò ID: {$role->id}", [
                 'message' => $e->getMessage(),
-                'role' => $role->toArray()]);
+                'role' => $role->toArray()
+            ]);
             throw $e;
         }
     }
@@ -173,12 +174,12 @@ class RoleService
                 'success_count' => $deletedCount,
                 'failed_roles' => $failedRoles,
             ];
-        }catch (Exception $e) {
-             Log::error("Lỗi Service khi xóa nhiều vai trò", [
-            'role_ids' => $roleIds,
-            'message' => $e->getMessage(),
-        ]);
-        throw $e;
+        } catch (Exception $e) {
+            Log::error("Lỗi Service khi xóa nhiều vai trò", [
+                'role_ids' => $roleIds,
+                'message' => $e->getMessage(),
+            ]);
+            throw $e;
         }
     }
 }
