@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PaymentMethodController;
+use App\Http\Controllers\Api\UserRolePermissionController;
 
 
 
@@ -44,7 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 //Admin
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
-    
+
     // ---Slider---
     Route::prefix('sliders')->middleware('check.permission:sliders.manage')->group(function () {
         Route::get('/', [SliderController::class, 'index']);
@@ -64,7 +65,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/{id}', [ComboController::class, 'update']);
         Route::delete('/{id}', [ComboController::class, 'destroy']);
     });
-    
+
     // ---Category---
     Route::prefix('categories')->middleware('check.permission:categories.manage')->group(function () {
         Route::get('/', [CategoryController::class, 'index']);
@@ -94,7 +95,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/multi-delete', [PostController::class, 'multiDelete']);
         Route::delete('/{id}', [PostController::class, 'destroy']);
     });
-    
+
     // ---Promotion---
     Route::prefix('promotions')->group(function () {
         Route::get('/', [PromotionController::class, 'index'])->middleware('check.permission:promotions.view');
@@ -104,7 +105,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/multi-delete', [PromotionController::class, 'multiDelete'])->middleware('check.permission:promotions.delete');
         Route::delete('/{promotion}', [PromotionController::class, 'destroy'])->middleware('check.permission:promotions.delete');
     });
-    
+
     // ---User---
     Route::prefix('users')->middleware('check.permission:users.manage')->group(function () {
         Route::get('/', [UserController::class, 'index']);
@@ -114,17 +115,17 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/multi-delete', [UserController::class, 'multiDelete']);
         Route::delete('/{id}', [UserController::class, 'destroy']);
     });
-    
+
     // ---Order---
     Route::prefix('orders')->group(function () {
         Route::get('/', [OrderController::class, 'index'])->middleware('check.permission:orders.view');
-        Route::post('/', [OrderController::class, 'store'])->middleware('check.permission:orders.create'); 
+        Route::post('/', [OrderController::class, 'store'])->middleware('check.permission:orders.create');
         Route::get('/{order}', [OrderController::class, 'show'])->middleware('check.permission:orders.view');
         Route::put('/{order}/status', [OrderController::class, 'updateStatus'])->middleware('check.permission:orders.update_status');
         Route::put('/{order}/payment-status', [OrderController::class, 'updatePaymentStatus'])->middleware('check.permission:orders.update_payment');
         Route::post('/multi-cancel', [OrderController::class, 'multiCancel'])->middleware('check.permission:orders.cancel');
     });
-    
+
     // ---Role & Permission---
     Route::prefix('roles')->middleware('check.permission:roles.manage')->group(function () {
         Route::get('/', [RoleController::class, 'index']);
@@ -136,4 +137,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
     Route::get('/permissions', [PermissionController::class, 'index'])->middleware('check.permission:roles.manage');
 
+    Route::post('assign-role/{id}', [PermissionController::class, 'assignRolesToUser'])->middleware('check.permission:roles.manage');
+    Route::post('assign-permission/{id}', [PermissionController::class, 'assignPermissionsToUser'])->middleware('check.permission:roles.manage');
 });
