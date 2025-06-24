@@ -22,9 +22,10 @@ class PermissionResource extends JsonResource
 
         return [
             'id' => $this->id,
-            'name' => $this->name, // Tên đầy đủ, ví dụ: 'products.create'
-            'group' => $parts[0]?? 'other', // Thêm 'group' để Service có thể dùng groupBy()
-            'action' => $parts[1] ?? 'manage' // Nếu không có action, mặc định là 'manage'
+            'name' => $this->name,
+            'display_name' => $this->display_name, 
+            'group' => $parts[0]?? 'other', 
+            'action' => $parts[1] ?? 'manage' 
         ];
     }
 }

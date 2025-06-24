@@ -22,7 +22,7 @@ class RoleController extends Controller
     {
         $this->roleService = $roleService;
     }
-    
+
 
     public function index(GetRolesRequest $request)
     {
@@ -84,16 +84,11 @@ class RoleController extends Controller
                 'message' => "Không tìm thấy vai trò với ID {$id}."
             ], 404);
         }
-
     }
 
-    public function update(UpdateRoleRequest $request, int $id)
+    public function update(UpdateRoleRequest $request, $id)
     {
         try {
-            // dd([
-            //     'user' => auth()->user()->email,
-            //     'permissions' => auth()->user()->getAllPermissions()->pluck('name')
-            // ]);
             $role = Role::findOrFail($id);
             $updatedRole = $this->roleService->updateRole($role, $request->validated());
             return response()->json([
@@ -101,14 +96,12 @@ class RoleController extends Controller
                 'message' => 'Cập nhật vai trò thành công.',
                 'data' => new RoleResource($updatedRole)
             ]);
-        }catch (ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => "Không tìm thấy vai trò với ID {$id}.",
             ], 404);
-
-        }
-         catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error("Lỗi Controller khi cập nhật vai trò ID: {$role->id}", ['message' => $e->getMessage(), 'data' => $request->all()]);
             return response()->json([
                 'success' => false,
@@ -143,20 +136,30 @@ class RoleController extends Controller
     public function multiDelete(MultiDeleteRoleRequest $request)
     {
         try {
-            $result = $this->roleService->deleteMultipleRoles($request->validated()['role_ids']);
-            $message = "Xóa thành công: {$result['success_count']} vai trò.";
-            if (count($result['failed_roles']) > 0) {
-                $message .= " Thất bại: " . count($result['failed_roles']) . " vai trò.";
+            $roleIds = $request->validated()['role_ids'];
+            $result = $this->roleService->deleteMultipleRoles($roleIds);
+
+            $successCount = $result['success_count'] ?? 0;
+            $failedCount = count($result['failed_roles'] ?? []);
+
+            $message = '';
+            if ($successCount > 0) {
+                $message .= "Xóa thành công: {$successCount} vai trò.";
             }
+            if ($failedCount > 0) {
+                $message .= " Thất bại: {$failedCount} vai trò.";
+            }
+
             return response()->json([
-                'success' => true,
-                'message' => $message,
+                'success' => $successCount > 0,
+                'message' => $message ?: 'Không xóa được vai trò nào.',
                 'details' => $result
-            ]);
+            ], $successCount > 0 ? 200 : 400);
         } catch (\Exception $e) {
             Log::error("Lỗi nghiêm trọng khi xóa nhiều vai trò", [
                 'message' => $e->getMessage(),
-                'ids' => $request->input('role_ids')]);
+                'ids' => $request->input('role_ids')
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã có lỗi hệ thống xảy ra.'

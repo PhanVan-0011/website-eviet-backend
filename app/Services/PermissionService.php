@@ -15,19 +15,19 @@ class PermissionService
             // Lấy tất cả permissions từ CSDL, sắp xếp theo tên để đảm bảo thứ tự
             $permissions = Permission::orderBy('name')->get();
             
-            // 1. Sử dụng Resource để định dạng lại từng permission
+            //Sử dụng Resource để định dạng lại từng permission
             $formattedCollection = collect(PermissionResource::collection($permissions)->resolve());
             
-            // 2. Gom nhóm collection lại dựa trên key 'group'
             $grouped = $formattedCollection->groupBy('group');
 
-            // 3. Dọn dẹp lại dữ liệu để loại bỏ key 'group' không cần thiết trong kết quả cuối cùng
+            //Dọn dẹp lại dữ liệu để loại bỏ key 'group' không cần thiết trong kết quả cuối cùng
             $cleanedGrouped = $grouped->map(function ($groupItems) {
                 return $groupItems->map(function ($item) {
                     // Tạo một mảng mới chỉ chứa các key cần thiết
                     return [
                         'id' => $item['id'],
                         'name' => $item['name'],
+                        'display_name' => $item['display_name'],
                         'action' => $item['action']
                     ];
                 })->values(); // Dùng ->values() để reset keys của mảng thành [0, 1, 2...]

@@ -29,7 +29,10 @@ class RoleService
             // Tìm theo từ khóa (keyword)
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
-                $query->where('name', 'like', "%{$keyword}%");
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('name', 'like', "%{$keyword}%")
+                        ->orWhere('display_name', 'like', "%{$keyword}%");
+                });
             }
 
             // Lọc theo quyền hạn
@@ -87,6 +90,7 @@ class RoleService
             return DB::transaction(function () use ($data) {
                 $role = Role::create([
                     'name' => $data['name'],
+                    'display_name' => $data['display_name'],
                     'guard_name' => 'api' // Bắt buộc nếu dùng Sanctum!
                 ]);
                 if (!empty($data['permissions'])) {
@@ -107,11 +111,8 @@ class RoleService
     {
         try {
             return DB::transaction(function () use ($role, $data) {
-                //$role->update(['name' => $data['name']]);
-                if (isset($data['name'])) {
-                    $role->update(['name' => $data['name']]);
-                }
-                if (isset($data['permissions'])) {
+               $role->update($data);
+                if (array_key_exists('permissions', $data)) {
                     $role->syncPermissions($data['permissions']);
                 }
                 return $role->load('permissions');

@@ -131,7 +131,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/', [RoleController::class, 'store']);
         Route::delete('/multi-delete', [RoleController::class, 'multiDelete']);
         Route::get('/{role}', [RoleController::class, 'show']);
-        Route::put('/{role}', [RoleController::class, 'update']);
+        Route::put('/{id}', [RoleController::class, 'update']);
         Route::delete('/{role}', [RoleController::class, 'destroy']);
     });
     Route::get('/permissions', [PermissionController::class, 'index'])->middleware('check.permission:roles.manage');

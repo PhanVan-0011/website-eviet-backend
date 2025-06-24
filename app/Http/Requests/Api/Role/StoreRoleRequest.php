@@ -24,8 +24,8 @@ class StoreRoleRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:50','alpha_dash', 'unique:roles,name'],
+            'display_name' => ['required', 'string', 'max:255'],
             'permissions' => ['nullable', 'array'],
-            // Mỗi giá trị trong mảng permissions phải là ID tồn tại trong bảng permissions
             'permissions.*' => ['integer', 'exists:permissions,id'],
         ];
     }
@@ -37,7 +37,9 @@ class StoreRoleRequest extends FormRequest
             'name.max' => 'Tên vai trò không được vượt quá 50 ký tự.',
             'name.unique' => 'Tên vai trò này đã tồn tại.',
             'name.alpha_dash' => 'Tên vai trò chỉ được chứa chữ cái, số, dấu gạch ngang (-) và gạch dưới (_).',
-            
+
+            'display_name.required' => 'Tên hiển thị không được để trống.',
+
             'permissions.array' => 'Danh sách quyền hạn phải là một mảng.',
             'permissions.*.integer' => 'Mỗi quyền hạn phải là một ID số nguyên.',
             'permissions.*.exists' => 'Một hoặc nhiều quyền hạn không tồn tại.',

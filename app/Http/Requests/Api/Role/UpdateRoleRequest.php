@@ -26,6 +26,7 @@ class UpdateRoleRequest extends FormRequest
         $roleId = $this->route('id');
          return [
             'name' => ['sometimes','required', 'string', 'max:50', 'alpha_dash', Rule::unique('roles', 'name')->ignore($roleId)],
+            'display_name' => ['sometimes', 'required', 'string', 'max:255'],
             'permissions' => ['sometimes', 'array'],
             'permissions.*' => ['integer', 'exists:permissions,id'],
         ];
@@ -38,7 +39,11 @@ class UpdateRoleRequest extends FormRequest
             'name.max' => 'Tên vai trò không được vượt quá 50 ký tự.',
             'name.unique' => 'Tên vai trò này đã tồn tại.',
             'name.alpha_dash' => 'Tên vai trò chỉ được chứa chữ cái, số, dấu gạch ngang (-) và gạch dưới (_).',
+
             'permissions.array' => 'Danh sách quyền hạn phải là một mảng.',
+
+            'display_name.required' => 'Tên hiển thị không được để trống.',
+
             'permissions.*.integer' => 'Mỗi quyền hạn phải là một ID số nguyên.',
             'permissions.*.exists' => 'Một hoặc nhiều quyền hạn không tồn tại.',
         ];
