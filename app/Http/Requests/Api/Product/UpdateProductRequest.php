@@ -26,8 +26,8 @@ class UpdateProductRequest extends FormRequest
         return [
             'name' => 'string|max:255',
             'description' => 'nullable|string',
-            'size' => 'nullable|string|max:10', // Cập nhật thành nullable
-            'original_price' => 'nullable|numeric|min:0', // Cập nhật thành nullable
+            'size' => 'nullable|string|max:10',
+            'original_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
             'stock_quantity' => 'integer|min:0',
             'image_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -39,18 +39,26 @@ class UpdateProductRequest extends FormRequest
     {
         return [
             'name.string' => 'Tên sản phẩm phải là chuỗi ký tự.',
+
             'name.max' => 'Tên sản phẩm không được dài quá 255 ký tự.',
+
             'description.string' => 'Mô tả phải là chuỗi ký tự.',
+
             'size.max' => 'Kích thước không được dài quá 10 ký tự.',
+
             'original_price.numeric' => 'Giá gốc phải là số.',
             'original_price.min' => 'Giá gốc không được nhỏ hơn 0.',
+
             'sale_price.numeric' => 'Giá khuyến mãi phải là số.',
             'sale_price.min' => 'Giá khuyến mãi không được nhỏ hơn 0.',
+
             'stock_quantity.integer' => 'Số lượng tồn kho phải là số nguyên.',
             'stock_quantity.min' => 'Số lượng tồn kho không được nhỏ hơn 0.',
+
             'image_url.image' => 'File phải là hình ảnh.',
             'image_url.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
             'image_url.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
+            
             'status.boolean' => 'Trạng thái phải là true hoặc false.',
             'category_id.exists' => 'Danh mục không tồn tại.',
         ];

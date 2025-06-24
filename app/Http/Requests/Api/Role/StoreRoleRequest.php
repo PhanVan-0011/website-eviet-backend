@@ -23,7 +23,7 @@ class StoreRoleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:50', 'unique:roles,name'],
+            'name' => ['required', 'string', 'max:50','alpha_dash', 'unique:roles,name'],
             'permissions' => ['nullable', 'array'],
             // Mỗi giá trị trong mảng permissions phải là ID tồn tại trong bảng permissions
             'permissions.*' => ['integer', 'exists:permissions,id'],
@@ -36,6 +36,8 @@ class StoreRoleRequest extends FormRequest
             'name.string' => 'Tên vai trò phải là một chuỗi ký tự.',
             'name.max' => 'Tên vai trò không được vượt quá 50 ký tự.',
             'name.unique' => 'Tên vai trò này đã tồn tại.',
+            'name.alpha_dash' => 'Tên vai trò chỉ được chứa chữ cái, số, dấu gạch ngang (-) và gạch dưới (_).',
+            
             'permissions.array' => 'Danh sách quyền hạn phải là một mảng.',
             'permissions.*.integer' => 'Mỗi quyền hạn phải là một ID số nguyên.',
             'permissions.*.exists' => 'Một hoặc nhiều quyền hạn không tồn tại.',
