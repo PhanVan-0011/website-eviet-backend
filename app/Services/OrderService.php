@@ -183,10 +183,16 @@ class OrderService
             }
 
             // 3. Tạo bản ghi Order
+            $shippingFee = $data['shipping_fee'] ?? 0;
+            $discountAmount = $data['discount_amount'] ?? 0;
+            $grandTotal = $totalAmount + $shippingFee - $discountAmount;
+
             $order = Order::create([
                 'order_date' => now(),
                 'total_amount' => $totalAmount,
-                'shipping_fee' => $data['shipping_fee'],
+                'shipping_fee' => $shippingFee,
+                'discount_amount' => $discountAmount,
+                'grand_total' => $grandTotal,
                 'status' => 'pending',
                 'client_name' => $data['client_name'],
                 'client_phone' => $data['client_phone'],
@@ -201,7 +207,7 @@ class OrderService
             $order->payment()->create([
                 'payment_method_id' => $paymentMethod->id,
                 'status' => 'pending',
-                'amount' => $totalAmount + $data['shipping_fee'],
+                'amount' => $grandTotal,
             ]);
 
             // 6. Trừ tồn kho
@@ -234,6 +240,9 @@ class OrderService
                 }
                 // Cập nhật thời gian hủy đơn
                 $order->cancelled_at = now();
+            }
+            if (isset($data['status']) && $data['status'] === 'delivered' && $order->isDirty('status')) {
+                $this->markPaymentAsPaidIfApplicable($order);
             }
             $order->save();
             return $order;
@@ -321,5 +330,18 @@ class OrderService
             'success_count' => $cancelledCount,
             'failed_orders' => $failedOrders
         ];
+    }
+    /**
+     * Gán trạng thái thanh toán thành công nếu chưa có.
+     */
+    private function markPaymentAsPaidIfApplicable(Order $order)
+    {
+        $payment = $order->payment;
+
+        if ($payment && $payment->status !== 'success') {
+            $payment->status = 'success';
+            $payment->paid_at = now();
+            $payment->save();
+        }
     }
 }

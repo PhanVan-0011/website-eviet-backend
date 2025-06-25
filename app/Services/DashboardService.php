@@ -1,0 +1,188 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Order;
+use App\Models\User;
+use App\Models\Product;
+use App\Models\Post;
+use App\Models\Payment;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use Exception;
+use Illuminate\Support\Facades\Log;
+
+class DashboardService
+{
+    /**
+     * Lấy tất cả các số liệu thống kê cần thiết cho Dashboard.
+     *
+     * @return array
+     */
+    public function getDashboardStatistics(): array
+    {
+        try {
+            //Các thẻ chỉ số KPI tổng quan
+            $kpis = $this->getKpis();
+
+            //Dữ liệu cho biểu đồ doanh thu 6 tháng gần nhất
+            $revenueChart = $this->getRevenueChartData(6, 'month');
+
+            //Dữ liệu cho biểu đồ tròn trạng thái đơn hàng
+            $orderStatusChart = $this->getOrderStatusDistribution();
+
+            //Top 5 sản phẩm bán chạy nhất trong 30 ngày qua
+            $topProducts = $this->getTopSellingProducts(30, 5);
+
+            //đơn hàng gần nhất cần xử lý
+            $pendingOrders = $this->getRecentPendingOrders(5);
+
+            return [
+                'kpis' => $kpis,
+                'revenue_chart' => $revenueChart,
+                'order_status_chart' => $orderStatusChart,
+                'top_selling_products' => $topProducts,
+                'pending_orders' => $pendingOrders,
+            ];
+        } catch (Exception $e) {
+            Log::error('Lỗi Service khi lấy dữ liệu dashboard:', ['message' => $e->getMessage()]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Lấy các chỉ số KPI chính.
+     */
+    private function getKpis(): array
+    {
+
+        $totalRevenue = Payment::where('status', 'success')
+            ->whereHas('order', function ($query) {
+                $query->where('status', 'delivered');
+            })
+            ->whereNotNull('paid_at')
+            ->sum('amount');
+
+        return [
+            'total_revenue' => (float) $totalRevenue,
+            'total_orders' => Order::count(),
+            'total_users' => User::whereDoesntHave('roles')->count(),
+            'total_products' => Product::count(),
+        ];
+    }
+
+    /**
+     * Lấy dữ liệu doanh thu cho biểu đồ.
+     */
+    private function getRevenueChartData(int $count, string $unit): array
+    {
+        $endDate = Carbon::now();
+        $startDate = ($unit === 'month')
+            ? Carbon::now()->subMonths($count - 1)->startOfMonth()
+            : Carbon::now()->subDays($count - 1)->startOfDay();
+
+        $sqlFormat = ($unit === 'month') ? '%Y-%m' : '%Y-%m-%d';
+        $phpFormat = ($unit === 'month') ? 'Y-m' : 'Y-m-d';
+
+        $revenueData = Payment::where('status', 'success')
+            ->whereNotNull('paid_at')
+            ->whereHas('order', function ($query) {
+                $query->where('status', 'delivered');
+            })
+            ->whereBetween('paid_at', [$startDate, $endDate])
+            ->whereRaw('DATE_FORMAT(paid_at, "%Y-%m") = DATE_FORMAT(created_at, "%Y-%m")')
+            ->select(
+                DB::raw("DATE_FORMAT(paid_at, '{$sqlFormat}') as date"),
+                DB::raw('SUM(amount) as total')
+            )
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get()
+            ->keyBy('date');
+
+        $labels = [];
+        $data = [];
+        $date = $startDate->copy();
+
+        while ($date <= $endDate) {
+            $dateString = $date->format($phpFormat);
+
+            if ($unit === 'month') {
+                $labels[] = 'Tháng ' . $date->format('n/Y');
+                $date->addMonth();
+            } else {
+
+                $labels[] = $date->format('d-m-Y');
+                $date->addDay();
+            }
+
+            $data[] = (float) ($revenueData->get($dateString)->total ?? 0);
+        }
+
+        return ['labels' => $labels, 'data' => $data];
+    }
+
+    /**
+     * Lấy dữ liệu cho biểu đồ tròn trạng thái đơn hàng.
+     */
+    private function getOrderStatusDistribution(): array
+    {
+        $statusCounts = Order::select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->get()
+            ->pluck('count', 'status');
+
+        $statusMap = [
+            'delivered' => 'Đã giao',
+            'pending' => 'Chờ xử lý',
+            'shipped' => 'Đang giao',
+            'cancelled' => 'Đã hủy',
+            'processing' => 'Đang xử lý',
+        ];
+
+        $labels = [];
+        $data = [];
+        foreach ($statusMap as $status => $label) {
+            $labels[] = $label;
+            $data[] = $statusCounts->get($status, 0);
+        }
+
+        return ['labels' => $labels, 'data' => $data];
+    }
+
+    /**
+     * Lấy top sản phẩm bán chạy.
+     */
+    private function getTopSellingProducts(int $days, int $limit): \Illuminate\Support\Collection
+    {
+        return DB::table('order_details')
+            ->join('products', 'order_details.product_id', '=', 'products.id')
+            ->join('orders', 'order_details.order_id', '=', 'orders.id')
+            ->join('payments', 'payments.order_id', '=', 'orders.id')
+            ->select(
+                'products.name as product_name',
+                DB::raw('SUM(order_details.quantity) as total_sold'),
+                DB::raw('SUM(order_details.quantity * order_details.unit_price) as total_revenue')
+            )
+            ->where('orders.status', 'delivered')
+            ->where('payments.status', 'success')
+            ->whereNotNull('payments.paid_at')
+            ->where('payments.paid_at', '>=', Carbon::now()->subDays($days))
+            ->groupBy('products.id', 'products.name')
+            ->orderByDesc('total_sold')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Lấy các đơn hàng gần nhất cần xử lý.
+     */
+    private function getRecentPendingOrders(int $limit): \Illuminate\Support\Collection
+    {
+        return Order::where('status', 'pending')
+            ->select('id as order_id', 'order_code', 'client_name', 'status','grand_total', 'created_at')
+            ->latest('created_at')
+            ->limit($limit)
+            ->get();
+    }
+}

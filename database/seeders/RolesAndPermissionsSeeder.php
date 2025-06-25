@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use App\Models\User; 
+use App\Models\User;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
@@ -20,22 +20,27 @@ class RolesAndPermissionsSeeder extends Seeder
         // Xóa cache 
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         // Tắt kiểm tra khóa ngoại để tránh lỗi khi xóa dữ liệu 
-        Schema::disableForeignKeyConstraints();
 
-        // Dùng TRUNCATE để xóa toàn bộ dữ liệu và reset ID tự tăng về 1
-        Permission::truncate();
-        Role::truncate();
-        DB::table('model_has_permissions')->truncate();
-        DB::table('model_has_roles')->truncate();
-        DB::table('role_has_permissions')->truncate();
+        $shouldReset = false; // Chỉ đổi thành true khi cần reset hoàn toàn
 
-        // Bật lại kiểm tra khóa ngoại
-        Schema::enableForeignKeyConstraints();
+        if ($shouldReset) {
+            Schema::disableForeignKeyConstraints();
 
-        $guardName = 'api'; 
+            Permission::truncate();
+            Role::truncate();
+            DB::table('model_has_permissions')->truncate();
+            DB::table('model_has_roles')->truncate();
+            DB::table('role_has_permissions')->truncate();
+
+            Schema::enableForeignKeyConstraints();
+        }
+
+        $guardName = 'api';
 
         // --- TẠO CÁC QUYỀN HẠN (PERMISSIONS) ---//
         $permissions = [
+            // Quản lý dashboard
+            ['name' => 'dashboard.view', 'display_name' => 'Xem tổng quan'],
             // Quản lý Đơn hàng
             ['name' => 'orders.view', 'display_name' => 'Xem Đơn hàng'],
             ['name' => 'orders.create', 'display_name' => 'Tạo Đơn hàng'],
@@ -49,7 +54,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'products.create', 'display_name' => 'Tạo Sản phẩm'],
             ['name' => 'products.update', 'display_name' => 'Sửa Sản phẩm'],
             ['name' => 'products.delete', 'display_name' => 'Xóa Sản phẩm'],
-            
+
             // Quản lý các module khác
             ['name' => 'categories.manage', 'display_name' => 'Quản lý Danh mục'],
             ['name' => 'combos.manage', 'display_name' => 'Quản lý Combo'],
@@ -59,12 +64,12 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'promotions.delete', 'display_name' => 'Xóa Khuyến mãi'],
             ['name' => 'sliders.manage', 'display_name' => 'Quản lý Slider'],
             ['name' => 'posts.manage', 'display_name' => 'Quản lý Bài viết'],
-            
+
             // Quản lý Hệ thống
             ['name' => 'users.manage', 'display_name' => 'Quản lý Người dùng'],
             ['name' => 'roles.manage', 'display_name' => 'Quản lý Phân quyền']
         ];
-        
+
         // Tạo các permission trong CSDL với guard 'api'
         foreach ($permissions as $permission) {
             Permission::updateOrCreate(
@@ -86,19 +91,19 @@ class RolesAndPermissionsSeeder extends Seeder
             ['display_name' => 'Biên tập viên']
         );
         $editorRole->syncPermissions(['sliders.manage', 'posts.manage']);
-        
+
         $productManagerRole = Role::updateOrCreate(
             ['name' => 'product-manager', 'guard_name' => $guardName],
             ['display_name' => 'Quản lý sản phẩm']
         );
-         $productManagerRole->syncPermissions(['products.view', 'products.create', 'products.update', 'products.delete', 'categories.manage', 'combos.manage']);
+        $productManagerRole->syncPermissions(['products.view', 'products.create', 'products.update', 'products.delete', 'categories.manage', 'combos.manage']);
 
         $salesManagerRole = Role::updateOrCreate(
             ['name' => 'sales-manager', 'guard_name' => $guardName],
             ['display_name' => 'Quản lý Bán hàng']
         );
-        $salesManagerRole->syncPermissions(['orders.view', 'orders.create', 'orders.update', 'orders.update_status', 'orders.cancel', 'orders.update_payment', 'promotions.view', 'promotions.create', 'promotions.update', 'promotions.delete']);
-        
+        $salesManagerRole->syncPermissions(['orders.view', 'orders.create', 'orders.update', 'orders.update_status', 'orders.cancel', 'orders.update_payment', 'promotions.view', 'promotions.create', 'promotions.update', 'promotions.delete', 'dashboard.view']);
+
         $superAdminRole = Role::updateOrCreate(
             ['name' => 'super-admin', 'guard_name' => $guardName],
             ['display_name' => 'Super Admin']
@@ -106,11 +111,11 @@ class RolesAndPermissionsSeeder extends Seeder
         $superAdminRole->syncPermissions(Permission::where('guard_name', $guardName)->get());
 
         // --- TẠO TÀI KHOẢN MẪU VÀ GÁN VAI TRÒ --- 
-        $this->createUser('Super Admin', 'superadmin@example.com','0912345675', $superAdminRole);
-        $this->createUser('Sales Manager', 'sales@example.com','0912345676', $salesManagerRole);
-        $this->createUser('Product Manager', 'product@example.com','0912345677', $productManagerRole);
-        $this->createUser('Content Editor', 'editor@example.com','0912345678', $editorRole);
-        $this->createUser('Support Staff', 'support@example.com','0912345679', $supportRole);
+        $this->createUser('Super Admin', 'superadmin@example.com', '0912345675', $superAdminRole);
+        $this->createUser('Sales Manager', 'sales@example.com', '0912345676', $salesManagerRole);
+        $this->createUser('Product Manager', 'product@example.com', '0912345677', $productManagerRole);
+        $this->createUser('Content Editor', 'editor@example.com', '0912345678', $editorRole);
+        $this->createUser('Support Staff', 'support@example.com', '0912345679', $supportRole);
     }
 
     /**

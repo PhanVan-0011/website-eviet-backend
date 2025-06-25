@@ -106,11 +106,6 @@ class UserController extends Controller
                 'success' => false,
                 'message' => 'Không tìm thấy người dùng'
             ], 404);
-        } catch (QueryException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Email hoặc số điện thoại đã tồn tại'
-            ], 409);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

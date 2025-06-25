@@ -1,10 +1,9 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\Api\SliderController;
 use App\Http\Controllers\Api\AuthController;
-
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
@@ -16,7 +15,7 @@ use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PaymentMethodController;
-use App\Http\Controllers\Api\UserRolePermissionController;
+use App\Http\Controllers\Api\DashboardController;
 
 
 
@@ -115,6 +114,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/multi-delete', [UserController::class, 'multiDelete']);
         Route::delete('/{id}', [UserController::class, 'destroy']);
     });
+    
 
     // ---Order---
     Route::prefix('orders')->group(function () {
@@ -139,4 +139,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 
     Route::post('assign-role/{id}', [PermissionController::class, 'assignRolesToUser'])->middleware('check.permission:roles.manage');
     Route::post('assign-permission/{id}', [PermissionController::class, 'assignPermissionsToUser'])->middleware('check.permission:roles.manage');
+    //---Dashboard---
+    Route::get('/dashboard', [DashboardController::class, 'getStatistics'])->middleware('check.permission:dashboard.view,api');
 });

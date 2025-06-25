@@ -30,6 +30,7 @@ class Order extends Model
         'cancelled_at' => 'datetime',
         'total_amount' => 'decimal:2',
         'shipping_fee' => 'decimal:2',
+        'grand_total' => 'decimal:2',
     ];
 
     /**

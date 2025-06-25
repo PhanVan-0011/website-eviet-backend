@@ -19,6 +19,7 @@ class OrderResource extends JsonResource
             'order_code'       => $this->order_code,
             'order_date'       => $this->order_date,
             'total_amount'     => floatval($this->total_amount),
+            'grand_total'     => floatval($this->grand_total),
             'status'           => $this->status,
             'client_name'      => $this->client_name,
             'client_phone'     => $this->client_phone,

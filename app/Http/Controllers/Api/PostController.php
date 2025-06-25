@@ -63,9 +63,6 @@ class PostController extends Controller
 
     /**
      * Lấy thông tin chi tiết một bài viết theo ID.
-     * Gọi phương thức getPostById từ PostService để lấy dữ liệu.
-     * Sử dụng PostResource để định dạng dữ liệu trả về.
-     *
      * @param int $id ID của bài viết
      * @return \Illuminate\Http\JsonResponse
      */
@@ -111,12 +108,6 @@ class PostController extends Controller
                 'data' => new PostResource($post),
                 'message' => 'Tạo bài viết thành công',
             ], 201);
-        } catch (QueryException $e) {
-            Log::error('Error creating post: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Slug đã tồn tại',
-            ], 409);
         } catch (\Exception $e) {
             Log::error('Unexpected error creating post: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
@@ -153,13 +144,6 @@ class PostController extends Controller
                 'success' => false,
                 'message' => 'Không tìm thấy bài viết',
             ], 404);
-        } catch (QueryException $e) {
-            // Xử lý trường hợp lỗi cơ sở dữ liệu (ví dụ: slug trùng lặp)
-            Log::error('Error updating post: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Slug đã tồn tại',
-            ], 409);
         } catch (\Exception $e) {
             // Ghi log lỗi và trả về phản hồi lỗi
             Log::error('Unexpected error updating post: ' . $e->getMessage(), ['exception' => $e]);
