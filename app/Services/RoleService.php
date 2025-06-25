@@ -17,16 +17,14 @@ class RoleService
     public function getAllRoles(Request $request): array
     {
         try {
-            // Lấy các tham số đầu vào
             $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
 
-            // Tạo query cơ bản
             $query = Role::query()
                 ->where('name', '!=', 'super-admin')
-                ->with('permissions');
+                  ->with(['permissions'])
+                  ->withCount('users');
 
-            // Tìm theo từ khóa (keyword)
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
                 $query->where(function ($q) use ($keyword) {
