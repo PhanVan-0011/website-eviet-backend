@@ -49,6 +49,8 @@ class DatabaseSeeder extends Seeder
 
             // Gọi seeder phương thức thanh toán
             PaymentMethodSeeder::class,
+
+            DashboardDemoSeeder::class,
         ]);
 
         // Cập nhật total_amount cho mỗi đơn hàng
