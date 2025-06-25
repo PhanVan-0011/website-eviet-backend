@@ -42,7 +42,7 @@ class RoleService
             }
 
             // Sắp xếp theo tên
-            $query->orderBy('name', 'asc');
+            $query->orderBy('created_at', 'desc');
 
             // Tính tổng số bản ghi
             $total = $query->count();
