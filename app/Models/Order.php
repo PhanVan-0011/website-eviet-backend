@@ -49,19 +49,15 @@ class Order extends Model
      * @return void
      */
     protected static function booted(): void
-    {
-        static::creating(function ($order) {
-            // Chỉ tạo mã nếu nó chưa được gán
-            if (empty($order->order_code)) {
-                do {
-                    // Logic tạo mã: "HD" + NămThángNgày + 6 ký tự ngẫu nhiên
-                    $code = '' . now()->format('Ymd') . strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
-                } while (self::where('order_code', $code)->exists());
-
-                $order->order_code = $code;
-            }
-        });
-    }
+{
+    static::created(function ($order) {
+        // Nếu chưa có mã đơn hàng, tạo dựa trên ID
+        if (empty($order->order_code)) {
+            $order->order_code = 'DH' . str_pad($order->id, 6, '0', STR_PAD_LEFT);
+            $order->save();
+        }
+    });
+}
     // Mối quan hệ với User (bảng users)
     public function user()
     {
