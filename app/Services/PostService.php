@@ -24,7 +24,7 @@ class PostService
     {
         try {
             // Chuẩn hóa các tham số đầu vào
-            $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
+            $perPage = max(1, min(100, (int) $request->input('per_page', 25)));
             $currentPage = max(1, (int) $request->input('page', 1));
             $keyword = (string) $request->input('keyword', '');
             $status = $request->input('status');

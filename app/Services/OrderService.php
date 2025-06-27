@@ -20,7 +20,7 @@ class OrderService
     {
         try {
             // Lấy các tham số đầu vào
-            $perPage = max(1, min(100, (int) $request->input('limit', 10)));
+            $perPage = max(1, min(100, (int) $request->input('limit', 25)));
             $currentPage = max(1, (int) $request->input('page', 1));
 
             // Tạo query cơ bản
@@ -307,7 +307,14 @@ class OrderService
                     //Cập nhật trạng thái đơn hàng
                     $order->status = 'cancelled';
                     $order->cancelled_at = now();
-                    $order->save();
+
+                    if ($order->payment && $order->payment->status === 'pending') {
+                        $order->payment->update([
+                            'status' => 'failed',
+                            'paid_at' => null,
+                        ]);
+                    }
+                                        $order->save();
 
                     //Cộng trả lại tồn kho
                     foreach ($order->orderDetails as $detail) {

@@ -24,7 +24,7 @@ class ProductService
     {
         try {
             // Chuẩn hóa các tham số đầu vào
-            $perPage = max(1, min(100, (int) $request->input('limit', 10)));
+            $perPage = max(1, min(100, (int) $request->input('limit', 25)));
             $currentPage = max(1, (int) $request->input('page', 1));
             $keyword = (string) $request->input('keyword', '');
             $categoryId = $request->input('category_id');

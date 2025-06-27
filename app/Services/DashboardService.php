@@ -167,7 +167,7 @@ class DashboardService
             ->where('orders.status', 'delivered')
             ->where('payments.status', 'success')
             ->whereNotNull('payments.paid_at')
-            ->where('payments.paid_at', '>=', Carbon::now()->subDays($days))
+            //->where('payments.paid_at', '>=', Carbon::now()->subDays($days))
             ->groupBy('products.id', 'products.name')
             ->orderByDesc('total_sold')
             ->limit($limit)

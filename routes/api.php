@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\AdminUserController;
 
 
 
@@ -105,7 +106,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/{promotion}', [PromotionController::class, 'destroy'])->middleware('check.permission:promotions.delete');
     });
 
-    // ---User---
+    // ---Customer---
     Route::prefix('users')->middleware('check.permission:users.manage')->group(function () {
         Route::get('/', [UserController::class, 'index']);
         Route::get('/{id}', [UserController::class, 'show']);
@@ -113,6 +114,20 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::put('/{id}', [UserController::class, 'update']);
         Route::delete('/multi-delete', [UserController::class, 'multiDelete']);
         Route::delete('/{id}', [UserController::class, 'destroy']);
+    });
+      // ---Admin---
+    Route::prefix('admins')->middleware('check.permission:users.manage')->group(function () {
+
+        Route::get('/', [AdminUserController::class, 'index'])->name('admins.index');
+        Route::post('/', [AdminUserController::class, 'store'])->name('admins.store');
+        Route::get('/trash', [AdminUserController::class, 'trash'])->name('admins.trash');
+        Route::delete('/multi-delete', [AdminUserController::class, 'multiDelete'])->name('admins.multi-delete');
+        
+        Route::get('/{id}', [AdminUserController::class, 'show'])->name('admins.show');
+        Route::put('/{id}', [AdminUserController::class, 'update'])->name('admins.update');
+        Route::delete('/{id}', [AdminUserController::class, 'destroy'])->name('admins.destroy'); 
+        Route::post('/{id}/restore', [AdminUserController::class, 'restore'])->name('admins.restore');
+        Route::delete('/{id}/force-delete', [AdminUserController::class, 'forceDelete'])->name('admins.force-delete');
     });
     
 
