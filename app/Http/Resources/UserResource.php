@@ -29,6 +29,11 @@ class UserResource extends JsonResource
             'phone_verified_at' => $this->phone_verified_at
                 ? \Carbon\Carbon::parse($this->phone_verified_at)->format('Y-m-d H:i:s')
                 : null,
+
+            'roles' => RoleResource::collection($this->whenLoaded('roles')),
+            'permissions' => PermissionResource::collection($this->whenLoaded('permissions', function () {
+                return $this->getAllPermissions();
+            })),
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
         ];

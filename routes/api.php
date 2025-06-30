@@ -142,13 +142,13 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Role & Permission---
-    Route::prefix('roles')->middleware('check.permission:roles.manage')->group(function () {
-        Route::get('/', [RoleController::class, 'index']);
-        Route::post('/', [RoleController::class, 'store']);
-        Route::delete('/multi-delete', [RoleController::class, 'multiDelete']);
-        Route::get('/{role}', [RoleController::class, 'show']);
-        Route::put('/{id}', [RoleController::class, 'update']);
-        Route::delete('/{role}', [RoleController::class, 'destroy']);
+    Route::prefix('roles')->name('roles.')->middleware('check.permission:roles.manage')->group(function () {
+        Route::get('/', [RoleController::class, 'index'])->name('index');;
+        Route::post('/', [RoleController::class, 'store'])->name('store');
+        Route::delete('/multi-delete', [RoleController::class, 'multiDelete'])->name('multi-delete');
+        Route::get('/{role}', [RoleController::class, 'show'])->name('show');
+        Route::put('/{id}', [RoleController::class, 'update'])->name('update');
+        Route::delete('/{role}', [RoleController::class, 'destroy'])->name('destroy');
     });
     Route::get('/permissions', [PermissionController::class, 'index'])->middleware('check.permission:roles.manage');
 

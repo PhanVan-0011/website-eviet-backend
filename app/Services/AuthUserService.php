@@ -34,9 +34,10 @@ class AuthUserService
     public function login(string $login, string $password): ?User
     {
         $isEmail = filter_var($login, FILTER_VALIDATE_EMAIL);
+        $query = User::with(['roles', 'permissions']);
         $user = $isEmail
-            ? User::where('email', $login)->first()
-            : User::where('phone', $login)->first();
+            ? $query->where('email', $login)->first()
+            : $query->where('phone', $login)->first();
 
         if (!$user || !Hash::check($password, $user->password) || !$user->is_active) {
             return null;
