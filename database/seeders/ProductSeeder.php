@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+
 class ProductSeeder extends Seeder
 {
     /**
@@ -23,7 +24,6 @@ class ProductSeeder extends Seeder
                 'status' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
-                'category_id' => 1, 
             ],
             [
                 'name' => 'Bánh tráng',
@@ -36,8 +36,7 @@ class ProductSeeder extends Seeder
                 'status' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
-                'category_id' => 2, 
             ],
         ]);
-    }   
+    }
 }
