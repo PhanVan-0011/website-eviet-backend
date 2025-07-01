@@ -8,14 +8,23 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     use HasFactory;
-    protected $table = 'products'; // Tùy chọn, nếu tên bảng đúng quy ước thì không cần
-    protected $fillable = ['name', 'description', 'size', 'original_price',
-     'sale_price', 'stock_quantity', 'image_url', 'status', 'category_id'];
-
-    // Quan hệ: Một sản phẩm thuộc về một danh mục
-    public function category()
+    protected $fillable = ['product_code','name', 'description', 'size', 'original_price',
+     'sale_price', 'stock_quantity', 'image_url', 'status'];
+ /**
+     * Ghi đè phương thức boot của model để đăng ký event.
+     */
+    protected static function booted(): void
+    {      
+        static::created(function ($product) {
+            if (is_null($product->product_code)) {
+                $product->product_code = 'SP' . str_pad($product->id, 6, '0', STR_PAD_LEFT);
+                $product->saveQuietly();
+            }
+        });
+    }
+    public function categories() 
     {
-        return $this->belongsTo(Category::class, 'category_id');
+        return $this->belongsToMany(Category::class, 'category_product')->withTimestamps();
     }
     // Quan hệ với bảng combo thông qua bảng combo_items
     public function combos()

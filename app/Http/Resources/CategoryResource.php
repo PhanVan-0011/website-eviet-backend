@@ -21,13 +21,16 @@ class CategoryResource extends JsonResource
             'description' => $this->description,
             'status' => $this->status,
             'parent_id' => $this->parent_id,
-            //chỉ tải dữ liệu parent nếu quan hệ đã được tải.
+
             'parent' => $this->whenLoaded('parent', fn() => new CategoryResource($this->parent)),
-            //định dạng tập hợp các danh mục con (children).
             'children' => $this->whenLoaded('children', fn() => CategoryResource::collection($this->children)),
+            
+            'products_count' => $this->when(isset($this->products_count), $this->products_count),
+            'products' => ProductResource::collection($this->whenLoaded('products')),
+
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
-            'products_count' => $this->products_count,
+
             'promotions' => $this->whenLoaded('promotions', function () {
                 return $this->promotions->map(fn($promo) => [
                     'id' => $promo->id,

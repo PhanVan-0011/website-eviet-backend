@@ -32,7 +32,9 @@ class UpdateProductRequest extends FormRequest
             'stock_quantity' => 'integer|min:0',
             'image_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'status' => 'boolean',
-            'category_id' => 'exists:categories,id',
+
+           'category_ids' => 'sometimes|required|array|min:1',
+           'category_ids.*' => 'sometimes|required|integer|exists:categories,id',
         ];
     }
     public function messages(): array
@@ -60,7 +62,10 @@ class UpdateProductRequest extends FormRequest
             'image_url.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
             
             'status.boolean' => 'Trạng thái phải là true hoặc false.',
-            'category_id.exists' => 'Danh mục không tồn tại.',
+
+           'category_ids.required' => 'Vui lòng chọn ít nhất một danh mục.',
+            'category_ids.array' => 'Định dạng danh mục không hợp lệ.',
+            'category_ids.*.exists' => 'Một trong các danh mục được chọn không tồn tại.',
         ];
     }
     protected function failedValidation(Validator $validator)

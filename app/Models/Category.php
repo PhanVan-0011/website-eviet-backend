@@ -10,10 +10,10 @@ class Category extends Model
 {
     use HasFactory;
     protected $fillable = ['name', 'status', 'parent_id', 'description'];
-    // Quan hệ: Một danh mục có nhiều sản phẩm
+    // Quan hệ: nhiều nhiều
     public function products()
     {
-        return $this->hasMany(Product::class, 'category_id');
+        return $this->belongsToMany(Product::class, 'category_product');
     }
 
     // Quan hệ: Một danh mục có thể thuộc về một danh mục cha (self-referencing)
