@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Product;
+
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Product>
  */
@@ -17,7 +18,7 @@ class ProductFactory extends Factory
     protected $model = Product::class;
     public function definition(): array
     {
-       
+
         return [
             'name' => $this->faker->words(2, true),
             'description' => $this->faker->sentence(),
@@ -27,7 +28,7 @@ class ProductFactory extends Factory
             'stock_quantity' => $this->faker->numberBetween(0, 100),
             'image_url' => $this->faker->imageUrl(640, 480, 'products', true),
             'status' => $this->faker->boolean,
-            'category_id' => \App\Models\Category::inRandomOrder()->first()?->id ?? 1,
+            // 'category_id' => \App\Models\Category::inRandomOrder()->first()?->id ?? 1,
         ];
     }
 }
