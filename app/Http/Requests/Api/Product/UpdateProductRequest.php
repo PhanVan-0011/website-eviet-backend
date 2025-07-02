@@ -24,17 +24,25 @@ class UpdateProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'string|max:255',
-            'description' => 'nullable|string',
-            'size' => 'nullable|string|max:10',
-            'original_price' => 'nullable|numeric|min:0',
-            'sale_price' => 'nullable|numeric|min:0',
-            'stock_quantity' => 'integer|min:0',
-            'image_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'status' => 'boolean',
+            'name' => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|nullable|string',
+            'size' => 'sometimes|nullable|string|max:10',
+            'original_price' => 'sometimes|nullable|numeric|min:0',
+            'sale_price' => 'sometimes|nullable|numeric|min:0|lte:original_price',
+            'stock_quantity' => 'sometimes|required|integer|min:0',
+            'status' => 'sometimes|required|boolean',
+            'category_ids' => 'sometimes|required|array|min:1',
+            'category_ids.*' => 'sometimes|required|integer|exists:categories,id',
 
-           'category_ids' => 'sometimes|required|array|min:1',
-           'category_ids.*' => 'sometimes|required|integer|exists:categories,id',
+            'image_url' => 'sometimes|nullable|array|max:4', // Giới hạn tổng số ảnh
+            'image_url.*' => 'sometimes|required|image|mimes:jpeg,png,jpg,gif|max:2048',
+
+            // 2. Mảng các ID của ảnh cũ cần xóa
+            'deleted_image_ids' => 'sometimes|nullable|array',
+            'deleted_image_ids.*' => 'sometimes|required|integer|exists:images,id',
+
+            // 3. ID của ảnh mới được chọn làm ảnh đại diện
+            'featured_image_id' => 'sometimes|nullable|integer|exists:images,id',
         ];
     }
     public function messages(): array
@@ -57,15 +65,20 @@ class UpdateProductRequest extends FormRequest
             'stock_quantity.integer' => 'Số lượng tồn kho phải là số nguyên.',
             'stock_quantity.min' => 'Số lượng tồn kho không được nhỏ hơn 0.',
 
-            'image_url.image' => 'File phải là hình ảnh.',
-            'image_url.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
-            'image_url.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
-            
             'status.boolean' => 'Trạng thái phải là true hoặc false.',
 
-           'category_ids.required' => 'Vui lòng chọn ít nhất một danh mục.',
+            'category_ids.required' => 'Vui lòng chọn ít nhất một danh mục.',
             'category_ids.array' => 'Định dạng danh mục không hợp lệ.',
             'category_ids.*.exists' => 'Một trong các danh mục được chọn không tồn tại.',
+
+            'image_url.array' => 'Định dạng ảnh tải lên không hợp lệ.',
+            'image_url.max' => 'Chỉ được upload tối đa :max ảnh cho mỗi sản phẩm.',
+            'image_url.*.image' => 'Mỗi file tải lên phải là hình ảnh.',
+            'image_url.*.mimes' => 'Mỗi hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.*.max' => 'Kích thước mỗi hình ảnh không được vượt quá 2MB.',
+            'deleted_image_ids.array' => 'Định dạng ID ảnh cần xóa không hợp lệ.',
+            'deleted_image_ids.*.exists' => 'ID ảnh cần xóa không tồn tại.',
+            'featured_image_id.exists' => 'ID ảnh đại diện được chọn không tồn tại.',
         ];
     }
     protected function failedValidation(Validator $validator)

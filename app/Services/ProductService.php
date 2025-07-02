@@ -12,9 +12,16 @@ use Exception;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Arr;
+use App\Models\Image as ImageModel;
 
 class ProductService
 {
+    protected ImageService $imageService;
+
+    public function __construct(ImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
     /**
      * Lấy danh sách tất cả sản phẩm với phân trang thủ công, tìm kiếm và sắp xếp
      *
@@ -29,7 +36,7 @@ class ProductService
             $perPage = max(1, min(100, (int) $request->input('limit', 25)));
             $currentPage = max(1, (int) $request->input('page', 1));
 
-            $query = Product::query()->with('categories');
+            $query = Product::query()->with(['categories', 'featuredImage']);
 
             // Áp dụng tìm kiếm nếu có từ khóa
             if ($request->filled('keyword')) {
@@ -94,8 +101,7 @@ class ProductService
     public function getProductById($id)
     {
         try {
-            $product = Product::with('categories')->findOrFail($id);
-            return $product;
+            return Product::with(['categories', 'images'])->findOrFail($id);
         } catch (ModelNotFoundException $e) {
             Log::error("Sản phẩm với ID {$id} không tồn tại: " . $e->getMessage());
             throw new ModelNotFoundException("Sản phẩm không tồn tại");
@@ -118,21 +124,29 @@ class ProductService
             try {
 
                 $categoryIds = Arr::pull($data, 'category_ids', []);
-
-                if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
-                    $year = now()->format('Y');
-                    $month = now()->format('m');
-                    $slug = Str::slug($data['name'] ?? 'product');
-                    $path = "products_images/{$year}/{$month}";
-                    $filename = uniqid($slug . '-') . '.' . $data['image_url']->getClientOriginalExtension();
-                    $data['image_url'] = $data['image_url']->storeAs($path, $filename, 'public');
-                }
+                 $images = Arr::pull($data, 'image_url', []);
+                $featuredImageIndex = Arr::pull($data, 'featured_image_index', 0);
+                // Tạo sản phẩm trước để lấy ID và slug
                 $product = Product::create($data);
+                // Xử lý upload nhiều ảnh bằng cách gọi ImageService
+                if (!empty($images)) {
+                    foreach ($images as $index => $imageFile) {
+                        $basePath = $this->imageService->store($imageFile, 'products', $product->name);
+                        if ($basePath) {
+                            $product->images()->create([
+                                'image_url' => $basePath,
+                                'is_featured' => ($index == $featuredImageIndex)
+                            ]);
+                        }
+                    }
+                }
 
+                // Gán danh mục
                 if (!empty($categoryIds)) {
                     $product->categories()->attach($categoryIds);
                 }
-                return $product->load('categories');
+                Log::info("Đã tạo sản phẩm mới [ID: {$product->id}]");
+                return $product->load(['images', 'categories']);
             } catch (Exception $e) {
                 Log::error('Lỗi khi tạo sản phẩm: ' . $e->getMessage());
                 throw $e;
@@ -152,28 +166,46 @@ class ProductService
         return DB::transaction(function () use ($id, $data) {
             try {
                 $product = Product::findOrFail($id);
-                $categoryIds = Arr::pull($data, 'category_ids', null);
 
-                if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
-                    if ($product->image_url && Storage::disk('public')->exists($product->image_url)) {
-                        Storage::disk('public')->delete($product->image_url);
-                    }
-                    $year = now()->format('Y');
-                    $month = now()->format('m');
-                    $slug = Str::slug($data['name'] ?? $product->name);
-                    $path = "products_images/{$year}/{$month}";
-                    $filename = uniqid($slug . '-') . '.' . $data['image_url']->getClientOriginalExtension();
-                    $data['image_url'] = $data['image_url']->storeAs($path, $filename, 'public');
-                }
+                $categoryIds = Arr::pull($data, 'category_ids', null);
+                $newImages = Arr::pull($data, 'image_url', []);
+                $deletedImageIds = Arr::pull($data, 'deleted_image_ids', []);
+                $featuredImageId = Arr::pull($data, 'featured_image_id', null);
+
                 $product->update($data);
+
+                if (!empty($deletedImageIds)) {
+                    $imagesToDelete = ImageModel::whereIn('id', $deletedImageIds)->where('imageable_id', $product->id)->get();
+                    foreach ($imagesToDelete as $image) {
+                        $this->imageService->delete($image->image_url, 'products');
+                        $image->delete();
+                    }
+                }
+
+                if (!empty($newImages)) {
+                    foreach ($newImages as $imageFile) {
+                        $basePath = $this->imageService->store($imageFile, 'products', $product->name);
+                        if ($basePath) {
+                            $product->images()->create(['image_url' => $basePath]);
+                        }
+                    }
+                }
+
+                if ($featuredImageId) {
+                    $product->images()->update(['is_featured' => false]);
+                    ImageModel::where('id', $featuredImageId)->where('imageable_id', $product->id)->update(['is_featured' => true]);
+                }
 
                 if (is_array($categoryIds)) {
                     $product->categories()->sync($categoryIds);
                 }
 
-                return $product->refresh()->load('categories');
+                Log::info("Đã cập nhật sản phẩm [ID: {$product->id}]");
+                return $product->refresh()->load(['images', 'categories']);
+            } catch (ModelNotFoundException $e) {
+                throw $e;
             } catch (Exception $e) {
-                Log::error("Lỗi khi cập nhật sản phẩm với {$id}: " . $e->getMessage());
+                Log::error("Lỗi khi cập nhật sản phẩm ID {$id}: " . $e->getMessage());
                 throw $e;
             }
         });
@@ -185,19 +217,29 @@ class ProductService
      * @return bool
      * @throws ModelNotFoundException
      */
-    public function deleteProduct($id): bool
+    public function deleteProduct(int $id): bool
     {
         return DB::transaction(function () use ($id) {
             try {
-                $product = Product::findOrFail($id);
-                $usedCount = OrderDetail::where('product_id', $id)->count();
-                if ($usedCount > 0) {
-                    throw new Exception("Có {$usedCount} chi tiết đơn hàng đang sử dụng sản phẩm này, không thể xóa.");
+                $product = Product::with('images')->findOrFail($id);
+
+                if (OrderDetail::where('product_id', $id)->exists()) {
+                    throw new Exception("Sản phẩm đang được sử dụng trong đơn hàng, không thể xóa.");
                 }
-                $product->categories()->detach();
-                return $product->delete();
+
+                foreach ($product->images as $image) {
+                    $this->imageService->delete($image->image_url, 'products');
+                }
+
+                $product->images()->delete();
+
+                $isDeleted = $product->delete();
+                Log::warning("Đã xóa sản phẩm [ID: {$id}]");
+                return $isDeleted;
+            } catch (ModelNotFoundException $e) {
+                throw $e;
             } catch (Exception $e) {
-                Log::error("Lỗi khi xóa sản phẩm với {$id}: " . $e->getMessage());
+                Log::error("Lỗi khi xóa sản phẩm ID {$id}: " . $e->getMessage());
                 throw $e;
             }
         });

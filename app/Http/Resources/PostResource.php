@@ -20,7 +20,12 @@ class PostResource extends JsonResource
             'content' => $this->content,
             'slug' => $this->slug,
             'status' => $this->status,
-            'image_url' => $this->image_url,
+
+            'image_urls' => ImageResource::collection($this->whenLoaded('images')),
+
+
+            'featured_image' => new ImageResource($this->whenLoaded('featuredImage')),
+            
             'categories' => CategoryResource::collection($this->whenLoaded('categories')),
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),

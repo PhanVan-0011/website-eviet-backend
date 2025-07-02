@@ -9,7 +9,7 @@ class Product extends Model
 {
     use HasFactory;
     protected $fillable = ['product_code','name', 'description', 'size', 'original_price',
-     'sale_price', 'stock_quantity', 'image_url', 'status'];
+     'sale_price', 'stock_quantity', 'status'];
  /**
      * Ghi đè phương thức boot của model để đăng ký event.
      */
@@ -22,6 +22,33 @@ class Product extends Model
             }
         });
     }
+
+      /**
+     * Quan hệ đa hình: Một sản phẩm có nhiều ảnh.
+     */
+    public function images()
+    {
+        return $this->morphMany(Image::class, 'imageable');
+    }
+
+    /**
+     * Một hàm helper tiện lợi để lấy ảnh đại diện.
+     */
+    public function featuredImage()
+    {
+        return $this->morphOne(Image::class, 'imageable')->where('is_featured', true);
+    }
+
+    /**
+     * Một hàm helper tiện lợi để lấy các ảnh chi tiết (không phải ảnh đại diện).
+     */
+    public function galleryImages()
+    {
+        return $this->morphMany(Image::class, 'imageable')->where('is_featured', false);
+    }
+
+
+
     public function categories() 
     {
         return $this->belongsToMany(Category::class, 'category_product')->withTimestamps();

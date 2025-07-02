@@ -24,7 +24,11 @@ class ProductResource extends JsonResource
             'sale_price' => $this->sale_price,
             'stock_quantity' => $this->stock_quantity,
             'status' => $this->status,
-            'image_url' => $this->image_url,
+
+            'image_urls' => ImageResource::collection($this->whenLoaded('images')),
+            
+            'featured_image' => new ImageResource($this->whenLoaded('featuredImage')),
+
             'size' => $this->size,
 
             'categories' => CategoryResource::collection($this->whenLoaded('categories')),

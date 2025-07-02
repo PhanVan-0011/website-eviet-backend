@@ -30,11 +30,18 @@ class StoreProductRequest extends FormRequest
             'original_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
             'stock_quantity' => 'required|integer|min:0',
-            'image_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+
+            'image_url' => 'nullable|array|max:4',
+            
+            // Mỗi file trong mảng 'image_url' phải là ảnh, đúng định dạng, và không quá 2MB
+            'image_url.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            
+            // Chỉ số của ảnh đại diện (ví dụ: 0, 1, 2, 3) phải là số nguyên
+            'featured_image_index' => 'nullable|integer|min:0',
+
             'status' => 'required|boolean',
 
-           'category_ids' => 'required|array|min:1',
-
+            'category_ids' => 'required|array|min:1',
             'category_ids.*' => 'required|integer|exists:categories,id',
         ];
     }
@@ -58,16 +65,20 @@ class StoreProductRequest extends FormRequest
             'stock_quantity.integer' => 'Số lượng tồn kho phải là số nguyên.',
             'stock_quantity.min' => 'Số lượng tồn kho không được nhỏ hơn 0.',
 
-            'image_url.image' => 'File phải là hình ảnh.',
-            'image_url.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
-            'image_url.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
-
             'status.required' => 'Trạng thái là bắt buộc.',
             'status.boolean' => 'Trạng thái phải là true hoặc false.',
 
             'category_ids.required' => 'Vui lòng chọn ít nhất một danh mục.',
             'category_ids.array' => 'Định dạng danh mục không hợp lệ.',
             'category_ids.*.exists' => 'Một trong các danh mục được chọn không tồn tại.',
+
+             // --- THÔNG BÁO LỖI CHO UPLOAD NHIỀU ẢNH ---
+            'image_url.array' => 'Định dạng ảnh không hợp lệ.',
+            'image_url.max' => 'Chỉ được upload tối đa :max ảnh cho mỗi sản phẩm.',
+            'image_url.*.required' => 'Vui lòng chọn file ảnh.',
+            'image_url.*.image' => 'File phải là hình ảnh.',
+            'image_url.*.mimes' => 'Mỗi hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.*.max' => 'Kích thước mỗi hình ảnh không được vượt quá 2MB.',
         ];
     }
     protected function failedValidation(Validator $validator)
