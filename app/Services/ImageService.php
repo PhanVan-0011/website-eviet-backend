@@ -74,7 +74,7 @@ class ImageService
             foreach ($imageSizes as $sizeName => $dimensions) {
                 $fullPath = "{$folder}/{$year}/{$month}/{$sizeName}/{$fileName}";
                 
-                $resizedImage = $image->cover($dimensions[0], $dimensions[1])->encode();
+                $resizedImage = $image->scale($dimensions[0], $dimensions[1])->encode();
 
                 Storage::disk('public')->put($fullPath, $resizedImage);
             }
