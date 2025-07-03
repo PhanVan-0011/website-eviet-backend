@@ -101,7 +101,7 @@ class ProductService
     public function getProductById($id)
     {
         try {
-            return Product::with(['categories', 'images'])->findOrFail($id);
+             return Product::with(['categories', 'images', 'featuredImage'])->findOrFail($id);
         } catch (ModelNotFoundException $e) {
             Log::error("Sản phẩm với ID {$id} không tồn tại: " . $e->getMessage());
             throw new ModelNotFoundException("Sản phẩm không tồn tại");
@@ -251,33 +251,44 @@ class ProductService
      * @return int Số lượng bản ghi đã xóa
      * @throws ModelNotFoundException
      */
-    public function multiDeleteProducts($ids)
+     public function multiDeleteProducts(array $ids): int
     {
-        try {
-            $ids = array_map('intval', explode(',', $ids));
-
-            $existingIds = Product::whereIn('id', $ids)->pluck('id')->toArray();
-            $nonExistingIds = array_diff($ids, $existingIds);
-
-            if (!empty($nonExistingIds)) {
-                Log::error('IDs not found for deletion: ' . implode(',', $nonExistingIds));
-                throw new ModelNotFoundException('ID cần xóa không tồn tại trong hệ thống');
-            }
+        return DB::transaction(function () use ($ids) {
+            try {
+                 // Kiểm tra ràng buộc với đơn hàng
             $usedCount = OrderDetail::whereIn('product_id', $ids)->count();
             if ($usedCount > 0) {
-                throw new \Exception("Có $usedCount sản phẩm đang được sử dụng, không thể xóa.");
+                throw new Exception("Có {$usedCount} sản phẩm đang được sử dụng, không thể xóa.");
             }
-            $products = Product::whereIn('id', $ids)->get();
+
+            // Lấy các sản phẩm và các ảnh liên quan
+            $products = Product::with('images')->whereIn('id', $ids)->get();
+            $deletedCount = 0;
+
             foreach ($products as $product) {
+                //Xóa các file ảnh vật lý
+                foreach ($product->images as $image) {
+                    $this->imageService->delete($image->image_url, 'products');
+                }              
+                // Xóa các bản ghi ảnh trong bảng `images`
+                $product->images()->delete();
+                
+                //Xóa các quan hệ trong bảng trung gian category_product)
                 $product->categories()->detach();
+
+                //Xóa chính sản phẩm đó
+                if ($product->delete()) {
+                    $deletedCount++;
+                }
+            }       
+            Log::warning("{$deletedCount} sản phẩm đã bị xóa bởi người dùng [ID: " . auth()->id() . "].");
+            return $deletedCount;
+            
+            } catch (Exception $e) {
+                Log::error('Lỗi trong quá trình xóa nhiều sản phẩm tại ProductService: ' . $e->getMessage());
+                throw $e;
             }
-            return Product::whereIn('id', $ids)->forceDelete();
-        } catch (ModelNotFoundException $e) {
-            Log::error('Lỗi khi xóa nhiều sản phẩm: ' . $e->getMessage(), ['exception' => $e]);
-            throw $e;
-        } catch (Exception $e) {
-            Log::error('Lỗi không : ' . $e->getMessage(), ['exception' => $e]);
-            throw $e;
-        }
+        });
+        
     }
 }

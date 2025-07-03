@@ -5,6 +5,8 @@ namespace App\Http\Requests\Api\Product;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
+use App\Models\Product;
 
 class UpdateProductRequest extends FormRequest
 {
@@ -23,6 +25,7 @@ class UpdateProductRequest extends FormRequest
      */
     public function rules(): array
     {
+        $productId = $this->route('id');
         return [
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|nullable|string',
@@ -34,19 +37,71 @@ class UpdateProductRequest extends FormRequest
             'category_ids' => 'sometimes|required|array|min:1',
             'category_ids.*' => 'sometimes|required|integer|exists:categories,id',
 
-            'image_url' => 'sometimes|nullable|array|max:4', // Giới hạn tổng số ảnh
+            // Chỉ kiểm tra định dạng của các ảnh mới tải lên
+            'image_url' => 'sometimes|nullable|array',
             'image_url.*' => 'sometimes|required|image|mimes:jpeg,png,jpg,gif|max:2048',
 
             // 2. Mảng các ID của ảnh cũ cần xóa
             'deleted_image_ids' => 'sometimes|nullable|array',
             'deleted_image_ids.*' => 'sometimes|required|integer|exists:images,id',
+          
+            'deleted_image_ids.*' => [
+                'sometimes',
+                'required',
+                'integer',
+                Rule::exists('images', 'id')->where(function ($query) use ($productId) {
+                    $query->where('imageable_id', $productId)
+                          ->where('imageable_type', Product::class);
+                }),
+            ],
 
-            // 3. ID của ảnh mới được chọn làm ảnh đại diện
-            'featured_image_id' => 'sometimes|nullable|integer|exists:images,id',
+            'featured_image_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('images', 'id')->where(function ($query) use ($productId) {
+                    $query->where('imageable_id', $productId)
+                          ->where('imageable_type', Product::class);
+                }),
+            ],
         ];
+    }
+     public function withValidator(Validator $validator): void
+    {
+        $validator->after(function ($validator) {
+            $deletedIds = $this->input('deleted_image_ids', []);
+            $featuredId = $this->input('featured_image_id');
+            $newImages = $this->file('image_url', []);
+
+            $productId = $this->route('id');
+            $product = Product::withCount('images')->find($productId);
+
+            if ($product) {
+                $currentImageCount = $product->images_count;
+                $deletedImageCount = count((array)$deletedIds);
+                $newImageCount = count((array)$newImages);
+                
+                $totalImages = ($currentImageCount - $deletedImageCount) + $newImageCount;
+
+                if ($totalImages > 4) {
+                    $validator->errors()->add(
+                        'image_url',
+                        'Tổng số ảnh của một sản phẩm không được vượt quá 4.'
+                    );
+                }
+            }
+            // KIỂM TRA LỖI: Nếu featured_image_id nằm trong danh sách các ảnh bị xóa
+            if ($featuredId && is_array($deletedIds) && in_array($featuredId, $deletedIds)) {
+                $validator->errors()->add(
+                    'featured_image_id',
+                    'Không thể đặt ảnh đang bị xóa làm ảnh đại diện.'
+                );
+            }
+        });
     }
     public function messages(): array
     {
+        $productId = $this->route('id');
         return [
             'name.string' => 'Tên sản phẩm phải là chuỗi ký tự.',
 
@@ -78,7 +133,8 @@ class UpdateProductRequest extends FormRequest
             'image_url.*.max' => 'Kích thước mỗi hình ảnh không được vượt quá 2MB.',
             'deleted_image_ids.array' => 'Định dạng ID ảnh cần xóa không hợp lệ.',
             'deleted_image_ids.*.exists' => 'ID ảnh cần xóa không tồn tại.',
-            'featured_image_id.exists' => 'ID ảnh đại diện được chọn không tồn tại.',
+
+             'featured_image_id.exists' => 'Ảnh đại diện được chọn không hợp lệ hoặc không thuộc về sản phẩm này.',
         ];
     }
     protected function failedValidation(Validator $validator)

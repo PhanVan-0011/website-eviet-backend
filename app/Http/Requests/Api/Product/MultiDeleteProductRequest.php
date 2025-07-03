@@ -16,41 +16,30 @@ class MultiDeleteProductRequest extends FormRequest
         return true;
     }
 
-    /**
-     * Prepare the data for validation.
-     */
-    protected function prepareForValidation(): void
+   protected function prepareForValidation(): void
     {
-        if ($this->has('ids') && is_array($this->ids)) {
+        if ($this->has('ids') && is_string($this->ids)) {
             $this->merge([
-                'ids' => implode(',', $this->ids)
+                'ids' => array_filter(array_map('intval', explode(',', $this->ids))),
             ]);
         }
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            'ids' => ['required', 'regex:/^[0-9]+(,[0-9]+)*$/']
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer|exists:products,id'
         ];
     }
 
-    /**
-     * Get custom messages for validator errors.
-     *
-     * @return array
-     */
-    public function messages(): array
+     public function messages(): array
     {
         return [
-            'ids.required' => 'Vui lòng chọn ít nhất một sản phẩm để xóa',
-            'ids.string' => 'Danh sách ID sản phẩm không hợp lệ',
-            'ids.regex' => 'Định dạng danh sách ID không hợp lệ. Ví dụ: 1,2,3'
+            'ids.required' => 'Vui lòng cung cấp danh sách ID sản phẩm cần xóa.',
+            'ids.array' => 'Định dạng danh sách ID không hợp lệ.',
+            'ids.*.integer' => 'Mỗi ID trong danh sách phải là một số nguyên.',
+            'ids.*.exists' => 'Một trong các ID không tồn tại.',
         ];
     }
 
