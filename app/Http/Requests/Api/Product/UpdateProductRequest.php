@@ -43,15 +43,15 @@ class UpdateProductRequest extends FormRequest
 
             // 2. Mảng các ID của ảnh cũ cần xóa
             'deleted_image_ids' => 'sometimes|nullable|array',
-            'deleted_image_ids.*' => 'sometimes|required|integer|exists:images,id',
-          
+            // 'deleted_image_ids.*' => 'sometimes|required|integer|exists:images,id',
+
             'deleted_image_ids.*' => [
                 'sometimes',
                 'required',
                 'integer',
                 Rule::exists('images', 'id')->where(function ($query) use ($productId) {
                     $query->where('imageable_id', $productId)
-                          ->where('imageable_type', Product::class);
+                        ->where('imageable_type', Product::class);
                 }),
             ],
 
@@ -61,12 +61,12 @@ class UpdateProductRequest extends FormRequest
                 'integer',
                 Rule::exists('images', 'id')->where(function ($query) use ($productId) {
                     $query->where('imageable_id', $productId)
-                          ->where('imageable_type', Product::class);
+                        ->where('imageable_type', Product::class);
                 }),
             ],
         ];
     }
-     public function withValidator(Validator $validator): void
+    public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator) {
             $deletedIds = $this->input('deleted_image_ids', []);
@@ -80,7 +80,7 @@ class UpdateProductRequest extends FormRequest
                 $currentImageCount = $product->images_count;
                 $deletedImageCount = count((array)$deletedIds);
                 $newImageCount = count((array)$newImages);
-                
+
                 $totalImages = ($currentImageCount - $deletedImageCount) + $newImageCount;
 
                 if ($totalImages > 4) {
@@ -134,7 +134,7 @@ class UpdateProductRequest extends FormRequest
             'deleted_image_ids.array' => 'Định dạng ID ảnh cần xóa không hợp lệ.',
             'deleted_image_ids.*.exists' => 'ID ảnh cần xóa không tồn tại.',
 
-             'featured_image_id.exists' => 'Ảnh đại diện được chọn không hợp lệ hoặc không thuộc về sản phẩm này.',
+            'featured_image_id.exists' => 'Ảnh đại diện được chọn không hợp lệ hoặc không thuộc về sản phẩm này.',
         ];
     }
     protected function failedValidation(Validator $validator)
