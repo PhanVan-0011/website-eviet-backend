@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Post\StorePostRequest;
 use App\Http\Requests\Api\Post\UpdatePostRequest;
+use App\Http\Requests\Api\Post\MultiDeletePostRequest;
 use App\Http\Resources\PostResource;
 use App\Services\PostService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -15,12 +16,6 @@ use Illuminate\Support\Facades\Log;
 class PostController extends Controller
 {
     protected $postService;
-
-    /**
-     * Khởi tạo PostController và tiêm PostService thông qua dependency injection.
-     *
-     * @param \App\Services\PostService $postService
-     */
     public function __construct(PostService $postService)
     {
         $this->postService = $postService;
@@ -62,170 +57,94 @@ class PostController extends Controller
     }
 
     /**
-     * Lấy thông tin chi tiết một bài viết theo ID.
-     * @param int $id ID của bài viết
-     * @return \Illuminate\Http\JsonResponse
+     * Lấy chi tiết một bài viết.
      */
-    public function show($id)
+    public function show(int $id)
     {
         try {
             $post = $this->postService->getPostById($id);
             return response()->json([
                 'success' => true,
-                'data' => new PostResource($post),
                 'message' => 'Lấy thông tin bài viết thành công',
+                'data' => new PostResource($post),
             ], 200);
         } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bài viết không tồn tại',
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy bài viết.'], 404);
         } catch (\Exception $e) {
-            Log::error('Controller error retrieving post: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi khi lấy thông tin bài viết',
-                'error' => $e->getMessage(),
-            ], 500);
+            Log::error("Lỗi khi lấy bài viết ID {$id}: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Đã xảy ra lỗi.'], 500);
         }
     }
-
     /**
      * Tạo mới một bài viết.
-     * Sử dụng PostRequest để validate dữ liệu đầu vào.
-     * Gọi phương thức createPost từ PostService để tạo bài viết.
-     *
-     * @param \App\Http\Requests\PostRequest $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function store(StorePostRequest $request)
     {
         try {
             $post = $this->postService->createPost($request->validated());
-
             return response()->json([
                 'success' => true,
-                'data' => new PostResource($post),
                 'message' => 'Tạo bài viết thành công',
+                'data' => new PostResource($post),
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Unexpected error creating post: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi khi tạo bài viết',
-                'error' => $e->getMessage(),
-            ], 500);
+            Log::error('Lỗi khi tạo bài viết: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Đã xảy ra lỗi khi tạo bài viết.'], 500);
         }
     }
-
+ 
     /**
-     * Cập nhật thông tin một bài viết theo ID.
-     * Sử dụng PostRequest để validate dữ liệu đầu vào.
-     * Gọi phương thức updatePost từ PostService để cập nhật bài viết.
-     *
-     * @param \App\Http\Requests\PostRequest $request
-     * @param int $id ID của bài viết
-     * @return \Illuminate\Http\JsonResponse
+     * Cập nhật một bài viết.
      */
-    public function update(UpdatePostRequest $request, $id)
+    public function update(UpdatePostRequest $request, int $id)
     {
         try {
             $post = $this->postService->updatePost($id, $request->validated());
-
             return response()->json([
                 'success' => true,
-                'data' => new PostResource($post),
                 'message' => 'Cập nhật bài viết thành công',
+                'data' => new PostResource($post),
             ], 200);
         } catch (ModelNotFoundException $e) {
-            // Xử lý trường hợp không tìm thấy bài viết
-            Log::error('Post not found for update: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Không tìm thấy bài viết',
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy bài viết để cập nhật.'], 404);
         } catch (\Exception $e) {
-            // Ghi log lỗi và trả về phản hồi lỗi
-            Log::error('Unexpected error updating post: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi khi cập nhật bài viết',
-                'error' => $e->getMessage(),
-            ], 500);
+            Log::error("Lỗi khi cập nhật bài viết ID {$id}: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Đã xảy ra lỗi khi cập nhật.'], 500);
         }
     }
 
-    /**
-     * Xóa một bài viết theo ID.
-     * Gọi phương thức deletePost từ PostService để xóa bài viết.
-     *
-     * @param int $id ID của bài viết
-     * @return \Illuminate\Http\JsonResponse
+   /**
+     * Xóa một bài viết.
      */
-    public function destroy($id)
+    public function destroy(int $id)
     {
         try {
             $this->postService->deletePost($id);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Xóa bài viết thành công',
-            ], 200);
+            return response()->json(['success' => true, 'message' => 'Xóa bài viết thành công'], 200);
         } catch (ModelNotFoundException $e) {
-            // Xử lý trường hợp không tìm thấy bài viết
-            Log::error('Post not found for deletion: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Không tìm thấy bài viết',
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy bài viết để xóa.'], 404);
         } catch (\Exception $e) {
-            // Ghi log lỗi và trả về phản hồi lỗi
-            Log::error('Unexpected error deleting post: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi khi xóa bài viết',
-                'error' => $e->getMessage(),
-            ], 500);
+            Log::error("Lỗi khi xóa bài viết ID {$id}: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Đã xảy ra lỗi khi xóa.'], 500);
         }
     }
 
-    /**
-     * Xóa nhiều bài viết cùng lúc dựa trên danh sách ID.
-     * Gọi phương thức multiDeletePosts từ PostService để xóa các bài viết.
-     * Kiểm tra dữ liệu đầu vào trước khi thực hiện.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
+   /**
+     * Xóa nhiều bài viết.
      */
-    public function multiDelete(Request $request)
+    public function multiDelete(MultiDeletePostRequest $request)
     {
         try {
-            $idsString = $request->query('ids');
-            if (empty($idsString)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Danh sách ID không được để trống',
-                ], 400);
-            }
-            $deletedCount = $this->postService->multiDeletePosts($idsString);
+            $validated = $request->validated();
+            $deletedCount = $this->postService->multiDeletePosts($validated['ids']);
+            
             return response()->json([
                 'success' => true,
-                'message' => "Đã xóa thành công {$deletedCount} bài viết",
+                'message' => "Đã xóa thành công {$deletedCount} bài viết.",
             ], 200);
-        } catch (ModelNotFoundException $e) {
-            // Xử lý trường hợp một hoặc nhiều ID không tồn tại
-            Log::error('Error in multi-delete posts: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 404);
         } catch (\Exception $e) {
-            Log::error('Unexpected error in multi-delete posts: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi khi xóa bài viết',
-                'error' => $e->getMessage(),
-            ], 500);
+            Log::error('Lỗi khi xóa nhiều bài viết: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Đã xảy ra lỗi trong quá trình xóa.'], 500);
         }
     }
 }

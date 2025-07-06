@@ -14,10 +14,7 @@ class Image extends Model
         'imageable_id',
         'imageable_type',
     ];
-     /**
-     * Thêm thuộc tính "ảo" full_url để luôn có đường dẫn đầy đủ của ảnh.
-     */
-    protected $appends = ['full_url'];
+
 
     /**
      * Định nghĩa mối quan hệ đa hình "imageable".
