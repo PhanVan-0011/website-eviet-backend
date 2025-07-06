@@ -44,58 +44,44 @@ class UpdateProductRequest extends FormRequest
             // 2. Mảng các ID của ảnh cũ cần xóa
             'deleted_image_ids' => 'sometimes|nullable|array',
             'deleted_image_ids.*' => 'sometimes|required|integer|exists:images,id',
-          
+
             'deleted_image_ids.*' => [
                 'sometimes',
                 'required',
                 'integer',
                 Rule::exists('images', 'id')->where(function ($query) use ($productId) {
                     $query->where('imageable_id', $productId)
-                          ->where('imageable_type', Product::class);
+                        ->where('imageable_type', Product::class);
                 }),
             ],
 
-            'featured_image_id' => [
-                'sometimes',
-                'nullable',
-                'integer',
-                Rule::exists('images', 'id')->where(function ($query) use ($productId) {
-                    $query->where('imageable_id', $productId)
-                          ->where('imageable_type', Product::class);
-                }),
-            ],
+            // Chỉ số của ảnh đại diện trong danh sách ảnh cuối cùng
+            'featured_image_index' => ['sometimes', 'nullable', 'integer', 'min:0'],
         ];
     }
-     public function withValidator(Validator $validator): void
+    public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator) {
-            $deletedIds = $this->input('deleted_image_ids', []);
-            $featuredId = $this->input('featured_image_id');
-            $newImages = $this->file('image_url', []);
-
             $productId = $this->route('id');
-            $product = Product::withCount('images')->find($productId);
+            // Dùng findOrFail để đảm bảo sản phẩm tồn tại trước khi kiểm tra
+            $product = Product::withCount('images')->findOrFail($productId);
 
-            if ($product) {
-                $currentImageCount = $product->images_count;
-                $deletedImageCount = count((array)$deletedIds);
-                $newImageCount = count((array)$newImages);
-                
-                $totalImages = ($currentImageCount - $deletedImageCount) + $newImageCount;
+            $deletedIds = (array) $this->input('deleted_image_ids', []);
+            $newImages = (array) $this->file('image_url', []);
 
-                if ($totalImages > 4) {
-                    $validator->errors()->add(
-                        'image_url',
-                        'Tổng số ảnh của một sản phẩm không được vượt quá 4.'
-                    );
-                }
+            // 1. Kiểm tra tổng số ảnh cuối cùng không được vượt quá 4
+            $finalImageCount = ($product->images_count - count($deletedIds)) + count($newImages);
+            if ($finalImageCount > 4) {
+                $validator->errors()->add('image_url', 'Tổng số ảnh của một sản phẩm không được vượt quá 4.');
             }
-            // KIỂM TRA LỖI: Nếu featured_image_id nằm trong danh sách các ảnh bị xóa
-            if ($featuredId && is_array($deletedIds) && in_array($featuredId, $deletedIds)) {
-                $validator->errors()->add(
-                    'featured_image_id',
-                    'Không thể đặt ảnh đang bị xóa làm ảnh đại diện.'
-                );
+
+            // 2. Kiểm tra chỉ số ảnh đại diện có hợp lệ không
+            if ($this->filled('featured_image_index')) {
+                $featuredIndex = (int) $this->input('featured_image_index');
+                // Chỉ số phải nhỏ hơn tổng số ảnh cuối cùng
+                if ($featuredIndex >= $finalImageCount) {
+                    $validator->errors()->add('featured_image_index', 'Chỉ số ảnh đại diện không hợp lệ hoặc vượt quá số lượng ảnh.');
+                }
             }
         });
     }
@@ -131,10 +117,12 @@ class UpdateProductRequest extends FormRequest
             'image_url.*.image' => 'Mỗi file tải lên phải là hình ảnh.',
             'image_url.*.mimes' => 'Mỗi hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
             'image_url.*.max' => 'Kích thước mỗi hình ảnh không được vượt quá 2MB.',
+            
             'deleted_image_ids.array' => 'Định dạng ID ảnh cần xóa không hợp lệ.',
             'deleted_image_ids.*.exists' => 'ID ảnh cần xóa không tồn tại.',
 
-             'featured_image_id.exists' => 'Ảnh đại diện được chọn không hợp lệ hoặc không thuộc về sản phẩm này.',
+            'featured_image_index.integer' => 'Chỉ số ảnh đại diện phải là một số nguyên.',
+            'featured_image_index.min' => 'Chỉ số ảnh đại diện phải lớn hơn hoặc bằng 0.',
         ];
     }
     protected function failedValidation(Validator $validator)

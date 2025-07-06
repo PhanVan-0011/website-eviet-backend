@@ -3,22 +3,25 @@
 namespace App\Services;
 
 use App\Models\Post;
+use App\Models\Image as ImageModel;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use Intervention\Image\Facades\Image;
-use Illuminate\Support\Facades\Storage;
 
 class PostService
 {
+    protected ImageService $imageService;
+
+    public function __construct(ImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
     /**
-     * Lấy danh sách tất cả bài viết với phân trang, tìm kiếm và sắp xếp
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return array Mảng chứa dữ liệu bài viết và thông tin phân trang
-     * @throws Exception
+     * Lấy danh sách tất cả bài viết 
      */
     public function getAllPosts($request): array
     {
@@ -95,199 +98,189 @@ class PostService
     }
 
     /**
-     * Lấy thông tin chi tiết một bài viết
-     *
-     * @param int $id ID của bài viết
-     * @return \App\Models\Post
-     * @throws ModelNotFoundException
+     * Lấy chi tiết một bài viết.
      */
-    public function getPostById($id)
+    public function getPostById(int $id): Post
     {
         try {
-            return Post::with(['categories'])
-                ->select([
-                    'id',
-                    'title',
-                    'content',
-                    'slug',
-                    'status',
-                    'image_url',
-                    'created_at',
-                    'updated_at',
-                ])
-                ->findOrFail($id);
+            return Post::with(['categories', 'images', 'featuredImage'])->findOrFail($id);
         } catch (ModelNotFoundException $e) {
-            Log::error('Post not found: ID ' . $id . ' does not exist', ['exception' => $e]);
-            throw $e;
-        } catch (Exception $e) {
-            Log::error('Error retrieving post: ' . $e->getMessage(), ['exception' => $e]);
-            throw $e;
+            throw new ModelNotFoundException("Không tìm thấy bài viết.");
         }
     }
 
     /**
-     * Tạo mới một bài viết
-     *
-     * @param array $data Dữ liệu bài viết
-     * @return \App\Models\Post
-     * @throws QueryException
+     * Tạo một bài viết mới.
      */
     public function createPost(array $data): Post
     {
-        try {
-            // Tự động tạo slug từ title nếu không có
-            if (empty($data['slug'])) {
-                $data['slug'] = Str::slug($data['title']);
-            }
+        return DB::transaction(function () use ($data) {
+            try {
+                $images = Arr::pull($data, 'image_url', []);
+                $categoryIds = Arr::pull($data, 'category_ids', []);
+                $featuredImageIndex = Arr::pull($data, 'featured_image_index', 0);
 
-            // Kiểm tra slug đã tồn tại chưa
-            if (Post::where('slug', $data['slug'])->exists()) {
-                throw new Exception('Slug đã tồn tại. Vui lòng chọn tiêu đề hoặc slug khác.');
-            }
-            // Xử lý upload ảnh nếu có file image_url
-            if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
-                $year = now()->format('Y');
-                $month = now()->format('m');
-                $slug = Str::slug($data['title']);
-                $path = "posts_images/{$year}/{$month}";
-                $filename = uniqid($slug . '-') . '.' . $data['image_url']->getClientOriginalExtension();
-                $fullPath = $data['image_url']->storeAs($path, $filename, 'public');
-                $data['image_url'] = $fullPath;
-            }
-            $post = Post::create($data);
+                if (empty($data['slug'])) {
+                    $data['slug'] = Str::slug($data['title']);
+                }
+                $originalSlug = $data['slug'];
+                $counter = 1;
+                while (Post::where('slug', $data['slug'])->exists()) {
+                    $data['slug'] = $originalSlug . '-' . $counter++;
+                }
 
-            // Gắn categories nếu có
-            if (!empty($data['category_ids'])) {
-                $post->categories()->sync($data['category_ids']);
-            }
+                $post = Post::create($data);
 
-            return $post->load(['categories']);
-        } catch (QueryException $e) {
-            Log::error('Error creating post: ' . $e->getMessage());
-            throw $e;
-        } catch (Exception $e) {
-            Log::error('Unexpected error creating post: ' . $e->getMessage());
-            throw $e;
-        }
+                if (!empty($images)) {
+                    foreach ($images as $index => $imageFile) {
+                        $basePath = $this->imageService->store($imageFile, 'posts', $post->title);
+                        if ($basePath) {
+                            $post->images()->create([
+                                'image_url' => $basePath,
+                                'is_featured' => ($index == $featuredImageIndex),
+                            ]);
+                        }
+                    }
+                }
+
+                if (!empty($categoryIds)) {
+                    $post->categories()->attach($categoryIds);
+                }
+
+                Log::info("Đã tạo bài viết mới thành công. ID: {$post->id}");
+                return $post->load(['images', 'categories']);
+            } catch (Exception $e) {
+                Log::error('Lỗi khi tạo bài viết mới: ' . $e->getMessage());
+                throw $e;
+            }
+        });
+    }
+
+
+    /**
+     * Cập nhật một bài viết.
+     */
+    public function updatePost(int $id, array $data): Post
+    {
+        $post = $this->getPostById($id);
+
+        return DB::transaction(function () use ($post, $data) {
+            try {
+                $newImages = Arr::pull($data, 'image_url', []);
+                $deletedImageIds = Arr::pull($data, 'deleted_image_ids', []);
+                $featuredImageId = Arr::pull($data, 'featured_image_id', null);
+                $categoryIds = Arr::pull($data, 'category_ids', null);
+
+                if (isset($data['title']) && empty($data['slug'])) {
+                    $data['slug'] = Str::slug($data['title']);
+                }
+                if (isset($data['slug'])) {
+                    $originalSlug = $data['slug'];
+                    $counter = 1;
+                    while (Post::where('slug', $data['slug'])->where('id', '!=', $post->id)->exists()) {
+                        $data['slug'] = $originalSlug . '-' . $counter++;
+                    }
+                }
+                //Xóa ảnh cũ
+                if (!empty($deletedImageIds)) {
+                    $imagesToDelete = ImageModel::whereIn('id', $deletedImageIds)->where('imageable_id', $post->id)->get();
+                    foreach ($imagesToDelete as $image) {
+                        $this->imageService->delete($image->image_url, 'posts');
+                        $image->delete();
+                    }
+                }
+
+                //Thêm ảnh mới
+                if (!empty($newImages)) {
+                    foreach ($newImages as $imageFile) {
+                        $basePath = $this->imageService->store($imageFile, 'posts', $data['title'] ?? $post->title);
+                        if ($basePath) {
+                            $post->images()->create(['image_url' => $basePath]);
+                        }
+                    }
+                }
+
+                //Cập nhật ảnh đại diện
+                if ($featuredImageId) {
+                    $post->images()->update(['is_featured' => false]);
+                    ImageModel::where('id', $featuredImageId)->where('imageable_id', $post->id)->update(['is_featured' => true]);
+                }
+
+                //Cập nhật thông tin bài viết
+                $post->update($data);
+
+                //Đồng bộ danh mục
+                if (is_array($categoryIds)) {
+                    $post->categories()->sync($categoryIds);
+                }
+
+                Log::info("Đã cập nhật bài viết thành công. ID: {$post->id}");
+                return $post->refresh()->load(['images', 'categories']);
+            } catch (Exception $e) {
+                Log::error("Lỗi khi cập nhật bài viết ID {$post->id}: " . $e->getMessage());
+                throw $e;
+            }
+        });
     }
 
     /**
-     * Cập nhật thông tin một bài viết
-     *
-     * @param int $id ID của bài viết
-     * @param array $data Dữ liệu cập nhật
-     * @return \App\Models\Post
-     * @throws ModelNotFoundException
-     * @throws QueryException
+     * Xóa một bài viết.
      */
-    public function updatePost($id, array $data): Post
+    public function deletePost(int $id): bool
     {
-        try {
-            $post = Post::findOrFail($id);
+        $post = $this->getPostById($id);
 
-            // Tự động tạo slug từ title nếu không có
-            if (isset($data['title']) && empty($data['slug'])) {
-                $data['slug'] = Str::slug($data['title']);
-            }
-
-            // Kiểm tra slug đã tồn tại chưa (trừ chính bài viết hiện tại)
-            if (isset($data['slug']) && $data['slug'] !== $post->slug) {
-                if (Post::where('slug', $data['slug'])->where('id', '!=', $id)->exists()) {
-                    throw new Exception('Slug đã tồn tại. Vui lòng chọn tiêu đề hoặc slug khác.');
+        return DB::transaction(function () use ($post) {
+            try {
+                foreach ($post->images as $image) {
+                    $this->imageService->delete($image->image_url, 'posts');
                 }
-            }
-            // Xử lý upload ảnh nếu có file image_url khi update
-            if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
-                // Xóa ảnh cũ nếu có
-                if ($post->image_url && Storage::disk('public')->exists($post->image_url)) {
-                    Storage::disk('public')->delete($post->image_url);
+                $post->images()->delete();
+                $post->categories()->detach();
+
+                $isDeleted = $post->delete();
+                if ($isDeleted) {
+                    Log::warning("Đã xóa bài viết thành công. ID: {$post->id}");
                 }
-                $year = now()->format('Y');
-                $month = now()->format('m');
-                $slug = Str::slug($data['title'] ?? $post->title);
-                $path = "posts_images/{$year}/{$month}";
-                $filename = uniqid($slug . '-') . '.' . $data['image_url']->getClientOriginalExtension();
-                $fullPath = $data['image_url']->storeAs($path, $filename, 'public');
-                $data['image_url'] = $fullPath;
+                return $isDeleted;
+            } catch (Exception $e) {
+                Log::error("Lỗi khi xóa bài viết ID {$post->id}: " . $e->getMessage());
+                throw $e;
             }
-            $post->update($data);
-
-            // Cập nhật categories nếu có
-            if (isset($data['category_ids'])) {
-                $post->categories()->sync($data['category_ids']);
-            }
-
-            return $post->refresh()->load(['categories']);
-        } catch (ModelNotFoundException $e) {
-            Log::error('Post not found for update: ' . $e->getMessage());
-            throw $e;
-        } catch (QueryException $e) {
-            Log::error('Error updating post: ' . $e->getMessage());
-            throw $e;
-        } catch (Exception $e) {
-            Log::error('Unexpected error updating post: ' . $e->getMessage());
-            throw $e;
-        }
+        });
     }
 
     /**
-     * Xóa một bài viết
-     *
-     * @param int $id ID của bài viết
-     * @return bool
-     * @throws ModelNotFoundException
+     * Xóa nhiều bài viết.
      */
-    public function deletePost($id): bool
+    public function multiDeletePosts(array $ids): int
     {
-        try {
-            $post = Post::findOrFail($id);
-            // Xóa ảnh nếu có
-            if ($post->image_url && Storage::disk('public')->exists($post->image_url)) {
-                Storage::disk('public')->delete($post->image_url);
-            }
-            return $post->delete();
-        } catch (ModelNotFoundException $e) {
-            Log::error('Post not found for deletion: ' . $e->getMessage(), ['exception' => $e]);
-            throw $e;
-        } catch (Exception $e) {
-            Log::error('Unexpected error deleting post: ' . $e->getMessage(), ['exception' => $e]);
-            throw $e;
-        }
-    }
+        return DB::transaction(function () use ($ids) {
+            try {
+                $posts = Post::with('images')->whereIn('id', $ids)->get();
+                $deletedCount = 0;
 
-    /**
-     * Xóa nhiều bài viết cùng lúc
-     *
-     * @param string $ids Chuỗi ID cách nhau bởi dấu phẩy (ví dụ: "1,2,3")
-     * @return int Số lượng bản ghi đã xóa
-     * @throws ModelNotFoundException
-     */
-    public function multiDeletePosts($ids): int
-    {
-        try {
-            $ids = array_map('intval', explode(',', $ids));
-            $posts = Post::whereIn('id', $ids)->get();
-
-            $existingIds = Post::whereIn('id', $ids)->pluck('id')->toArray();
-            $nonExistingIds = array_diff($ids, $existingIds);
-
-            if (!empty($nonExistingIds)) {
-                Log::error('IDs not found for deletion: ' . implode(',', $nonExistingIds));
-                throw new ModelNotFoundException('ID cần xóa không tồn tại trong hệ thống');
-            }
-            // Xóa ảnh của từng bài viết
-            foreach ($posts as $post) {
-                if ($post->image_url && Storage::disk('public')->exists($post->image_url)) {
-                    Storage::disk('public')->delete($post->image_url);
+                foreach ($posts as $post) {
+                    foreach ($post->images as $image) {
+                        $this->imageService->delete($image->image_url, 'posts');
+                    }
+                    $post->images()->delete();
+                    $post->categories()->detach();
+                    if ($post->delete()) {
+                        $deletedCount++;
+                    }
                 }
+
+                if ($deletedCount > 0) {
+                    Log::warning("{$deletedCount} bài viết đã được xóa thành công bởi người dùng.");
+                }
+
+                return $deletedCount;
+            } catch (Exception $e) {
+                Log::error("Lỗi khi xóa nhiều bài viết: " . $e->getMessage());
+                // Ném lại exception để Controller có thể bắt và xử lý
+                throw $e;
             }
-            return Post::whereIn('id', $ids)->delete();
-        } catch (ModelNotFoundException $e) {
-            Log::error('Error in multi-delete posts: ' . $e->getMessage(), ['exception' => $e]);
-            throw $e;
-        } catch (Exception $e) {
-            Log::error('Unexpected error in multi-delete posts: ' . $e->getMessage(), ['exception' => $e]);
-            throw $e;
-        }
+        });
     }
 }

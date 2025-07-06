@@ -3,95 +3,86 @@
 namespace App\Http\Requests\Api\Post;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
+use Illuminate\Http\UploadedFile;
 
 class StorePostRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
+    protected function prepareForValidation(): void
+    {  
+       if ($this->has('image_url') && is_array($this->input('image_url'))) {
+            $this->merge([
+                'image_url' => array_filter($this->input('image_url'), function ($file) {
+                    return $file instanceof UploadedFile;
+                }),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
-            'title' => ['required', 'string', 'max:255', Rule::unique('posts')],
+            'title' => ['required', 'string', 'max:255'],
             'content' => ['nullable', 'string', 'max:65535'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('posts')],
             'status' => ['required', 'boolean'],
-            'image_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            
+            'image_url' => 'nullable|array|max:5',
+            'image_url.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+
+            'featured_image_index' => 'nullable|integer|min:0',
+
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['exists:categories,id'],
         ];
     }
+
     public function messages(): array
     {
         return [
+            // Title
             'title.required' => 'Tiêu đề bài viết là bắt buộc.',
-            'title.string' => 'Tiêu đề bài viết phải là chuỗi ký tự.',
-            'title.max' => 'Tiêu đề bài viết không được vượt quá 255 ký tự.',
-            'title.unique' => 'Tiêu đề bài viết đã tồn tại. Vui lòng chọn tiêu đề khác.',
+            'title.string'   => 'Tiêu đề bài viết phải là chuỗi ký tự.',
+            'title.max'      => 'Tiêu đề không được vượt quá 255 ký tự.',
+
+            // Content
             'content.string' => 'Nội dung bài viết phải là chuỗi ký tự.',
-            'content.max' => 'Nội dung bài viết không được vượt quá 65,535 ký tự.',
+            'content.max'    => 'Nội dung không được vượt quá 65,535 ký tự.',
+
+            // Slug
             'slug.string' => 'Slug phải là chuỗi ký tự.',
-            'slug.max' => 'Slug không được vượt quá 255 ký tự.',
-            'slug.unique' => 'Slug đã tồn tại. Vui lòng chọn slug khác.',
-            'status.required' => 'Trạng thái bài viết là bắt buộc.',
-            'image_url.image' => 'File phải là hình ảnh.',
-            'image_url.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
-            'image_url.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
-            'category_ids.array' => 'Danh sách danh mục phải là một mảng.',
-            'category_ids.*.exists' => 'Danh mục không tồn tại trong hệ thống.',
+            'slug.max'    => 'Slug không được vượt quá 255 ký tự.',
+            'slug.unique' => 'Slug này đã tồn tại.',
+
+            // Status
+            'status.required' => 'Trạng thái là bắt buộc.',
+            'status.boolean'  => 'Trạng thái phải là true hoặc false.',
+
+            // Image URL
+            'image_url.array'   => 'Định dạng ảnh không hợp lệ.',
+            'image_url.max'     => 'Chỉ được upload tối đa :max ảnh cho mỗi bài viết.',
+            'image_url.*.required' => 'Vui lòng chọn một file ảnh.',
+            'image_url.*.image' => 'Mỗi file phải là hình ảnh.',
+            'image_url.*.mimes' => 'Mỗi hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.*.max'   => 'Kích thước mỗi hình ảnh không được vượt quá 2MB.',
+
+            // Featured Image Index
+            'featured_image_index.integer' => 'Chỉ số ảnh đại diện phải là số nguyên.',
+            'featured_image_index.min'     => 'Chỉ số ảnh đại diện phải lớn hơn hoặc bằng 0.',
+
+            // Category IDs
+            'category_ids.array'      => 'Định dạng danh mục không hợp lệ.',
+            'category_ids.*.exists'   => 'Một trong các danh mục được chọn không tồn tại.',
         ];
     }
-    protected function prepareForValidation(): void
-    {
-        if ($this->has('title')) {
-            $this->merge([
-                'title' => trim($this->input('title')),
-            ]);
-        }
 
-        if ($this->has('slug')) {
-            $this->merge([
-                'slug' => trim($this->input('slug')),
-            ]);
-        }
-
-        if ($this->has('content')) {
-            $this->merge([
-                'content' => trim($this->input('content')),
-            ]);
-        }
-    }
-    public function validated($key = null, $default = null): array
-    {
-        $validated = parent::validated();
-
-        if (empty($validated['content'])) {
-            $validated['content'] = null;
-        }
-
-        if (empty($validated['slug'])) {
-            $validated['slug'] = null;
-        }
-
-        if (empty($validated['image']) && empty($validated['image_url'])) {
-            $validated['image_url'] = null;
-        }
-
-        return $validated;
-    }
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(response()->json([

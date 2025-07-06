@@ -113,10 +113,6 @@ class ProductService
 
     /**
      * Tạo mới một sản phẩm
-     *
-     * @param array $data
-     * @return Product
-     * @throws Exception
      */
     public function createProduct(array $data): Product
     {
@@ -155,54 +151,69 @@ class ProductService
     }
     /**
      * Cập nhật thông tin một sản phẩm
-     *
-     * @param int $id
-     * @param array $data
-     * @return Product
-     * @throws Exception
      */
-    public function updateProduct($id, array $data)
+     public function updateProduct(int $id, array $data): Product
     {
         return DB::transaction(function () use ($id, $data) {
             try {
                 $product = Product::findOrFail($id);
 
                 $categoryIds = Arr::pull($data, 'category_ids', null);
-                $newImages = Arr::pull($data, 'image_url', []);
+                $newImageFiles = Arr::pull($data, 'image_url', []);
                 $deletedImageIds = Arr::pull($data, 'deleted_image_ids', []);
-                $featuredImageId = Arr::pull($data, 'featured_image_id', null);
+                $featuredImageIndex = Arr::pull($data, 'featured_image_index', null);
 
                 $product->update($data);
 
                 if (!empty($deletedImageIds)) {
-                    $imagesToDelete = ImageModel::whereIn('id', $deletedImageIds)->where('imageable_id', $product->id)->get();
+                    $imagesToDelete = ImageModel::whereIn('id', $deletedImageIds)
+                        ->where('imageable_id', $product->id)
+                        ->get();
+                    
                     foreach ($imagesToDelete as $image) {
                         $this->imageService->delete($image->image_url, 'products');
                         $image->delete();
                     }
                 }
 
-                if (!empty($newImages)) {
-                    foreach ($newImages as $imageFile) {
+                if (!empty($newImageFiles)) {
+                    foreach ($newImageFiles as $imageFile) {
                         $basePath = $this->imageService->store($imageFile, 'products', $product->name);
                         if ($basePath) {
-                            $product->images()->create(['image_url' => $basePath]);
+                            $product->images()->create(['image_url' => $basePath, 'is_featured' => false]);
                         }
                     }
                 }
 
-                if ($featuredImageId) {
-                    $product->images()->update(['is_featured' => false]);
-                    ImageModel::where('id', $featuredImageId)->where('imageable_id', $product->id)->update(['is_featured' => true]);
+                
+                $finalImages = $product->images()->orderBy('created_at')->orderBy('id')->get();
+
+                
+                if ($finalImages->isNotEmpty()) {
+                    
+                    $indexToFeature = $featuredImageIndex ?? 0;
+
+                    
+                    if (isset($finalImages[$indexToFeature])) {
+                        $featuredImageId = $finalImages[$indexToFeature]->id;
+
+                        
+                        
+                        $product->images()->update(['is_featured' => false]);
+                        ImageModel::where('id', $featuredImageId)->update(['is_featured' => true]);
+                    }
                 }
+
 
                 if (is_array($categoryIds)) {
                     $product->categories()->sync($categoryIds);
                 }
 
                 Log::info("Đã cập nhật sản phẩm [ID: {$product->id}]");
-                return $product->refresh()->load(['images', 'categories']);
+                return $product->refresh()->load(['images', 'categories', 'featuredImage']);
+
             } catch (ModelNotFoundException $e) {
+                Log::warning("Không tìm thấy sản phẩm để cập nhật. ID: {$id}");
                 throw $e;
             } catch (Exception $e) {
                 Log::error("Lỗi khi cập nhật sản phẩm ID {$id}: " . $e->getMessage());
@@ -212,10 +223,6 @@ class ProductService
     }
     /**
      * Xóa một sản phẩm
-     *
-     * @param int $id ID của sản phẩm
-     * @return bool
-     * @throws ModelNotFoundException
      */
     public function deleteProduct(int $id): bool
     {
@@ -245,10 +252,7 @@ class ProductService
         });
     }
     /**
-     * Xóa nhiều sản phẩm cùng lúc
-     *
-     * @param string $ids Chuỗi ID cách nhau bởi dấu phẩy (ví dụ: "1,2,3")
-     * @return int Số lượng bản ghi đã xóa
+     * Xóa nhiều sản phẩm cùng lúcxóa
      * @throws ModelNotFoundException
      */
      public function multiDeleteProducts(array $ids): int
