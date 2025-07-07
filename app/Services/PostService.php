@@ -23,76 +23,50 @@ class PostService
     /**
      * Lấy danh sách tất cả bài viết 
      */
-    public function getAllPosts($request): array
+    public function getAllPosts(Request $request): array
     {
         try {
-            // Chuẩn hóa các tham số đầu vào
-            $perPage = max(1, min(100, (int) $request->input('per_page', 25)));
-            $currentPage = max(1, (int) $request->input('page', 1));
-            $keyword = (string) $request->input('keyword', '');
-            $status = $request->input('status');
-            $categoryId = $request->input('category_id');
-            // Khởi tạo truy vấn cơ bản
-            $query = Post::query();
 
-            // Áp dụng tìm kiếm nếu có từ khóa
-            if (!empty($keyword)) {
+            $perPage = max(1, min(100, (int) $request->input('limit', 25)));
+            $currentPage = max(1, (int) $request->input('page', 1));
+            $query = Post::query()->with(['categories', 'featuredImage']);
+
+            if ($request->filled('keyword')) {
+                $keyword = $request->input('keyword');
                 $query->where(function ($q) use ($keyword) {
                     $q->where('title', 'like', "%{$keyword}%")
                         ->orWhere('content', 'like', "%{$keyword}%");
                 });
             }
-
-
-            if ($status !== null && $status !== '') {
-                $query->where('status', $status);
+            if ($request->filled('category_id')) {
+                $categoryId = $request->input('category_id');
+                $query->whereHas('categories', function ($q) use ($categoryId) {
+                    $q->where('categories.id', $categoryId);
+                });
             }
-
-            if (!empty($categoryId)) {
-                $query->where('category_id', $categoryId);
+            if ($request->filled('status')) {
+                $query->where('status', $request->input('status'));
             }
-
-            // Sắp xếp theo thời gian tạo mới nhất
             $query->orderBy('created_at', 'desc');
-
-            // Chỉ lấy các trường cần thiết
-            $query->select([
-                'id',
-                'title',
-                'content',
-                'slug',
-                'status',
-                'image_url',
-                'created_at',
-                'updated_at',
-            ]);
-
-            // Tải quan hệ categories
-            $query->with(['categories']);
-
-            // Tính tổng số bản ghi
             $total = $query->count();
 
-            // Thực hiện phân trang thủ công
             $offset = ($currentPage - 1) * $perPage;
             $posts = $query->skip($offset)->take($perPage)->get();
 
-            // Tính toán thông tin phân trang
             $lastPage = (int) ceil($total / $perPage);
             $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;
             $prevPage = $currentPage > 1 ? $currentPage - 1 : null;
 
-            // Trả về mảng dữ liệu và thông tin phân trang
             return [
-                'data' => $posts,
-                'page' => $currentPage,
-                'total' => $total,
+                'data'      => $posts,
+                'page'      => $currentPage,
+                'total'     => $total,
                 'last_page' => $lastPage,
                 'next_page' => $nextPage,
-                'pre_page' => $prevPage,
+                'pre_page'  => $prevPage,
             ];
         } catch (Exception $e) {
-            Log::error('Error retrieving posts: ' . $e->getMessage());
+            Log::error('Lỗi khi lấy danh sách bài viết: ' . $e->getMessage());
             throw $e;
         }
     }
@@ -105,6 +79,7 @@ class PostService
         try {
             return Post::with(['categories', 'images', 'featuredImage'])->findOrFail($id);
         } catch (ModelNotFoundException $e) {
+            Log::error("Lỗi khi cập nhật bài viết ID {$id}: " . $e->getMessage());
             throw new ModelNotFoundException("Không tìm thấy bài viết.");
         }
     }
@@ -162,15 +137,16 @@ class PostService
      */
     public function updatePost(int $id, array $data): Post
     {
-        $post = $this->getPostById($id);
-
-        return DB::transaction(function () use ($post, $data) {
+        return DB::transaction(function () use ($id, $data) {
             try {
-                $newImages = Arr::pull($data, 'image_url', []);
-                $deletedImageIds = Arr::pull($data, 'deleted_image_ids', []);
-                $featuredImageId = Arr::pull($data, 'featured_image_id', null);
-                $categoryIds = Arr::pull($data, 'category_ids', null);
+                $post = Post::findOrFail($id);
 
+                $categoryIds = Arr::pull($data, 'category_ids', null);
+                $newImageFiles = Arr::pull($data, 'image_url', []);
+                $deletedImageIds = Arr::pull($data, 'deleted_image_ids', []);
+                $featuredImageIndex = Arr::pull($data, 'featured_image_index', null);
+
+                // Tự động tạo slug nếu cần
                 if (isset($data['title']) && empty($data['slug'])) {
                     $data['slug'] = Str::slug($data['title']);
                 }
@@ -181,9 +157,14 @@ class PostService
                         $data['slug'] = $originalSlug . '-' . $counter++;
                     }
                 }
+                $post->update($data);
+
                 //Xóa ảnh cũ
                 if (!empty($deletedImageIds)) {
-                    $imagesToDelete = ImageModel::whereIn('id', $deletedImageIds)->where('imageable_id', $post->id)->get();
+                    $imagesToDelete = ImageModel::whereIn('id', $deletedImageIds)
+                        ->where('imageable_id', $post->id)
+                        ->get();
+
                     foreach ($imagesToDelete as $image) {
                         $this->imageService->delete($image->image_url, 'posts');
                         $image->delete();
@@ -191,33 +172,40 @@ class PostService
                 }
 
                 //Thêm ảnh mới
-                if (!empty($newImages)) {
-                    foreach ($newImages as $imageFile) {
-                        $basePath = $this->imageService->store($imageFile, 'posts', $data['title'] ?? $post->title);
+                if (!empty($newImageFiles)) {
+                    foreach ($newImageFiles as $imageFile) {
+                        $basePath = $this->imageService->store($imageFile, 'posts', $post->title);
                         if ($basePath) {
-                            $post->images()->create(['image_url' => $basePath]);
+                            $post->images()->create(['image_url' => $basePath, 'is_featured' => false]);
                         }
                     }
                 }
 
-                //Cập nhật ảnh đại diện
-                if ($featuredImageId) {
-                    $post->images()->update(['is_featured' => false]);
-                    ImageModel::where('id', $featuredImageId)->where('imageable_id', $post->id)->update(['is_featured' => true]);
-                }
+                //Xử lý ảnh đại diện
+                $finalImages = $post->images()->orderBy('created_at')->orderBy('id')->get();
+                if ($finalImages->isNotEmpty()) {
+                    // Mặc định chọn ảnh đầu tiên nếu không có chỉ định
+                    $indexToFeature = $featuredImageIndex ?? 0;
 
-                //Cập nhật thông tin bài viết
-                $post->update($data);
+                    if (isset($finalImages[$indexToFeature])) {
+                        $featuredImageId = $finalImages[$indexToFeature]->id;
+                        $post->images()->update(['is_featured' => false]);
+                        ImageModel::where('id', $featuredImageId)->update(['is_featured' => true]);
+                    }
+                }
 
                 //Đồng bộ danh mục
                 if (is_array($categoryIds)) {
                     $post->categories()->sync($categoryIds);
                 }
 
-                Log::info("Đã cập nhật bài viết thành công. ID: {$post->id}");
-                return $post->refresh()->load(['images', 'categories']);
+                Log::info("Đã cập nhật bài viết [ID: {$post->id}]");
+                return $post->refresh()->load(['images', 'categories', 'featuredImage']);
+            } catch (ModelNotFoundException $e) {
+                Log::warning("Không tìm thấy bài viết để cập nhật. ID: {$id}");
+                throw $e;
             } catch (Exception $e) {
-                Log::error("Lỗi khi cập nhật bài viết ID {$post->id}: " . $e->getMessage());
+                Log::error("Lỗi khi cập nhật bài viết ID {$id}: " . $e->getMessage());
                 throw $e;
             }
         });

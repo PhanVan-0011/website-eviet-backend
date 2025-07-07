@@ -15,7 +15,6 @@ class Combo extends Model
         'description',
         'price',
         'slug',
-        'image_url',
         'start_date',
         'end_date',
         'is_active'

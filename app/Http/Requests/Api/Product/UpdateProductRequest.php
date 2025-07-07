@@ -41,7 +41,7 @@ class UpdateProductRequest extends FormRequest
             'image_url' => 'sometimes|nullable|array',
             'image_url.*' => 'sometimes|required|image|mimes:jpeg,png,jpg,gif|max:2048',
 
-            // 2. Mảng các ID của ảnh cũ cần xóa
+            //Mảng các ID của ảnh cũ cần xóa
             'deleted_image_ids' => 'sometimes|nullable|array',
             'deleted_image_ids.*' => 'sometimes|required|integer|exists:images,id',
 
@@ -63,19 +63,18 @@ class UpdateProductRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $productId = $this->route('id');
-            // Dùng findOrFail để đảm bảo sản phẩm tồn tại trước khi kiểm tra
             $product = Product::withCount('images')->findOrFail($productId);
 
             $deletedIds = (array) $this->input('deleted_image_ids', []);
             $newImages = (array) $this->file('image_url', []);
 
-            // 1. Kiểm tra tổng số ảnh cuối cùng không được vượt quá 4
+            //Kiểm tra tổng số ảnh cuối cùng không được vượt quá 4
             $finalImageCount = ($product->images_count - count($deletedIds)) + count($newImages);
             if ($finalImageCount > 4) {
                 $validator->errors()->add('image_url', 'Tổng số ảnh của một sản phẩm không được vượt quá 4.');
             }
 
-            // 2. Kiểm tra chỉ số ảnh đại diện có hợp lệ không
+            //Kiểm tra chỉ số ảnh đại diện có hợp lệ không
             if ($this->filled('featured_image_index')) {
                 $featuredIndex = (int) $this->input('featured_image_index');
                 // Chỉ số phải nhỏ hơn tổng số ảnh cuối cùng

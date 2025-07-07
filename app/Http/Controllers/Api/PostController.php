@@ -9,9 +9,8 @@ use App\Http\Requests\Api\Post\MultiDeletePostRequest;
 use App\Http\Resources\PostResource;
 use App\Services\PostService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+
 
 class PostController extends Controller
 {
@@ -23,13 +22,8 @@ class PostController extends Controller
 
     /**
      * Lấy danh sách tất cả bài viết với phân trang, tìm kiếm và sắp xếp.
-     * Gọi phương thức getAllPosts từ PostService để lấy dữ liệu.
-     * Sử dụng PostResource để định dạng dữ liệu trả về.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function index(Request $request)
+     public function index(Request $request)
     {
         try {
             $data = $this->postService->getAllPosts($request);
@@ -47,7 +41,6 @@ class PostController extends Controller
                 'timestamp' => now()->format('Y-m-d H:i:s'),
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Controller error retrieving posts: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy danh sách bài viết',
@@ -71,7 +64,6 @@ class PostController extends Controller
         } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Không tìm thấy bài viết.'], 404);
         } catch (\Exception $e) {
-            Log::error("Lỗi khi lấy bài viết ID {$id}: " . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Đã xảy ra lỗi.'], 500);
         }
     }
@@ -88,7 +80,6 @@ class PostController extends Controller
                 'data' => new PostResource($post),
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi tạo bài viết: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Đã xảy ra lỗi khi tạo bài viết.'], 500);
         }
     }
@@ -108,7 +99,6 @@ class PostController extends Controller
         } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Không tìm thấy bài viết để cập nhật.'], 404);
         } catch (\Exception $e) {
-            Log::error("Lỗi khi cập nhật bài viết ID {$id}: " . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Đã xảy ra lỗi khi cập nhật.'], 500);
         }
     }
@@ -124,7 +114,6 @@ class PostController extends Controller
         } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Không tìm thấy bài viết để xóa.'], 404);
         } catch (\Exception $e) {
-            Log::error("Lỗi khi xóa bài viết ID {$id}: " . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Đã xảy ra lỗi khi xóa.'], 500);
         }
     }
@@ -143,7 +132,6 @@ class PostController extends Controller
                 'message' => "Đã xóa thành công {$deletedCount} bài viết.",
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi xóa nhiều bài viết: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Đã xảy ra lỗi trong quá trình xóa.'], 500);
         }
     }

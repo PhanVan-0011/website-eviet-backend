@@ -7,6 +7,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
 use App\Models\Post;
+use Illuminate\Http\UploadedFile;
 
 class UpdatePostRequest extends FormRequest
 {
@@ -14,7 +15,20 @@ class UpdatePostRequest extends FormRequest
     {
         return true;
     }
-
+    /**
+     * Chuẩn bị dữ liệu trước khi xác thực.
+     * Lọc bỏ các ô input ảnh bị bỏ trống.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('image_url') && is_array($this->input('image_url'))) {
+            $this->merge([
+                'image_url' => array_filter($this->input('image_url'), function ($file) {
+                    return $file instanceof UploadedFile;
+                }),
+            ]);
+        }
+    }
     public function rules(): array
     {
         $postId = $this->route('id');
@@ -23,32 +37,22 @@ class UpdatePostRequest extends FormRequest
             'content' => ['sometimes', 'nullable', 'string', 'max:65535'],
             'slug' => ['sometimes', 'nullable', 'string', 'max:255', Rule::unique('posts')->ignore($postId)],
             'status' => ['sometimes', 'required', 'boolean'],
-
             'category_ids' => ['sometimes', 'nullable', 'array'],
             'category_ids.*' => ['exists:categories,id'],
 
-            'image_url' => 'sometimes|nullable|array',
-            'image_url.*' => 'sometimes|required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            // Ảnh mới tải lên
+            'image_url' => ['sometimes', 'nullable', 'array'],
+            'image_url.*' => ['sometimes', 'required', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
 
-            'deleted_image_ids' => 'sometimes|nullable|array',
+            // ID ảnh cũ cần xóa
+            'deleted_image_ids' => ['sometimes', 'nullable', 'array'],
             'deleted_image_ids.*' => [
-                'required',
                 'integer',
-                Rule::exists('images', 'id')->where(function ($query) use ($postId) {
-                    $query->where('imageable_id', $postId)
-                        ->where('imageable_type', Post::class);
-                }),
+                Rule::exists('images', 'id')->where('imageable_id', $postId),
             ],
 
-            'featured_image_id' => [
-                'sometimes',
-                'nullable',
-                'integer',
-                Rule::exists('images', 'id')->where(function ($query) use ($postId) {
-                    $query->where('imageable_id', $postId)
-                        ->where('imageable_type', Post::class);
-                }),
-            ],
+            // Chỉ số của ảnh đại diện trong danh sách ảnh cuối cùng
+            'featured_image_index' => ['sometimes', 'nullable', 'integer', 'min:0'],
         ];
     }
      public function messages(): array
@@ -72,8 +76,8 @@ class UpdatePostRequest extends FormRequest
             'deleted_image_ids.array' => 'Định dạng ID ảnh cần xóa không hợp lệ.',
             'deleted_image_ids.*.exists' => 'ID ảnh cần xóa không tồn tại hoặc không thuộc về bài viết này.',
 
-            // Featured Image ID
-            'featured_image_id.exists' => 'Ảnh đại diện được chọn không hợp lệ hoặc không thuộc về bài viết này.',
+            'featured_image_index.integer' => 'Chỉ số ảnh đại diện phải là một số nguyên.',
+            'featured_image_index.min' => 'Chỉ số ảnh đại diện phải lớn hơn hoặc bằng 0.',
 
             // Category IDs
             'category_ids.array'      => 'Định dạng danh mục không hợp lệ.',
@@ -84,25 +88,22 @@ class UpdatePostRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $postId = $this->route('id');
-            $post = Post::withCount('images')->find($postId);
+            $post = Post::withCount('images')->findOrFail($postId);
 
-            if ($post) {
-                $deletedIds = (array) $this->input('deleted_image_ids', []);
-                $newImages = (array) $this->file('image_url', []);
+            $deletedIds = (array) $this->input('deleted_image_ids', []);
+            $newImages = (array) $this->file('image_url', []);
+            
+            // Kiểm tra tổng số ảnh cuối cùng không được vượt quá 5
+            $finalImageCount = ($post->images_count - count($deletedIds)) + count($newImages);
+            if ($finalImageCount > 5) {
+                $validator->errors()->add('image_url', 'Tổng số ảnh của một bài viết không được vượt quá 5.');
+            }
 
-                $currentImageCount = $post->images_count;
-                $deletedImageCount = count($deletedIds);
-                $newImageCount = count($newImages);
-
-                // Giả sử giới hạn là 5 ảnh
-                $totalImages = ($currentImageCount - $deletedImageCount) + $newImageCount;
-                if ($totalImages > 5) {
-                    $validator->errors()->add('image_url', 'Tổng số ảnh của một bài viết không được vượt quá 5.');
-                }
-
-                $featuredId = $this->input('featured_image_id');
-                if ($featuredId && in_array($featuredId, $deletedIds)) {
-                    $validator->errors()->add('featured_image_id', 'Không thể đặt ảnh đang bị xóa làm ảnh đại diện.');
+            // Kiểm tra chỉ số ảnh đại diện có hợp lệ không
+            if ($this->filled('featured_image_index')) {
+                $featuredIndex = (int) $this->input('featured_image_index');
+                if ($featuredIndex >= $finalImageCount) {
+                    $validator->errors()->add('featured_image_index', 'Chỉ số ảnh đại diện không hợp lệ hoặc vượt quá số lượng ảnh.');
                 }
             }
         });

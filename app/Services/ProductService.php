@@ -24,10 +24,6 @@ class ProductService
     }
     /**
      * Lấy danh sách tất cả sản phẩm với phân trang thủ công, tìm kiếm và sắp xếp
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return array Mảng chứa dữ liệu sản phẩm và thông tin phân trang
-     * @throws Exception
      */
     public function getAllProducts($request): array
     {
@@ -93,10 +89,6 @@ class ProductService
     }
     /**
      * Lấy thông tin chi tiết một sản phẩm
-     *
-     * @param int $id
-     * @return Product|null
-     * @throws Exception
      */
     public function getProductById($id)
     {

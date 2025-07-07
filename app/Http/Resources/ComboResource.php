@@ -14,21 +14,21 @@ class ComboResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return [
+         return [
             'id'          => $this->id,
             'name'        => $this->name,
             'description' => $this->description,
-            'price'       => $this->price,
+            'price'       => (float) $this->price, // Ép kiểu để đảm bảo là số
             'slug'        => $this->slug,
-            'image_url'   => $this->image_url,
-            'start_date'  => $this->start_date,
-            'end_date'    => $this->end_date,
-            'is_active'   => $this->is_active,
-            'created_at'  => $this->created_at,
-            'updated_at'  => $this->updated_at,
-            'items_count' => $this->items ? $this->items->count() : 0,
+            'start_date'  => $this->start_date ? $this->start_date->format('Y-m-d H:i:s') : null,
+            'end_date'    => $this->end_date ? $this->end_date->format('Y-m-d H:i:s') : null,
+            'is_active'   => (bool) $this->is_active, // Ép kiểu để đảm bảo là boolean
+            'created_at'  => $this->created_at->format('Y-m-d H:i:s'),
+            'updated_at'  => $this->updated_at->format('Y-m-d H:i:s'),
+            'items_count' => $this->whenCounted('items'),
             'items'       => ComboItemResource::collection($this->whenLoaded('items')),
-            'promotions' => $this->whenLoaded('promotions', function () {
+
+            'promotions'  => $this->whenLoaded('promotions', function () {
                 return $this->promotions->map(fn($promo) => [
                     'id' => $promo->id,
                     'name' => $promo->name,
