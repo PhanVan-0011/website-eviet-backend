@@ -10,7 +10,7 @@ class Product extends Model
     use HasFactory;
     protected $fillable = ['product_code','name', 'description', 'size', 'original_price',
      'sale_price', 'stock_quantity', 'status'];
- /**
+    /**
      * Ghi đè phương thức boot của model để đăng ký event.
      */
     protected static function booted(): void
@@ -66,5 +66,9 @@ class Product extends Model
     public function promotions()
     {
         return $this->belongsToMany(Promotion::class, 'promotion_products')->withTimestamps();
+    }
+    public function orderDetails()
+    {
+        return $this->hasMany(OrderDetail::class, 'product_id');
     }
 }

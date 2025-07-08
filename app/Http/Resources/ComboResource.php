@@ -20,6 +20,12 @@ class ComboResource extends JsonResource
             'description' => $this->description,
             'price'       => (float) $this->price, // Ép kiểu để đảm bảo là số
             'slug'        => $this->slug,
+
+           'image_urls'  => $this->whenLoaded('image', function () {
+                return $this->image ? [new ImageResource($this->image)] : [];
+            }),
+             
+            
             'start_date'  => $this->start_date ? $this->start_date->format('Y-m-d H:i:s') : null,
             'end_date'    => $this->end_date ? $this->end_date->format('Y-m-d H:i:s') : null,
             'is_active'   => (bool) $this->is_active, // Ép kiểu để đảm bảo là boolean

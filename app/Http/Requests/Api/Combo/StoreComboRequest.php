@@ -25,10 +25,11 @@ class StoreComboRequest extends FormRequest
     {
         return [
             'name'                  => 'required|string|max:200',
+            //'slug'                  => 'required|string|max:255|unique:combos,slug',
             'description'           => 'nullable|string|max:255',
             'price'                 => 'nullable|numeric|min:0',
-            'slug'                  => 'nullable|string|unique:combos,slug',
-            'image_url'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'image_url' => 'nullable|array|max:1',
+            'image_url.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'start_date'            => 'nullable|date',
             'end_date'              => 'nullable|date|after_or_equal:start_date',
             'is_active'             => 'boolean',
@@ -52,10 +53,14 @@ class StoreComboRequest extends FormRequest
             'price.min' => 'Giá combo không được âm.',
 
             'slug.string' => 'Slug phải là chuỗi.',
-
-            'image_url.image' => 'File phải là hình ảnh.',
-            'image_url.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
-            'image_url.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
+            'slug.unique' => 'Slug này đã tồn tại.',
+            
+            'image_url.array' => 'Định dạng ảnh không hợp lệ.',
+            'image_url.max' => 'Chỉ được upload tối đa :max ảnh cho mỗi sản phẩm.',
+            'image_url.*.required' => 'Vui lòng chọn file ảnh.',
+            'image_url.*.image' => 'File phải là hình ảnh.',
+            'image_url.*.mimes' => 'Mỗi hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.*.max' => 'Kích thước mỗi hình ảnh không được vượt quá 2MB.',
 
             'start_date.date' => 'Ngày bắt đầu phải đúng định dạng ngày.',
             'end_date.date' => 'Ngày kết thúc phải đúng định dạng ngày.',

@@ -33,10 +33,8 @@ class StoreProductRequest extends FormRequest
 
             'image_url' => 'nullable|array|max:4',
             
-            // Mỗi file trong mảng 'image_url' phải là ảnh, đúng định dạng, và không quá 2MB
             'image_url.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             
-            // Chỉ số của ảnh đại diện (ví dụ: 0, 1, 2, 3) phải là số nguyên
             'featured_image_index' => 'nullable|integer|min:0',
 
             'status' => 'required|boolean',
@@ -60,6 +58,7 @@ class StoreProductRequest extends FormRequest
 
             'sale_price.numeric' => 'Giá khuyến mãi phải là số.',
             'sale_price.min' => 'Giá khuyến mãi không được nhỏ hơn 0.',
+            'sale_price.gte' => 'Giá bán phải lớn hơn hoặc bằng giá gốc.',
 
             'stock_quantity.required' => 'Số lượng tồn kho là bắt buộc.',
             'stock_quantity.integer' => 'Số lượng tồn kho phải là số nguyên.',

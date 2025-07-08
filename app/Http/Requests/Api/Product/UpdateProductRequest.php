@@ -31,17 +31,15 @@ class UpdateProductRequest extends FormRequest
             'description' => 'sometimes|nullable|string',
             'size' => 'sometimes|nullable|string|max:10',
             'original_price' => 'sometimes|nullable|numeric|min:0',
-            'sale_price' => 'sometimes|nullable|numeric|min:0|lte:original_price',
+            'sale_price' => 'sometimes|nullable|numeric|min:0|gte:original_price',
             'stock_quantity' => 'sometimes|required|integer|min:0',
             'status' => 'sometimes|required|boolean',
             'category_ids' => 'sometimes|required|array|min:1',
             'category_ids.*' => 'sometimes|required|integer|exists:categories,id',
 
-            // Chỉ kiểm tra định dạng của các ảnh mới tải lên
             'image_url' => 'sometimes|nullable|array',
             'image_url.*' => 'sometimes|required|image|mimes:jpeg,png,jpg,gif|max:2048',
 
-            //Mảng các ID của ảnh cũ cần xóa
             'deleted_image_ids' => 'sometimes|nullable|array',
             'deleted_image_ids.*' => 'sometimes|required|integer|exists:images,id',
 
@@ -55,7 +53,6 @@ class UpdateProductRequest extends FormRequest
                 }),
             ],
 
-            // Chỉ số của ảnh đại diện trong danh sách ảnh cuối cùng
             'featured_image_index' => ['sometimes', 'nullable', 'integer', 'min:0'],
         ];
     }
@@ -101,6 +98,7 @@ class UpdateProductRequest extends FormRequest
 
             'sale_price.numeric' => 'Giá khuyến mãi phải là số.',
             'sale_price.min' => 'Giá khuyến mãi không được nhỏ hơn 0.',
+            'sale_price.gte' => 'Giá bán phải lớn hơn hoặc bằng giá gốc.',
 
             'stock_quantity.integer' => 'Số lượng tồn kho phải là số nguyên.',
             'stock_quantity.min' => 'Số lượng tồn kho không được nhỏ hơn 0.',

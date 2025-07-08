@@ -5,13 +5,21 @@ namespace App\Services;
 use App\Models\Combo;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Arr;
+use Illuminate\Http\UploadedFile;
 use Exception;
 
 class ComboService
 {
+    protected $imageService;
+
+    public function __construct(ImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
+
     public function getAllCombos($request): array
     {
         try {
@@ -29,7 +37,8 @@ class ComboService
             $endDateFrom   = $request->input('end_date_from');
             $endDateTo     = $request->input('end_date_to');
 
-            $query = Combo::query();
+            //$query = Combo::query();
+            $query = Combo::query()->with(['image', 'items']);
 
             if ($keyword !== '') {
                 $query->where(function ($q) use ($keyword) {
@@ -93,145 +102,176 @@ class ComboService
 
     public function getComboById(int $id): Combo
     {
-        return Combo::with('items.product')->findOrFail($id);
+        try {
+            return Combo::with(['items.product', 'image'])->findOrFail($id);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::error("Lỗi khi lấy combo ID {$id}: " . $e->getMessage());
+            throw $e;
+        }
     }
 
-
+    /**
+     * Tạo một combo mới.
+     */
     public function createCombo(array $data): Combo
     {
         try {
-            // Tự động tạo slug 
-            if (empty($data['slug'])) {
-                $data['slug'] = Str::slug($data['name']);
-            }
+            return DB::transaction(function () use ($data) {
+                $imageFiles = Arr::pull($data, 'image_url', []);
+                $items = Arr::pull($data, 'items', []);
 
-            // Kiểm tra slug trùng
-            if (Combo::where('slug', $data['slug'])->exists()) {
-                throw new Exception('Slug đã tồn tại. Vui lòng chọn tên hoặc slug khác.');
-            }
-            // Xử lý ảnh nếu có
-            if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
-                $year = now()->format('Y');
-                $month = now()->format('m');
-                $slug = Str::slug($data['name'] ?? 'combo');
-                $path = "combos_images/{$year}/{$month}";
-                $filename = uniqid($slug . '-') . '.' . $data['image_url']->getClientOriginalExtension();
-                $fullPath = $data['image_url']->storeAs($path, $filename, 'public');
-                $data['image_url'] = $fullPath;
-            } else {
-                unset($data['image_url']);
-            }
-            // Lấy items ra và bỏ khỏi $data trước khi tạo combo
-            $items = $data['items'] ?? [];
-            unset($data['items']);
-            // Tạo combo
-            $combo = Combo::create($data);
-            // Ghi combo_items nếu có
-            foreach ($items as $item) {
-                $combo->items()->create([
-                    'product_id' => $item['product_id'],
-                    'quantity'   => $item['quantity'],
-                ]);
-            }
-            return $combo->load('items.product');
-        } catch (QueryException $e) {
-            Log::error('Lỗi khi tạo combo: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-    public function updateCombo(int $id, array $data)
-    {
-        try {
-            $combo = Combo::with('items')->findOrFail($id);
-            // Tạo lại slug nếu không có
-            if (empty($data['slug'])) {
-                $data['slug'] = Str::slug($data['name']);
-            }
-            // Kiểm tra trùng slug (trừ chính combo đang cập nhật)
-            if (Combo::where('slug', $data['slug'])->where('id', '!=', $id)->exists()) {
-                throw new \Exception('Slug đã tồn tại.');
-            }
-            //Xử lý ảnh
-            if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
-                if ($combo->image_url && Storage::disk('public')->exists($combo->image_url)) {
-                    Storage::disk('public')->delete($combo->image_url);
+                $combo = Combo::create($data);
+
+                if (!empty($imageFiles)) {
+                    $imageFile = current($imageFiles);
+
+                    if ($imageFile instanceof UploadedFile) {
+                        $imageSlug = $data['slug'] ?? Str::slug($data['name']);
+                        $pathData = $this->imageService->store($imageFile, 'combos', $imageSlug);
+
+                        if ($pathData) {
+                            //$combo->image()->create($pathData);
+                            $combo->image()->create([
+                                'image_url' => $pathData,
+                                'is_featured' => true
+                            ]);
+                        }
+                    }
                 }
 
-                $year = now()->format('Y');
-                $month = now()->format('m');
-                $slug = Str::slug($data['name'] ?? 'combo');
-                $path = "combos_images/{$year}/{$month}";
-                $filename = uniqid($slug . '-') . '.' . $data['image_url']->getClientOriginalExtension();
-                $fullPath = $data['image_url']->storeAs($path, $filename, 'public');
-                $data['image_url'] = $fullPath;
-            } else {
-                unset($data['image_url']);
+                if (!empty($items)) {
+                    $combo->items()->createMany($items);
+                }
+
+                return $combo->load(['items.product', 'image']);
+            });
+        } catch (Exception $e) {
+            Log::error('Lỗi khi tạo combo: ' . $e->getMessage(), ['data' => Arr::except($data, 'image_url')]);
+            throw new Exception('Không thể tạo combo. Vui lòng thử lại.');
+        }
+    }
+    /**
+     * Cập nhật một combo đã có.
+     */
+    public function updateCombo(int $id, array $data): Combo
+    {
+        $combo = $this->getComboById($id);
+
+        try {
+            return DB::transaction(function () use ($combo, $data) {
+                $imageFiles = Arr::pull($data, 'image_url');
+                $items = Arr::pull($data, 'items');
+
+                $combo->update($data);
+
+                if (is_array($imageFiles) && !empty($imageFiles)) {
+                    $imageFile = current($imageFiles);
+
+                    if ($imageFile instanceof UploadedFile) {
+                        // Xóa ảnh cũ nếu có
+                        if ($combo->image) {
+                            $this->imageService->delete($combo->image->image_url, 'combos');
+                            $combo->image->delete();
+                        }
+
+                        // Upload và tạo ảnh mới
+                        $imageSlug = $data['slug'] ?? $combo->slug;
+                        $pathData = $this->imageService->store($imageFile, 'combos', $imageSlug);
+                        if ($pathData) {
+                            $combo->image()->create([
+                                'image_url' => $pathData,
+                                'is_featured' => true
+                            ]);
+                        }
+                    }
+                }
+
+                if (!is_null($items)) {
+                    $combo->items()->delete();
+                    if (!empty($items)) {
+                        $combo->items()->createMany($items);
+                    }
+                }
+
+                $combo->load(['items.product', 'image']);
+                return $combo;
+            });
+        } catch (Exception $e) {
+            Log::error("Lỗi khi cập nhật combo ID {$id}: " . $e->getMessage(), ['data' => Arr::except($data, 'image_url')]);
+            throw new Exception("Không thể cập nhật combo. Vui lòng thử lại.");
+        }
+    }
+    /**
+     * Xóa một combo dựa trên một chuỗi các ID.
+     */
+    public function deleteCombo(int $id): bool
+    {
+        try {
+            $combo = $this->getComboById($id);
+
+            if ($combo->orderDetails()->exists()) {
+                throw new Exception("Không thể xóa combo {$combo->id} vì đã phát sinh đơn hàng.");
             }
 
-            $combo->update($data);
-            // Cập nhật combo items nếu có
-            if (!empty($data['items'])) {
+            return DB::transaction(function () use ($combo) {
+                if ($combo->image) {
+                    $this->imageService->delete($combo->image->image_url, 'combos');
+                    $combo->image->delete();
+                }
+
                 $combo->items()->delete();
-                foreach ($data['items'] as $item) {
-                    $combo->items()->create([
-                        'product_id' => $item['product_id'],
-                        'quantity'   => $item['quantity'],
-                    ]);
-                }
-            }
-            return $combo->fresh('items.product');
-        } catch (QueryException $e) {
-            Log::error('Lỗi khi cập nhật combo: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    public function delete(int $id)
-    {
-        try {
-            $combo = Combo::findOrFail($id);
-
-            if ($combo->image_url && Storage::disk('public')->exists($combo->image_url)) {
-                Storage::disk('public')->delete($combo->image_url);
-            }
-
-            return $combo->delete();
+                return $combo->delete();
+            });
         } catch (ModelNotFoundException $e) {
-            Log::warning("Combo ID {$id} không tồn tại.");
-            return false;
+            throw $e;
         } catch (Exception $e) {
             Log::error("Lỗi khi xóa combo ID {$id}: " . $e->getMessage());
             throw $e;
         }
     }
 
-    public function deleteMultiple($ids)
+    /**
+     * Xóa nhiều combo dựa trên một chuỗi các ID.
+     */
+   public function deleteMultiple(string $ids): int
     {
-        $ids = array_map('intval', explode(',', $ids));
+        $idArray = array_filter(array_map('intval', explode(',', $ids)));
 
-        $existingIds = Combo::whereIn('id', $ids)->pluck('id')->toArray();
-        $nonExistingIds = array_diff($ids, $existingIds);
+        if (empty($idArray)) {
+            return 0;
+        }
+        $combosToDelete = Combo::with('image')->whereIn('id', $idArray)->get();
 
-        if (!empty($nonExistingIds)) {
-            Log::error('IDs combo không tồn tại: ' . implode(',', $nonExistingIds));
-            throw new ModelNotFoundException('Một hoặc nhiều combo không tồn tại.');
+        if (count($combosToDelete) !== count($idArray)) {
+            $foundIds = $combosToDelete->pluck('id')->all();
+            $missingIds = array_diff($idArray, $foundIds);
+            throw new ModelNotFoundException('Một hoặc nhiều combo không tồn tại: ' . implode(', ', $missingIds));
+        }
+        $combosWithOrders = $combosToDelete->filter(function ($combo) {
+            return $combo->orderDetails()->exists();
+        });
+
+        if ($combosWithOrders->isNotEmpty()) {
+            $names = $combosWithOrders->pluck('name')->implode(', ');
+            throw new Exception("Không thể xóa các combo sau vì đã phát sinh đơn hàng: {$names}.");
         }
 
         $deletedCount = 0;
-        $combos = Combo::whereIn('id', $ids)->get();
-
-        foreach ($combos as $combo) {
-            try {
-                if ($combo->image_url && Storage::disk('public')->exists($combo->image_url)) {
-                    Storage::disk('public')->delete($combo->image_url);
+        DB::transaction(function () use ($combosToDelete, &$deletedCount) {
+            foreach ($combosToDelete as $combo) {
+                if ($combo->image) {
+                    $this->imageService->delete($combo->image->image_url, 'combos');
+                    $combo->image->delete();
                 }
 
-                $combo->delete();
-                $deletedCount++;
-            } catch (Exception $e) {
-                Log::error("Lỗi khi xóa combo ID {$combo->id}: " . $e->getMessage());
+                $combo->items()->delete();
+                if ($combo->delete()) {
+                    $deletedCount++;
+                }
             }
-        }
+        });
 
         return $deletedCount;
     }

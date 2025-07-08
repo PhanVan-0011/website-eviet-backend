@@ -247,44 +247,46 @@ class ProductService
      * Xóa nhiều sản phẩm cùng lúcxóa
      * @throws ModelNotFoundException
      */
-     public function multiDeleteProducts(array $ids): int
+    public function multiDeleteProducts(array $ids): int
     {
-        return DB::transaction(function () use ($ids) {
-            try {
-                 // Kiểm tra ràng buộc với đơn hàng
-            $usedCount = OrderDetail::whereIn('product_id', $ids)->count();
-            if ($usedCount > 0) {
-                throw new Exception("Có {$usedCount} sản phẩm đang được sử dụng, không thể xóa.");
-            }
+        $products = Product::with('images')->whereIn('id', $ids)->get();
 
-            // Lấy các sản phẩm và các ảnh liên quan
-            $products = Product::with('images')->whereIn('id', $ids)->get();
+        if (count($products) !== count($ids)) {
+            $foundIds = $products->pluck('id')->all();
+            $missingIds = array_diff($ids, $foundIds);
+            throw new ModelNotFoundException('Một hoặc nhiều sản phẩm không tồn tại: ' . implode(', ', $missingIds));
+        }
+        $usedProducts = $products->filter(function ($product) {
+            return $product->orderDetails()->exists();
+        });
+
+        if ($usedProducts->isNotEmpty()) {
+            $productIds = $usedProducts->pluck('id')->implode(', ');
+            throw new Exception("Không thể xóa các sản phẩm {$productIds} vì đã phát sinh đơn hàng.");
+        }
+
+        return DB::transaction(function () use ($products) {
             $deletedCount = 0;
 
             foreach ($products as $product) {
-                //Xóa các file ảnh vật lý
                 foreach ($product->images as $image) {
                     $this->imageService->delete($image->image_url, 'products');
-                }              
-                // Xóa các bản ghi ảnh trong bảng `images`
+                }
+
                 $product->images()->delete();
                 
-                //Xóa các quan hệ trong bảng trung gian category_product)
                 $product->categories()->detach();
 
-                //Xóa chính sản phẩm đó
                 if ($product->delete()) {
                     $deletedCount++;
                 }
-            }       
-            Log::warning("{$deletedCount} sản phẩm đã bị xóa bởi người dùng [ID: " . auth()->id() . "].");
-            return $deletedCount;
-            
-            } catch (Exception $e) {
-                Log::error('Lỗi trong quá trình xóa nhiều sản phẩm tại ProductService: ' . $e->getMessage());
-                throw $e;
             }
+            
+            if ($deletedCount > 0) {
+                Log::warning("{$deletedCount} sản phẩm đã bị xóa bởi người dùng [ID: " . auth()->id() . "].");
+            }
+            
+            return $deletedCount;
         });
-        
     }
 }

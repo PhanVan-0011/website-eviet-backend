@@ -6,6 +6,8 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
+use App\Models\Combo;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class UpdateComboRequest extends FormRequest
 {
@@ -24,22 +26,23 @@ class UpdateComboRequest extends FormRequest
      */
     public function rules(): array
     {
+        $comboId = $this->route('id');
         return [
-            'name'                  => 'required|string|max:200',
-            'description'           => 'nullable|string|max:255',
-            'price'                 => 'nullable|numeric|min:0',
-            'slug'                  => [
-                'nullable',
-                'string',
-                Rule::unique('combos', 'slug')->ignore($this->route('combo')) // combo là tên route param
-            ],
-            'image_url'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'start_date'            => 'nullable|date',
-            'end_date'              => 'nullable|date|after_or_equal:start_date',
-            'is_active'             => 'boolean',
-            'items'                 => 'nullable|array|min:1',
-            'items.*.product_id'    => 'required|integer|exists:products,id',
-            'items.*.quantity'      => 'required|integer|min:1',
+            'name'                  => ['sometimes', 'required', 'string', 'max:200', Rule::unique('combos', 'name')->ignore($comboId)],
+            'slug'                  => ['sometimes', 'required', 'string', 'max:255', Rule::unique('combos', 'slug')->ignore($comboId)],
+            'description'           => 'sometimes|nullable|string|max:255',
+            'price'                 => 'sometimes|required|numeric|min:0',
+
+            'image_url'             => 'sometimes|nullable|array|max:1',
+            'image_url.*'           => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+
+            //'image_url'             => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'start_date'            => 'sometimes|nullable|date',
+            'end_date'              => 'sometimes|nullable|date|after_or_equal:start_date',
+            'is_active'             => 'sometimes|boolean',
+            'items'                 => 'sometimes|required|array|min:1',
+            'items.*.product_id'    => 'required_with:items|integer|exists:products,id',
+            'items.*.quantity'      => 'required_with:items|integer|min:1',
         ];
     }
     public function messages()
@@ -48,7 +51,8 @@ class UpdateComboRequest extends FormRequest
             'name.required' => 'Tên combo là bắt buộc.',
             'name.string' => 'Tên combo phải là chuỗi ký tự.',
             'name.max' => 'Tên combo không được vượt quá 200 ký tự.',
-
+            'name.unique'   => 'Tên combo này đã tồn tại.',
+            
             'description.string' => 'Mô tả phải là chuỗi.',
             'description.max' => 'Tên combo không được vượt quá 255 ký tự.',
 
@@ -57,10 +61,13 @@ class UpdateComboRequest extends FormRequest
             'price.min' => 'Giá combo không được âm.',
 
             'slug.string' => 'Slug phải là chuỗi.',
+            'slug.unique' => 'Slug này đã tồn tại.',
 
-            'image_url.image' => 'File phải là hình ảnh.',
-            'image_url.mimes' => 'Hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
-            'image_url.max' => 'Kích thước hình ảnh không được vượt quá 2MB.',
+            'image_url.array' => 'Định dạng ảnh không hợp lệ.',
+            'image_url.max' => 'Chỉ được upload tối đa 1 ảnh cho mỗi combo.', // Thông báo lỗi bạn muốn
+            'image_url.*.image' => 'File phải là hình ảnh.',
+            'image_url.*.mimes' => 'Mỗi hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.*.max' => 'Kích thước mỗi hình ảnh không được vượt quá 2MB.',
 
             'start_date.date' => 'Ngày bắt đầu phải đúng định dạng ngày.',
             'end_date.date' => 'Ngày kết thúc phải đúng định dạng ngày.',

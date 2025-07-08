@@ -11,6 +11,7 @@ use App\Services\ComboService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Exceptions\CannotDeleteException;
 
 class ComboController extends Controller
 {
@@ -71,8 +72,7 @@ class ComboController extends Controller
         }
     }
     // Tạo combo mới
-    public function store(StoreComboRequest $request)
-    {
+    public function store(StoreComboRequest $request){
         try {
             $combo = $this->comboService->createCombo($request->validated());
             return response()->json([
@@ -93,7 +93,8 @@ class ComboController extends Controller
     public function update(UpdateComboRequest $request, int $id)
     {
         try {
-            $combo = $this->comboService->updateCombo($id, $request->all());
+            $combo = $this->comboService->updateCombo($id, $request->validated());
+
             return response()->json([
                 'success' => true,
                 'message' => 'Cập nhật combo thành công',
@@ -105,38 +106,11 @@ class ComboController extends Controller
                 'message' => 'Combo không tồn tại',
             ], 404);
         } catch (\Exception $e) {
-            // Cách 1: Hiển thị toàn bộ exception
-            dd($e);
-
-            // Cách 2: Hiển thị thông tin chi tiết
-            // dd([
-            //     'message' => $e->getMessage(),
-            //     'file' => $e->getFile(),
-            //     'line' => $e->getLine(),
-            //     'trace' => $e->getTraceAsString(),
-            //     'code' => $e->getCode(),
-            //     'previous' => $e->getPrevious()
-            // ]);
-
-            // Cách 3: Hiển thị request data
-            // dd([
-            //     'request_data' => $request->all(),
-            //     'error' => $e->getMessage()
-            // ]);
-
-            Log::error('Lỗi cập nhật combo: ' . $e->getMessage(), [
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
+            Log::error('Lỗi cập nhật combo: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi cập nhật combo',
-                'error' => [
-                    'message' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine()
-                ]
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -145,24 +119,24 @@ class ComboController extends Controller
     public function destroy(int $id)
     {
         try {
-            $deleted = $this->comboService->delete($id);
-            if (!$deleted) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Combo không tồn tại'
-                ], 404);
-            }
+            $deleted = $this->comboService->deleteCombo($id);
             return response()->json([
                 'success' => true,
                 'message' => 'Xóa combo thành công'
             ]);
-        } catch (\Exception $e) {
+            
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Combo không tồn tại.'
+            ], 404);
+        }
+        catch (\Exception $e) {
             Log::error('Lỗi khi xóa combo: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi khi xóa combo',
-                'error' => $e->getMessage()
-            ], 500);
+                'message' => $e->getMessage() 
+            ], 422);
         }
     }
 
@@ -180,13 +154,13 @@ class ComboController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 404);
+
         } catch (\Exception $e) {
-            Log::error('Lỗi xóa nhiều combo: ' . $e->getMessage());
+            Log::error('Lỗi không xác định khi xóa nhiều combo: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Đã xảy ra lỗi khi xóa combo',
-                'error' => $e->getMessage()
-            ], 500);
+                'message' => $e->getMessage(),
+            ], 422);
         }
     }
 }

@@ -13,6 +13,13 @@ class ComboItem extends Model
         'product_id',
         'quantity',
     ];
+
+    protected $casts = [
+        'quantity' => 'integer', 
+        'combo_id' => 'integer',
+        'product_id' => 'integer',
+    ];
+    
     /**
      * Mỗi combo_item thuộc về 1 combo
      */

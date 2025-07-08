@@ -36,10 +36,6 @@ class ImageService
      */
     protected ImageManager $imageManager;
 
-    /**
-     * 2. "Tiêm" ImageManager vào service qua constructor.
-     * Laravel sẽ tự động cung cấp đối tượng này cho bạn.
-     */
     public function __construct(ImageManager $imageManager)
     {
         $this->imageManager = $imageManager;
@@ -47,11 +43,6 @@ class ImageService
 
     /**
      * Xử lý upload, resize và lưu trữ một file ảnh.
-     *
-     * @param UploadedFile $file File được tải lên.
-     * @param string $folder Tên thư mục chính (ví dụ: 'products', 'posts').
-     * @param string $slug Slug của đối tượng (dùng để tạo tên file thân thiện SEO).
-     * @return string|null Trả về đường dẫn cơ sở của ảnh đã lưu, hoặc null nếu lỗi.
      */
     public function store(UploadedFile $file, string $folder, string $slug): ?string
     {
@@ -68,7 +59,7 @@ class ImageService
                 return $basePath;
             }
 
-            // 3. Sử dụng đối tượng đã được tiêm vào
+            //Sử dụng đối tượng đã được tiêm vào
            $image = $this->imageManager->read($file->getRealPath());
 
             foreach ($imageSizes as $sizeName => $dimensions) {
@@ -89,9 +80,6 @@ class ImageService
     
     /**
      * Xóa tất cả các phiên bản của một ảnh.
-     *
-     * @param string|null $basePath Đường dẫn cơ sở của ảnh (lưu trong DB).
-     * @param string $folder Tên thư mục chính.
      */
     public function delete(?string $basePath, string $folder): void
     {
