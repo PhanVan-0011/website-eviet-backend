@@ -30,6 +30,11 @@ class UserResource extends JsonResource
                 ? \Carbon\Carbon::parse($this->phone_verified_at)->format('Y-m-d H:i:s')
                 : null,
 
+            'image_url' => $this->whenLoaded('image', function () {
+                return $this->image ? new ImageResource($this->image) : null;
+            }),
+
+
             'roles' => RoleResource::collection($this->whenLoaded('roles')),
             'permissions' => PermissionResource::collection($this->whenLoaded('permissions', function () {
                 return $this->getAllPermissions();

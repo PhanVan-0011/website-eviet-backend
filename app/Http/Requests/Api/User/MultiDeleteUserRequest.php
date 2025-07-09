@@ -15,9 +15,9 @@ class MultiDeleteUserRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if ($this->has('ids') && is_array($this->ids)) {
+         if ($this->has('ids') && is_string($this->ids)) {
             $this->merge([
-                'ids' => implode(',', $this->ids)
+                'ids' => array_filter(array_map('intval', explode(',', $this->ids))),
             ]);
         }
     }
@@ -25,16 +25,18 @@ class MultiDeleteUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ids' => ['required', 'regex:/^[0-9]+(,[0-9]+)*$/']
+           'ids' => 'required|array|min:1',
+           'ids.*' => 'required|integer|exists:users,id'
         ];
     }
 
     public function messages(): array
     {
         return [
-            'ids.required' => 'Vui lòng chọn ít nhất một người dùng để xóa',
-            'ids.string' => 'Danh sách ID người dùng không hợp lệ',
-            'ids.regex' => 'Định dạng danh sách ID không hợp lệ. Ví dụ: 1,2,3'
+            'ids.required' => 'Vui lòng cung cấp danh sách ID người dùng cần xóa.',
+            'ids.array' => 'Định dạng danh sách ID không hợp lệ.',
+            'ids.*.integer' => 'Mỗi ID trong danh sách phải là một số nguyên.',
+            'ids.*.exists' => 'Một trong các ID người dùng không tồn tại trong hệ thống.',
         ];
     }
 

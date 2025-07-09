@@ -33,10 +33,7 @@ class UpdateComboRequest extends FormRequest
             'description'           => 'sometimes|nullable|string|max:255',
             'price'                 => 'sometimes|required|numeric|min:0',
 
-            'image_url'             => 'sometimes|nullable|array|max:1',
-            'image_url.*'           => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-
-            //'image_url'             => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image_url'             => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'start_date'            => 'sometimes|nullable|date',
             'end_date'              => 'sometimes|nullable|date|after_or_equal:start_date',
             'is_active'             => 'sometimes|boolean',
@@ -52,7 +49,7 @@ class UpdateComboRequest extends FormRequest
             'name.string' => 'Tên combo phải là chuỗi ký tự.',
             'name.max' => 'Tên combo không được vượt quá 200 ký tự.',
             'name.unique'   => 'Tên combo này đã tồn tại.',
-            
+
             'description.string' => 'Mô tả phải là chuỗi.',
             'description.max' => 'Tên combo không được vượt quá 255 ký tự.',
 
@@ -63,11 +60,9 @@ class UpdateComboRequest extends FormRequest
             'slug.string' => 'Slug phải là chuỗi.',
             'slug.unique' => 'Slug này đã tồn tại.',
 
-            'image_url.array' => 'Định dạng ảnh không hợp lệ.',
-            'image_url.max' => 'Chỉ được upload tối đa 1 ảnh cho mỗi combo.', // Thông báo lỗi bạn muốn
-            'image_url.*.image' => 'File phải là hình ảnh.',
-            'image_url.*.mimes' => 'Mỗi hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
-            'image_url.*.max' => 'Kích thước mỗi hình ảnh không được vượt quá 2MB.',
+            'image_url.image' => 'File tải lên phải là hình ảnh.',
+            'image_url.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.max' => 'Kích thước ảnh không được vượt quá 2MB.',
 
             'start_date.date' => 'Ngày bắt đầu phải đúng định dạng ngày.',
             'end_date.date' => 'Ngày kết thúc phải đúng định dạng ngày.',

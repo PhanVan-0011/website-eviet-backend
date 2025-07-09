@@ -11,7 +11,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use App\Http\Requests\Api\User\MultiDeleteUserRequest;
-use App\Http\Requests\Api\User\UserRequest;
+use App\Http\Requests\Api\User\StoreUserRequest;
+use App\Http\Requests\Api\User\UpdateUserRequest;
 
 
 class UserController extends Controller
@@ -27,14 +28,24 @@ class UserController extends Controller
     /**
      * Lấy danh sách tất cả users
      */
-    // done
     public function index(Request $request)
     {
         try {
-            return $this->userService->getAllUsers($request);
-        } catch (\Exception $e) {
+            $result = $this->userService->getAllUsers($request);
+            return response()->json([
+                'success' => true,
+                'message' => 'Lấy danh sách người dùng thành công.',
+                'data' => UserResource::collection($result['data']),
+                'pagination' => [
+                    'page' => $result['page'],
+                    'total' => $result['total'],
+                    'last_page' => $result['last_page'],
+                    'next_page' => $result['next_page'],
+                    'pre_page' => $result['pre_page'],
+                ]
+            ], 200);
 
-            error_log('Lỗi khi lấy danh sách người dùng: ' . $e->getMessage());
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy danh sách người dùng'
@@ -70,7 +81,7 @@ class UserController extends Controller
     /**
      * Tạo mới user
      */
-    public function store(UserRequest $request)
+    public function store(StoreUserRequest $request)
     {
 
         try {
@@ -91,7 +102,7 @@ class UserController extends Controller
     /**
      * Cập nhật thông tin user
      */
-    public function update(UserRequest $request, $id)
+    public function update(UpdateUserRequest $request, $id)
     {
         error_log(json_encode($request->all()));
         try {

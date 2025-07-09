@@ -119,32 +119,27 @@ class ComboService
     {
         try {
             return DB::transaction(function () use ($data) {
-                $imageFiles = Arr::pull($data, 'image_url', []);
+                 // SỬA LẠI Ở ĐÂY: Xử lý file đơn lẻ
+                $imageFile = Arr::pull($data, 'image_url');
                 $items = Arr::pull($data, 'items', []);
 
                 $combo = Combo::create($data);
 
-                if (!empty($imageFiles)) {
-                    $imageFile = current($imageFiles);
-
-                    if ($imageFile instanceof UploadedFile) {
-                        $imageSlug = $data['slug'] ?? Str::slug($data['name']);
-                        $pathData = $this->imageService->store($imageFile, 'combos', $imageSlug);
-
-                        if ($pathData) {
-                            //$combo->image()->create($pathData);
-                            $combo->image()->create([
-                                'image_url' => $pathData,
-                                'is_featured' => true
-                            ]);
-                        }
+                // SỬA LẠI Ở ĐÂY: Bỏ logic xử lý mảng
+                if ($imageFile instanceof UploadedFile) {
+                    $pathData = $this->imageService->store($imageFile, 'combos', $combo->name);
+                    if (!$pathData) {
+                        throw new Exception("Không thể lưu file ảnh cho combo.");
                     }
+                    $combo->image()->create([
+                        'image_url' => $pathData,
+                        'is_featured' => true
+                    ]);
                 }
-
+                
                 if (!empty($items)) {
                     $combo->items()->createMany($items);
                 }
-
                 return $combo->load(['items.product', 'image']);
             });
         } catch (Exception $e) {
@@ -187,7 +182,6 @@ class ComboService
                         }
                     }
                 }
-
                 if (!is_null($items)) {
                     $combo->items()->delete();
                     if (!empty($items)) {

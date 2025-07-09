@@ -87,12 +87,14 @@ class SliderService
                 if (isset($data['linkable_type'])) {
                     $data['linkable_type'] = $this->mapLinkableTypeToModelClass($data['linkable_type']);
                 }
+                $imageFile = $data['image_url'] ?? null;
+                unset($data['image_url']);
+
                 $slider = Slider::create($data);
-                if (!empty($data['image_url'][0])) {
-                    $imageFile = $data['image_url'][0];
+               if ($imageFile) {
                     $basePath = $this->imageService->store($imageFile, 'sliders', $slider->title);
                     if ($basePath) {
-                       $slider->image()->create([
+                        $slider->image()->create([
                             'image_url'   => $basePath,
                             'is_featured' => 1
                         ]);
@@ -111,14 +113,19 @@ class SliderService
        try {
             $slider = $this->getSliderById($id);
             return DB::transaction(function () use ($slider, $data) {
-                if (!empty($data['image_url'][0])) {
+               $imageFile = $data['image_url'] ?? null;
+                unset($data['image_url']);
+
+                if ($imageFile) {
                     if ($oldImagePath = $slider->image?->image_url) {
                         $this->imageService->delete($oldImagePath, 'sliders');
                     }
-                    $imageFile = $data['image_url'][0];
                     $newBasePath = $this->imageService->store($imageFile, 'sliders', $data['title'] ?? $slider->title);
                     if ($newBasePath) {
-                        $slider->image()->updateOrCreate(['imageable_id' => $slider->id], ['image_url' => $newBasePath]);
+                        $slider->image()->updateOrCreate(
+                            ['imageable_id' => $slider->id], 
+                            ['image_url' => $newBasePath, 'is_featured' => 1]
+                        );
                     }
                 }
                 if (array_key_exists('linkable_type', $data)) {

@@ -35,8 +35,7 @@ class StoreSliderRequest extends FormRequest
             'title' => 'required|string|max:200',
             'description' => 'nullable|string|max:255',
 
-            'image_url' => 'nullable|array|max:1',
-            'image_url.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
 
             'display_order' => 'sometimes|integer|unique:sliders,display_order',
             'is_active' => 'sometimes|boolean',
@@ -61,12 +60,9 @@ class StoreSliderRequest extends FormRequest
             'description.max' => 'Mô tả không được vượt quá 255 ký tự.',
 
              
-            'image_url.array' => 'Định dạng ảnh không hợp lệ.',
-            'image_url.max' => 'Chỉ được upload tối đa :max ảnh cho mỗi sản phẩm.',
-            'image_url.*.required' => 'Vui lòng chọn file ảnh.',
-            'image_url.*.image' => 'File phải là hình ảnh.',
-            'image_url.*.mimes' => 'Mỗi hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
-            'image_url.*.max' => 'Kích thước mỗi hình ảnh không được vượt quá 2MB.',
+            'image_url.image' => 'File tải lên phải là hình ảnh.',
+            'image_url.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.max' => 'Kích thước ảnh không được vượt quá 2MB.',
 
             'display_order.integer' => 'Thứ tự hiển thị phải là số nguyên.',
             'display_order.unique' => 'Thứ tự hiển thị không được trùng nhau.',

@@ -3,123 +3,186 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\Image;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+
+use App\Services\ImageService;
 
 class UserService
 {
-    public function getAllUsers($request)
+    protected $imageService;
+
+    public function __construct(ImageService $imageService)
     {
+        $this->imageService = $imageService;
+    }
+
+    public function getAllUsers($request)
+{
+    try {
         $limit = intval($request->input('limit', 10));
         $page = intval($request->input('page', 1));
         $search = $request->input('keyword', '');
 
         $query = User::query();
 
-        // Tìm kiếm theo name, email, phone
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                  ->orWhere('email', 'like', "%{$search}%");
             });
         }
+        
+        $countQuery = clone $query;
+        $total = $countQuery->count();
 
-        // Sắp xếp theo created_at mới nhất
-        $query->orderBy('id', 'desc');
-
-        // Chỉ lấy các trường cần thiết
-        $fields = [
-            'id',
-            'name',
-            'email',
-            'phone',
-            'gender',
-            'date_of_birth',
-            'is_active',
-            'is_verified',
-            'created_at',
-            'updated_at',
-        ];
-        $query->select($fields);
-
-        // Phân trang thủ công để lấy total
-        $total = $query->count();
-        $users = $query->skip(($page - 1) * $limit)->take($limit)->get();
+        $users = $query->with('image') 
+                       ->orderBy('id', 'desc')
+                       ->skip(($page - 1) * $limit)
+                       ->take($limit)
+                       ->get();
 
         $last_page = ceil($total / $limit);
-        $next_page = $page < $last_page ? $page + 1 : null;
-        $pre_page = $page > 1 ? $page - 1 : null;
-
-        return response()->json([
+        
+        return [
             'data' => $users,
             'page' => $page,
             'total' => $total,
-            'last_page' => $last_page,
-            'next_page' => $next_page,
-            'pre_page' => $pre_page,
-        ]);
+            'last_page' => (int) $last_page,
+            'next_page' => $page < $last_page ? $page + 1 : null,
+            'pre_page' => $page > 1 ? $page - 1 : null,
+        ];
+    } catch (\Exception $e) {
+        Log::error("Lỗi khi lấy danh sách người dùng: " . $e->getMessage());
+        throw $e;
     }
+}
 
-    public function getUserById($id)
+    public function getUserById($id): User
     {
-        $user = User::findOrFail($id);
-        return $user;
-    }
-
-    public function createUser($data)
-    {
-        $data['password'] = Hash::make($data['password']);
-        if (isset($data['is_active'])) {
-            if ($data['is_active'] === '0' || $data['is_active'] === '1') {
-                $data['is_active'] = (int)$data['is_active'];
-                error_log(json_encode($data));
-            }
-        } else {
-            $data['is_active'] = true;
+        try {
+            return User::with('image')->findOrFail($id);
+        } catch (ModelNotFoundException $e) {
+            Log::warning("Không tìm thấy người dùng với ID: {$id}");
+            throw $e;
         }
-        $data['is_verified'] = false;
+    }
 
-        $user = User::create($data);
-        if (!$user) {
-            throw new \Exception('Không thể tạo người dùng');
+    public function createUser(array $data){
+        try {
+            return DB::transaction(function () use ($data) {
+                $data['password'] = Hash::make($data['password']);
+                $data['is_active'] = $data['is_active'] ?? true;
+                $data['is_verified'] = false;
+
+                $imageFile = $data['image_url'] ?? null;
+                unset($data['image_url']);
+
+                $user = User::create($data);
+                if ($imageFile) {
+                    $basePath = $this->imageService->store($imageFile, 'users', $user->name);
+                    if ($basePath) {
+                        $user->image()->create(['image_url' => $basePath, 'is_featured' => 1]);
+                    }
+                }
+                return $user->load('image');
+            });
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi tạo người dùng mới: " . $e->getMessage(), ['data' => $data]);
+            throw $e;
         }
-
-        return $user;
     }
 
-    public function updateUser($data, $id)
+   public function updateUser(array $data, int $id): User
     {
-        $user = User::findOrFail($id);
-        error_log(json_encode($data));
-        $user->update($data);
-        return $user;
+        try {
+            $user = $this->getUserById($id);
+            return DB::transaction(function () use ($user, $data) {
+                $imageFile = $data['image_url'] ?? null;
+                unset($data['image_url']);
+
+                if (!empty($data['password'])) {
+                    $data['password'] = Hash::make($data['password']);
+                } else {
+                    unset($data['password']);
+                }
+
+                if ($imageFile) {
+                    if ($oldImage = $user->image) {
+                        $this->imageService->delete($oldImage->image_url, 'users');
+                    }
+                    $basePath = $this->imageService->store($imageFile, 'users', $user->name);
+                    if ($basePath) {
+                        $user->image()->updateOrCreate(['imageable_id' => $user->id], ['image_url' => $basePath, 'is_featured' => 1]);
+                    }
+                }
+
+                $user->update($data);
+                return $user->load('image');
+            });
+        } catch (ModelNotFoundException $e) {
+            Log::warning("Không tìm thấy người dùng để cập nhật với ID: {$id}");
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi cập nhật người dùng ID {$id}: " . $e->getMessage(), ['data' => $data]);
+            throw $e;
+        }
     }
 
-    public function deleteUser($id)
+     public function deleteUser($id): bool
     {
-        $user = User::findOrFail($id);
-        return $user->delete();
+        try {
+            $user = $this->getUserById($id);
+            return DB::transaction(function () use ($user) {
+                if ($image = $user->image) {
+                    $this->imageService->delete($image->image_url, 'users');
+                    $image->delete();
+                }
+                return $user->delete();
+            });
+        } catch (ModelNotFoundException $e) {
+            Log::warning("Không tìm thấy người dùng để xóa với ID: {$id}");
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi xóa người dùng ID {$id}: " . $e->getMessage());
+            throw $e;
+        }
     }
-    // 
 
     /**
      * Xóa nhiều user cùng lúc
      */
-    public function multiDelete($ids)
+    public function multiDelete(array $ids): int
     {
-        // Chuyển đổi chuỗi thành mảng
-        $ids = array_map('intval', explode(',', $ids));
+        try {
+            if (empty($ids)) return 0;
+            
+            return DB::transaction(function () use ($ids) {
+                $users = User::with('image')->whereIn('id', $ids)->get();
+                if ($users->count() !== count($ids)) {
+                    throw new ModelNotFoundException('Một hoặc nhiều ID người dùng không tồn tại.');
+                }
+                
+                foreach ($users as $user) {
+                    if ($image = $user->image) {
+                        $this->imageService->delete($image->image_url, 'users');
+                    }
+                }
 
-        // // // Kiểm tra các ID có tồn tại không
-        $existingIds = User::whereIn('id', $ids)->pluck('id')->toArray();
-        $nonExistingIds = array_diff($ids, $existingIds);
-
-        if (!empty($nonExistingIds)) {
-            throw new ModelNotFoundException('Tồn tại ID cần xóa không tồn tại trong hệ thống');
+                Image::where('imageable_type', User::class)->whereIn('imageable_id', $ids)->delete(); 
+                
+                return User::whereIn('id', $ids)->delete();
+            });
+        } catch (ModelNotFoundException $e) {
+            Log::warning($e->getMessage());
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi xóa nhiều người dùng: " . $e->getMessage(), ['ids' => $ids]);
+            throw $e;
         }
-
-        // Xóa users
-        return User::whereIn('id', $ids)->delete();
     }
 }

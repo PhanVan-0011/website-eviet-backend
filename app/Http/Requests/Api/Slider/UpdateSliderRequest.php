@@ -39,8 +39,7 @@ class UpdateSliderRequest extends FormRequest
         return [
             'title' => 'sometimes|required|string|max:200',
             'description' => 'sometimes|nullable|string|max:255',
-            'image_url'   => 'sometimes|nullable|array|max:1',
-            'image_url.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image_url' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
 
             'display_order' => [
                 'sometimes',
@@ -73,11 +72,9 @@ class UpdateSliderRequest extends FormRequest
             'title.max' => 'Tiêu đề không được vượt quá 200 ký tự.',
             'description.max' => 'Mô tả không được vượt quá 255 ký tự.',
 
-            'image_url.array' => 'Định dạng ảnh không hợp lệ.',
-            'image_url.max' => 'Chỉ được upload tối đa 1 ảnh cho mỗi combo.',
-            'image_url.*.image' => 'File phải là hình ảnh.',
-            'image_url.*.mimes' => 'Mỗi hình ảnh phải có định dạng: jpeg, png, jpg, gif.',
-            'image_url.*.max' => 'Kích thước mỗi hình ảnh không được vượt quá 2MB.',
+            'image_url.image' => 'File tải lên phải là hình ảnh.',
+            'image_url.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.max' => 'Kích thước ảnh không được vượt quá 2MB.',
 
             'display_order.required' => 'Thứ tự hiển thị là bắt buộc.',
             'display_order.integer' => 'Thứ tự hiển thị phải là số nguyên.',
