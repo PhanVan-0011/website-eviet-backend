@@ -6,74 +6,55 @@ use App\Models\Slider;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Exception;
 
 class SliderService
 {
+    protected ImageService $imageService;
+
+    public function __construct(ImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
     public function getAllSliders($request): array
     {
         try {
-            // 1. Chuẩn hóa tham số
+
             $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
             $keyword = trim((string) $request->input('keyword', ''));
             $isActive = $request->input('is_active'); // bool hoặc null
             $linkableType = $request->input('linkable_type');
 
-            // 2. Khởi tạo query
             $query = Slider::query();
-
-            // 3. Tìm kiếm theo từ khóa
             if ($keyword !== '') {
                 $query->where(function ($q) use ($keyword) {
                     $q->where('title', 'like', "%{$keyword}%")
                         ->orWhere('description', 'like', "%{$keyword}%");
                 });
             }
-
-            // 4. Lọc theo trạng thái hoạt động
             if (!is_null($isActive)) {
                 $query->where('is_active', filter_var($isActive, FILTER_VALIDATE_BOOLEAN));
             }
-
-            // 5. Lọc theo loại liên kết
             if (!empty($linkableType)) {
                 $modelClass = $this->mapLinkableTypeToModelClass($linkableType);
                 if ($modelClass) {
                     $query->where('linkable_type', $modelClass);
                 }
             }
-
-            // 6. Sắp xếp
-            // Sắp xếp theo thời gian tạo mới nhất
             $query->orderBy('created_at', 'desc');
-            // 7. Tính tổng số
             $total = $query->count();
 
-            // 8. Phân trang thủ công
             $offset = ($currentPage - 1) * $perPage;
-            $sliders = $query->with('linkable')->skip($offset)->take($perPage)->get([
-                'id',
-                'title',
-                'description',
-                'image_url',
-                'display_order',
-                'is_active',
-                'linkable_id',
-                'linkable_type',
-                'created_at',
-                'updated_at',
+            $sliders = $query->with(['linkable', 'image'])->skip(($currentPage - 1) * $perPage)->take($perPage)->get();
 
-            ]);
-
-            // 9. Tính thông tin trang
             $lastPage = (int) ceil($total / $perPage);
             $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;
             $prevPage = $currentPage > 1 ? $currentPage - 1 : null;
 
-            // 10. Trả kết quả
             return [
                 'data' => $sliders,
                 'page' => $currentPage,
@@ -83,137 +64,131 @@ class SliderService
                 'prev_page' => $prevPage,
             ];
         } catch (\Exception $e) {
-            Log::error('Error retrieving sliders: ' . $e->getMessage(), [
-                'request' => $request->all()
-            ]);
+            Log::error('Lỗi khi lấy danh sách sliders: ' . $e->getMessage(), ['request' => $request->all()]);
             throw $e;
         }
     }
 
     public function getSliderById(int $id): Slider
     {
-      return Slider::with('linkable')->findOrFail($id);
+        try {
+
+            return Slider::with(['linkable', 'image'])->findOrFail($id);
+        } catch (ModelNotFoundException $e) {
+            Log::warning("Không tìm thấy slider với ID: {$id}");
+            throw $e;
+        }
     }
 
-    public function createSlider(array $data): Slider
+     public function createSlider(array $data): Slider
     {
-        try {
-            // Xử lý upload ảnh nếu có file ảnh truyền lên
-            if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
-                $year = now()->format('Y');
-                $month = now()->format('m');
-                $slug = Str::slug($data['title'] ?? 'slider');
-                $path = "sliders_images/{$year}/{$month}";
-                $filename = uniqid($slug . '-') . '.' . $data['image_url']->getClientOriginalExtension();
-
-                // Lưu ảnh vào storage
-                $fullPath = $data['image_url']->storeAs($path, $filename, 'public');
-                $data['image_url'] = $fullPath; // lưu path tương đối trong DB
-            } else {
-                unset($data['image_url']);
-            }
-            // Ánh xạ linkable_type sang tên Model đầy đủ
-            if (isset($data['linkable_type'])) {
-                $data['linkable_type'] = $this->mapLinkableTypeToModelClass($data['linkable_type']);
-            }
-            // Tạo mới slider
-            $slider = Slider::create($data);
-            // Load quan hệ đa hình sau khi cập nhật
-            return $slider->load('linkable');
-        } catch (QueryException $e) {
-            Log::error('Error creating product: ' . $e->getMessage());
-            throw $e;
+         try {
+            return DB::transaction(function () use ($data) {
+                if (isset($data['linkable_type'])) {
+                    $data['linkable_type'] = $this->mapLinkableTypeToModelClass($data['linkable_type']);
+                }
+                $slider = Slider::create($data);
+                if (!empty($data['image_url'][0])) {
+                    $imageFile = $data['image_url'][0];
+                    $basePath = $this->imageService->store($imageFile, 'sliders', $slider->title);
+                    if ($basePath) {
+                       $slider->image()->create([
+                            'image_url'   => $basePath,
+                            'is_featured' => 1
+                        ]);
+                    }
+                }
+                return $slider->load(['linkable', 'image']);
+            });
         } catch (Exception $e) {
-            Log::error('Unexpected error creating product: ' . $e->getMessage());
+            Log::error('Lỗi khi tạo mới slider: ' . $e->getMessage(), ['data' => $data]);
             throw $e;
         }
     }
 
     public function updateSlider(int $id, array $data)
     {
-        try {
-            $slider = Slider::findOrFail($id);
-
-            // Xử lý upload ảnh nếu có file ảnh mới truyền lên
-            if (isset($data['image_url']) && $data['image_url'] instanceof \Illuminate\Http\UploadedFile) {
-                // Xóa ảnh cũ nếu tồn tại
-                if ($slider->image_url && Storage::disk('public')->exists($slider->image_url)) {
-                    Storage::disk('public')->delete($slider->image_url);
+       try {
+            $slider = $this->getSliderById($id);
+            return DB::transaction(function () use ($slider, $data) {
+                if (!empty($data['image_url'][0])) {
+                    if ($oldImagePath = $slider->image?->image_url) {
+                        $this->imageService->delete($oldImagePath, 'sliders');
+                    }
+                    $imageFile = $data['image_url'][0];
+                    $newBasePath = $this->imageService->store($imageFile, 'sliders', $data['title'] ?? $slider->title);
+                    if ($newBasePath) {
+                        $slider->image()->updateOrCreate(['imageable_id' => $slider->id], ['image_url' => $newBasePath]);
+                    }
                 }
-                $year = now()->format('Y');
-                $month = now()->format('m');
-                $slug = \Illuminate\Support\Str::slug($data['title'] ?? 'slider');
-                $path = "sliders_images/{$year}/{$month}";
-                $filename = uniqid($slug . '-') . '.' . $data['image_url']->getClientOriginalExtension();
-                $fullPath = $data['image_url']->storeAs($path, $filename, 'public');
-                $data['image_url'] = $fullPath;
-            } else {
-                // Nếu không có file mới, loại bỏ key để không ghi đè
+                if (array_key_exists('linkable_type', $data)) {
+                    $data['linkable_type'] = $this->mapLinkableTypeToModelClass($data['linkable_type']);
+                }
                 unset($data['image_url']);
-            }
-            // Ánh xạ linkable_type sang tên Model đầy đủ nếu có
-            if (isset($data['linkable_type'])) {
-                $data['linkable_type'] = $this->mapLinkableTypeToModelClass($data['linkable_type']);
-            }
-
-            $slider->update($data);
-
-             return $slider->load('linkable');
-        } catch (QueryException $e) {
-            Log::error('Lỗi khi cập nhật slider: ' . $e->getMessage());
+                $slider->update($data);
+                return $slider->load(['linkable', 'image']);
+            });
+        } catch (ModelNotFoundException $e) {
+            Log::warning("Không tìm thấy slider để cập nhật với ID: {$id}");
             throw $e;
         } catch (Exception $e) {
-            Log::error('Lỗi không xác định khi cập nhật slider: ' . $e->getMessage());
+            Log::error("Lỗi khi cập nhật slider ID {$id}: " . $e->getMessage(), ['data' => $data]);
             throw $e;
         }
     }
-    public function delete(int $id)
+    public function delete(int $id): bool
     {
         try {
-            $slider = Slider::findOrFail($id);
-
-            // Xóa ảnh nếu có
-            if ($slider->image_url && Storage::disk('public')->exists($slider->image_url)) {
-                Storage::disk('public')->delete($slider->image_url);
-            }
-            return $slider->delete();
+            $slider = $this->getSliderById($id);
+            return DB::transaction(function () use ($slider) {
+                if ($imagePath = $slider->image?->image_url) {
+                    $this->imageService->delete($imagePath, 'sliders');
+                }
+                $slider->image()->delete();
+                return $slider->delete();
+            });
         } catch (ModelNotFoundException $e) {
-            Log::warning("Slider ID {$id} không tồn tại.");
-            return false;
-        } catch (\Exception $e) {
+            Log::warning("Không tìm thấy slider để xóa với ID: {$id}");
+            throw $e;
+        } catch (Exception $e) {
             Log::error("Lỗi khi xóa slider ID {$id}: " . $e->getMessage());
             throw $e;
         }
     }
-    public function deleteMultiple($ids)
+    public function deleteMultiple(array $ids): int
     {
-        $ids = array_map('intval', explode(',', $ids));
-        $sliders = Slider::whereIn('id', $ids)->get();
+        try {
+            return DB::transaction(function () use ($ids) { 
+                $sliders = Slider::with('image')->whereIn('id', $ids)->get();
+                $deletedCount = 0;
 
-        $existingIds = Slider::whereIn('id', $ids)->pluck('id')->toArray();
-        $nonExistingIds = array_diff($ids, $existingIds);
-
-        if (!empty($nonExistingIds)) {
-            Log::error('IDs not found for deletion: ' . implode(',', $nonExistingIds));
-            throw new ModelNotFoundException('ID cần xóa không tồn tại trong hệ thống');
-        }
-        $deletedCount = 0;
-        $sliders = Slider::whereIn('id', $ids)->get();
-
-        foreach ($sliders as $slider) {
-            try {
-                // Xoá ảnh nếu có
-                if ($slider->image_url && Storage::disk('public')->exists($slider->image_url)) {
-                    Storage::disk('public')->delete($slider->image_url);
+                if ($sliders->count() !== count($ids)) {
+                    throw new ModelNotFoundException('Một hoặc nhiều ID slider không tồn tại.');
                 }
 
-                $slider->delete();
-                $deletedCount++;
-            } catch (\Exception $e) {
-                Log::error("Lỗi khi xóa slider ID {$slider->id}: " . $e->getMessage());
-            }
+                foreach ($sliders as $slider) {
+                    if ($image = $slider->image) {
+                        $this->imageService->delete($image->image_url, 'sliders');
+                    }
+                    $slider->image()->delete();
+                    if ($slider->delete()) {
+                        $deletedCount++;
+                    }
+                }
+
+                if ($deletedCount > 0) {
+                    Log::info("{$deletedCount} slider đã được xóa thành công.");
+                }
+
+                return $deletedCount;
+            });
+        } catch (ModelNotFoundException $e) {
+            Log::warning($e->getMessage());
+            throw $e;
+        } catch (Exception $e) {
+            Log::error("Lỗi khi xóa nhiều slider: " . $e->getMessage(), ['ids' => $ids]);
+            throw $e;
         }
-        return $deletedCount;
     }
     private function mapLinkableTypeToModelClass(?string $type): ?string
     {

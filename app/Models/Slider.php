@@ -12,7 +12,6 @@ class Slider extends Model
     protected $fillable = [
         'title',
         'description',
-        'image_url',
         'display_order',
         'is_active',
         'linkable_id',   
@@ -31,5 +30,9 @@ class Slider extends Model
     public function linkable(): MorphTo
     {
         return $this->morphTo();
+    }
+    public function image()
+    {
+        return $this->morphOne(Image::class, 'imageable');
     }
 }

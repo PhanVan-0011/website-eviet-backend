@@ -24,7 +24,9 @@ class SliderResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'description' => $this->description,
-            'image_url' => $this->image_url,
+            'image_urls'  => $this->whenLoaded('image', function () {
+                return $this->image ? [new ImageResource($this->image)] : [];
+            }),
 
             'display_order' => $this->display_order,
             'is_active' => $this->is_active,

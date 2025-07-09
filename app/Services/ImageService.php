@@ -28,8 +28,9 @@ class ImageService
             'thumb' => [200, 200]
         ],
         'sliders' => [
-            'full' => [1920, 700]
-        ]
+            'main' => [1600, 900], 
+            'thumb' => [400, 225],
+        ],
     ];
      /**
      * @var ImageManager

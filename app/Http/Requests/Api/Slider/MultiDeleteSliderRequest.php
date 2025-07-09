@@ -8,38 +8,43 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 
 class MultiDeleteSliderRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
+   protected function prepareForValidation(): void
+    {
+        if ($this->has('ids') && is_string($this->ids)) {
+            $this->merge([
+                'ids' => array_filter(array_map('intval', explode(',', $this->ids))),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
-            'ids' => ['required', 'string', 'regex:/^\d+(,\d+)*$/'],
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer|exists:sliders,id'
         ];
     }
-    public function messages()
+
+    public function messages(): array
     {
         return [
-            'ids.required' => 'Danh sách ID là bắt buộc.',
-            'ids.string' => 'IDs phải là chuỗi.',
-            'ids.regex' => 'Định dạng không hợp lệ. Ví dụ đúng: 1,2,3',
+            'ids.required' => 'Vui lòng cung cấp danh sách ID slider cần xóa.',
+            'ids.array' => 'Định dạng danh sách ID không hợp lệ.',
+            'ids.*.integer' => 'Mỗi ID trong danh sách phải là một số nguyên.',
+            'ids.*.exists' => 'Một trong các ID không tồn tại.',
         ];
     }
+
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(response()->json([
-            'message' => $validator->errors()->first(),
             'success' => false,
+            'message' => $validator->errors()->first(),
             'errors' => $validator->errors(),
         ], 422));
     }
