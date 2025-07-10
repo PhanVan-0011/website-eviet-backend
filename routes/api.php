@@ -124,7 +124,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/multi-delete', [AdminUserController::class, 'multiDelete'])->name('admins.multi-delete');
         
         Route::get('/{id}', [AdminUserController::class, 'show'])->name('admins.show');
-        Route::put('/{id}', [AdminUserController::class, 'update'])->name('admins.update');
+        Route::post('/{id}', [AdminUserController::class, 'update'])->name('admins.update');
         Route::delete('/{id}', [AdminUserController::class, 'destroy'])->name('admins.destroy'); 
         Route::post('/{id}/restore', [AdminUserController::class, 'restore'])->name('admins.restore');
         Route::delete('/{id}/force-delete', [AdminUserController::class, 'forceDelete'])->name('admins.force-delete');

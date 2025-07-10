@@ -38,6 +38,8 @@ class StoreAdminUserRequest extends FormRequest
             'gender' => ['nullable', 'string', Rule::in(['male', 'female', 'other'])],
             'date_of_birth' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
             'address' => ['nullable', 'string', 'max:255'],
+            // Thêm validation cho ảnh
+            'image_url' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ];
     }
      public function messages(): array
@@ -54,7 +56,10 @@ class StoreAdminUserRequest extends FormRequest
             'role_ids.*.exists' => 'Vai trò được chọn không hợp lệ hoặc không được phép gán.',
             'date_of_birth.before_or_equal' => 'Ngày sinh không hợp lệ.',
 
-
+            // Thêm messages cho ảnh
+            'image_url.image' => 'File tải lên phải là hình ảnh.',
+            'image_url.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.max' => 'Kích thước ảnh không được vượt quá 2MB.',
         ];
     }
     protected function failedValidation(Validator $validator)

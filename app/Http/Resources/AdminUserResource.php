@@ -24,7 +24,10 @@ class AdminUserResource extends JsonResource
             'gender' => $this->gender,
             'date_of_birth' => $this->date_of_birth ? $this->date_of_birth->format('d-m-Y') : null,
             'address' => $this->address,
-            
+            'image_url' => $this->whenLoaded('image', function () {
+                return $this->image ? new ImageResource($this->image) : null;
+            }),
+
             'is_verified' => $this->is_verified,
             'last_login_at' => $this->last_login_at ? $this->last_login_at->toIso8601String() : null,
             'email_verified_at' => $this->email_verified_at ? $this->email_verified_at->toIso8601String() : null,

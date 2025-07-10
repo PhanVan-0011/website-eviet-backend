@@ -11,9 +11,17 @@ use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Models\Role;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Arr;
+use Illuminate\Http\UploadedFile;
 
 class AdminUserService
 {
+    protected ImageService $imageService;
+
+    public function __construct(ImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
     /**
      * Lấy danh sách tài khoản quản trị với logic phân trang tùy chỉnh.
      */
@@ -28,7 +36,7 @@ class AdminUserService
                 ->whereHas('roles') 
                 ->whereDoesntHave('roles', function (Builder $q) {
                     $q->where('name', 'super-admin');
-                })->with('roles');
+                })->with(['roles', 'image']);
             
 
             // Lọc
@@ -91,7 +99,7 @@ class AdminUserService
                 ->whereHas('roles')
                 ->whereDoesntHave('roles', function (Builder $q) {
                     $q->where('name', 'super-admin');
-                })->with('roles');
+                })->with(['roles', 'image']);
 
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
@@ -133,67 +141,73 @@ class AdminUserService
             throw $e;
         }
     }
-    /**
+     /**
      * Phục hồi một tài khoản quản trị từ thùng rác.
-     *
-     * @param int $id ID của user cần phục hồi
-     * @return User
-     * @throws ModelNotFoundException
      */
     public function restoreAdminUser(int $id): User
     {
-        $user = User::onlyTrashed()->with('roles')->findOrFail($id);
-        $user->restore();
+        try {
+            // Tải kèm cả quan hệ 'image' để trả về đầy đủ thông tin
+            $user = User::onlyTrashed()->with(['roles', 'image'])->findOrFail($id);
+            $user->restore();
 
-        Log::info(
-            "Tài khoản quản trị [ID: {$user->id}, Email: {$user->email}] đã được PHỤC HỒI bởi người dùng [ID: " . auth()->id() . "]."
-        );
+            Log::info(
+                "Tài khoản quản trị [ID: {$user->id}, Email: {$user->email}] đã được PHỤC HỒI bởi người dùng [ID: " . auth()->id() . "]."
+            );
 
-        return $user;
+            return $user;
+        } catch (ModelNotFoundException $e) {
+            Log::warning("Không tìm thấy tài khoản trong thùng rác để phục hồi với ID: {$id}");
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi phục hồi tài khoản ID {$id}: " . $e->getMessage());
+            throw $e;
+        }
     }
     /**
      * Xóa vĩnh viễn một tài khoản quản trị khỏi hệ thống.
-     *
-     * @param int $id ID của user cần xóa vĩnh viễn
-     * @return void
-     * @throws ModelNotFoundException|Exception
      */
     public function forceDeleteAdminUser(int $id): void
     {
-        $user = User::onlyTrashed()->findOrFail($id);
+        $user = User::onlyTrashed()->with('image')->findOrFail($id);
         if ($user->hasRole('super-admin')) {
             throw new Exception('Không thể xóa vĩnh viễn tài khoản Super Admin.');
         }
-        $userId = $user->id;
-        $userEmail = $user->email;
-        $user->forceDelete();
-        Log::alert(
-            "Tài khoản quản trị [ID: {$userId}, Email: {$userEmail}] đã bị XÓA VĨNH VIỄN bởi người dùng [ID: " . auth()->id() . "]."
-        );
+
+        DB::transaction(function() use ($user) {
+            // 5. Xóa ảnh và các quan hệ trước khi xóa vĩnh viễn
+            if ($image = $user->image) {
+                $this->imageService->delete($image->image_url, 'users');
+                $image->delete();
+            }
+            $user->roles()->detach();
+            $user->permissions()->detach();
+            
+            $userId = $user->id;
+            $userEmail = $user->email;
+            $user->forceDelete();
+            
+            Log::alert("Tài khoản quản trị [ID: {$userId}, Email: {$userEmail}] đã bị XÓA VĨNH VIỄN bởi người dùng [ID: " . auth()->id() . "].");
+        });
     }
     /**
      * Tìm một tài khoản quản trị theo ID.
-     * Đây là nơi kiểm tra sự tồn tại của ID tập trung.
-     * Ném ra ModelNotFoundException nếu không tìm thấy.
-     *
-     * @param int $id
-     * @return User
      * @throws ModelNotFoundException
      */
     public function findAdminUserById(int $id)
     {
-        return User::whereHas('roles')->with(['roles', 'permissions'])->findOrFail($id);
+        return User::whereHas('roles')->with(['roles', 'permissions', 'image'])->findOrFail($id);
     }
 
     /**
      * Tạo một tài khoản quản trị mới.
-     *
-     * @param array $data
-     * @return User
      */
     public function createAdminUser(array $data)
     {
         return DB::transaction(function () use ($data) {
+            $imageFile = Arr::pull($data, 'image_url');
+            $roleIds = Arr::pull($data, 'role_ids', []);
+
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -205,57 +219,61 @@ class AdminUserService
                 'address' => $data['address'] ?? null,
             ]);
 
-            if (!empty($data['role_ids'])) {
-                $roles = Role::where('guard_name', 'api')->whereIn('id', $data['role_ids'])->get();
+            if (!empty($roleIds)) {
+                $roles = Role::where('guard_name', 'api')->whereIn('id', $roleIds)->get();
                 $user->assignRole($roles);
             }
 
-            Log::info(
-                "Tài khoản quản trị [ID: {$user->id}, Email: {$user->email}] đã được tạo bởi người dùng [ID: " . auth()->id() . "]."
-            );
-            return $user;
+            // Xử lý upload ảnh
+            if ($imageFile instanceof UploadedFile) {
+                $basePath = $this->imageService->store($imageFile, 'users', $user->name);
+                if ($basePath) {
+                    $user->image()->create(['image_url' => $basePath, 'is_featured' => 1]);
+                }
+            }
+
+            Log::info("Tài khoản quản trị [ID: {$user->id}] đã được tạo bởi người dùng [ID: " . auth()->id() . "].");
+            return $user->load(['roles', 'image']);
         });
     }
 
     /**
      * Cập nhật tài khoản quản trị.
-     *
-     * @param User $user Model user đã được tìm thấy
-     * @param array $data Dữ liệu cần cập nhật
-     * @return User
      */
     public function updateAdminUser(User $user, array $data)
     {
         return DB::transaction(function () use ($user, $data) {
-            $updatePayload = $data;
 
-            if (!empty($data['password'])) {
-                $updatePayload['password'] = Hash::make($data['password']);
-            }
-            unset($updatePayload['password_confirmation']);
+            $imageFile = Arr::pull($data, 'image_url');
+            $roleIds = Arr::pull($data, 'role_ids');
+            //$updatePayload = $data;
 
-            if (isset($data['role_ids'])) {
-                $roles = Role::where('guard_name', 'api')->whereIn('id', $data['role_ids'])->get();
+           // Cập nhật vai trò
+            if (!is_null($roleIds)) {
+                $roles = Role::where('guard_name', 'api')->whereIn('id', $roleIds)->get();
                 $user->syncRoles($roles);
-
-                unset($updatePayload['role_ids']);
+            }
+            
+            // Xử lý cập nhật ảnh
+            if ($imageFile instanceof UploadedFile) {
+                if ($oldImage = $user->image) {
+                    $this->imageService->delete($oldImage->image_url, 'users');
+                }
+                $basePath = $this->imageService->store($imageFile, 'users', $user->name);
+                if ($basePath) {
+                    $user->image()->updateOrCreate(['imageable_id' => $user->id], ['image_url' => $basePath, 'is_featured' => 1]);
+                }
             }
 
-            $user->update($updatePayload);
+            $user->update($data);
 
-            Log::info(
-                "Tài khoản quản trị [ID: {$user->id}] đã được cập nhật bởi người dùng [ID: " . auth()->id() . "]."
-            );
-            return $user->load('roles');
+            Log::info("Tài khoản quản trị [ID: {$user->id}] đã được cập nhật bởi người dùng [ID: " . auth()->id() . "].");
+            return $user->load(['roles', 'image']);
         });
     }
 
     /**
      * Xóa một tài khoản quản trị.
-     *
-     * @param User $user Model user đã được tìm thấy
-     * @return void
-     * @throws Exception
      */
     public function deleteAdminUser(User $user)
     {
@@ -274,10 +292,6 @@ class AdminUserService
 
     /**
      * Xóa mềm nhiều tài khoản quản trị cùng lúc.
-     *
-     * @param array $ids
-     * @return array
-     * @throws Exception
      */
 
     public function multiDeleteAdminUsers(array $ids): array
