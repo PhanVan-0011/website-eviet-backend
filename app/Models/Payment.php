@@ -10,12 +10,12 @@ class Payment extends Model
     use HasFactory;
     protected $fillable = [
         'payment_method_id',
-        'status',           // Trạng thái thanh toán: pending, success, failed
-        'amount',           // Tổng số tiền đã thanh toán
-        'transaction_id',   // Mã giao dịch trả về từ cổng thanh toán        // Trạng thái kích hoạt thanh toán (true = đang sử dụng)
-        'callback_data',    // Dữ liệu phản hồi từ cổng thanh toán (JSON/raw)
-        'paid_at',          // Thời điểm thanh toán thành công
-        'order_id'          // Khóa ngoại liên kết với đơn hàng
+        'status',           
+        'amount',           
+        'transaction_id',   
+        'callback_data',    
+        'paid_at',         
+        'order_id'          
     ];
     protected $casts = [
         'paid_at' => 'datetime',

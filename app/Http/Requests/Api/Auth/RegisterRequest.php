@@ -31,7 +31,7 @@ class RegisterRequest extends FormRequest
             'password' => 'required|string|min:6|confirmed',
             'gender' => 'required|in:male,female,other',
             'date_of_birth' => 'required|date|before:today',
-            'address' => 'required|string|max:255|regex:/^[\p{L}\p{N}\s,.-]+$/u',
+            'address' => 'required|string|max:255' ,
         ];
     }
     /**
@@ -45,25 +45,30 @@ class RegisterRequest extends FormRequest
             'name.required' => 'Vui lòng nhập tên.',
             'name.string' => 'Tên phải là chuỗi ký tự.',
             'name.max' => 'Tên không được vượt quá 255 ký tự.',
+
             'email.required' => 'Vui lòng nhập email.',
             'email.email' => 'Định dạng email không hợp lệ.',
             'email.unique' => 'Email đã được sử dụng.',
+
             'phone.required' => 'Vui lòng nhập số điện thoại.',
             'phone.regex' => 'Số điện thoại phải bắt đầu bằng 0 và có 10 chữ số.',
             'phone.unique' => 'Số điện thoại đã được sử dụng.',
+
             'password.required' => 'Vui lòng nhập mật khẩu.',
             'password.string' => 'Mật khẩu phải là chuỗi ký tự.',
             'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
             'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
+
             'gender.required' => 'Vui lòng chọn giới tính.',
             'gender.in' => 'Giới tính phải là male, female hoặc other.',
+
             'date_of_birth.required' => 'Vui lòng nhập ngày sinh.',
             'date_of_birth.date' => 'Ngày sinh phải là định dạng ngày hợp lệ.',
             'date_of_birth.before' => 'Ngày sinh phải trước ngày hiện tại.',
+
             'address.required' => 'Vui lòng nhập địa chỉ.',
             'address.string' => 'Địa chỉ phải là chuỗi ký tự.',
             'address.max' => 'Địa chỉ không được vượt quá 255 ký tự.',
-            'address.regex' => 'Địa chỉ chỉ được chứa chữ cái, số, dấu cách, dấu phẩy, dấu chấm và dấu gạch ngang.',
         ];
     }
 
