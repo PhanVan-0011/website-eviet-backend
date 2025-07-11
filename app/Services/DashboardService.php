@@ -54,22 +54,97 @@ class DashboardService
      * Lấy các chỉ số KPI chính.
      */
     private function getKpis(): array
-    {
+    { $now = Carbon::now();
+        $dayOfMonth = $now->day;
 
-        $totalRevenue = Payment::where('status', 'success')
-            ->whereHas('order', function ($query) {
-                $query->where('status', 'delivered');
-            })
-            ->whereNotNull('paid_at')
-            ->sum('amount');
+        // Kỳ hiện tại: Từ đầu tháng này đến hôm nay
+        $currentPeriodStart = $now->copy()->startOfMonth();
+        $currentPeriodEnd = $now->copy();
+
+        // Kỳ so sánh: Từ đầu tháng trước đến ngày tương ứng của tháng trước
+        $previousPeriodStart = $now->copy()->subMonthNoOverflow()->startOfMonth();
+        $previousPeriodEnd = $previousPeriodStart->copy()->addDays($dayOfMonth - 1)->endOfDay();
+
+
+        //Doanh thu 
+        $baseRevenueQuery = Payment::where('status', 'success')
+            ->whereHas('order', fn($query) => $query->where('status', 'delivered'));
+
+        $revenueThisPeriod = (float) (clone $baseRevenueQuery)->whereBetween('paid_at', [$currentPeriodStart, $currentPeriodEnd])->sum('amount');
+        $revenuePreviousPeriod = (float) (clone $baseRevenueQuery)->whereBetween('paid_at', [$previousPeriodStart, $previousPeriodEnd])->sum('amount');
+        $totalRevenue = (float) (clone $baseRevenueQuery)->sum('amount');
+
+        $ordersThisPeriod = Order::where('status', 'delivered')
+            ->whereBetween('created_at', [$currentPeriodStart, $currentPeriodEnd])
+            ->count();
+        // Đơn hàng 
+        $ordersPreviousPeriod = Order::where('status', 'delivered')
+            ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
+            ->count();
+        $totalOrders = Order::where('status', 'delivered')->count();
+
+        //Người dùng
+        $baseUserQuery = User::whereDoesntHave('roles');
+        $usersThisPeriod = (clone $baseUserQuery)->whereBetween('created_at', [$currentPeriodStart, $currentPeriodEnd])->count();
+        $usersPreviousPeriod = (clone $baseUserQuery)->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])->count();
+        $totalUsers = (clone $baseUserQuery)->count();
+
+        //Sản phẩm
+        $totalProducts = Product::count();
+        $lowStockProductsCount = Product::where('stock_quantity', '<', 10)->where('stock_quantity', '>', 0)->count();
 
         return [
-            'total_revenue' => (float) $totalRevenue,
-            'total_orders' => Order::count(),
-            'total_users' => User::whereDoesntHave('roles')->count(),
-            'total_products' => Product::count(),
+            'total_revenue' => [
+                'value' => $totalRevenue,
+                'change' => $this->calculatePercentageChange($revenueThisPeriod, $revenuePreviousPeriod)
+            ],
+            'total_orders' => [
+                'value' => $totalOrders,
+                'change' => $this->calculatePercentageChange($ordersThisPeriod, $ordersPreviousPeriod)
+            ],
+            'total_users' => [
+                'value' => $totalUsers,
+                'change' => $this->calculatePercentageChange($usersThisPeriod, $usersPreviousPeriod)
+            ],
+            'total_products' => [
+                'value' => $totalProducts,
+                'secondary_info' => [
+                    'type' => 'warning',
+                    'text' => "{$lowStockProductsCount} sản phẩm sắp hết hàng"
+                ]
+            ],
         ];
     }
+        /**
+         * Hàm trợ giúp để tính toán phần trăm thay đổi.
+         */
+        private function calculatePercentageChange($current, $previous): float
+        {
+            if ($previous == 0) {
+                return $current > 0 ? 100.0 : 0.0;
+            }
+            $change = (($current - $previous) / $previous) * 100;
+            return round($change, 1);
+        }
+
+
+
+
+
+    //     $totalRevenue = Payment::where('status', 'success')
+    //         ->whereHas('order', function ($query) {
+    //             $query->where('status', 'delivered');
+    //         })
+    //         ->whereNotNull('paid_at')
+    //         ->sum('amount');
+
+    //     return [
+    //         'total_revenue' => (float) $totalRevenue,
+    //         'total_orders' => Order::count(),
+    //         'total_users' => User::whereDoesntHave('roles')->count(),
+    //         'total_products' => Product::count(),
+    //     ];
+    // }
 
     /**
      * Lấy dữ liệu doanh thu cho biểu đồ.

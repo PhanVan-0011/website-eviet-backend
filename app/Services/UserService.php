@@ -28,7 +28,7 @@ class UserService
         $page = intval($request->input('page', 1));
         $search = $request->input('keyword', '');
 
-        $query = User::query();
+        $query = User::whereDoesntHave('roles');
 
         if ($search) {
             $query->where(function ($q) use ($search) {
