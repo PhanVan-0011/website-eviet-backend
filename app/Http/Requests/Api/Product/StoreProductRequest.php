@@ -28,7 +28,7 @@ class StoreProductRequest extends FormRequest
             'description' => 'nullable|string',
             'size' => 'nullable|string|max:10',
             'original_price' => 'nullable|numeric|min:0',
-            'sale_price' => 'nullable|numeric|min:0',
+            'sale_price' => 'nullable|numeric|min:0|gte:original_price',
             'stock_quantity' => 'required|integer|min:0',
 
             'image_url' => 'nullable|array|max:4',

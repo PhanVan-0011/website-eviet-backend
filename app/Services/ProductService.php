@@ -38,7 +38,8 @@ class ProductService
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
                 $query->where(function ($q) use ($keyword) {
-                    $q->where('name', 'like', "%{$keyword}%")
+                    $q->where('product_code', 'like', "%{$keyword}%")
+                        ->orWhere('name', 'like', "%{$keyword}%")
                         ->orWhere('description', 'like', "%{$keyword}%")
                         ->orWhere('size', 'like', "%{$keyword}%");
                 });
