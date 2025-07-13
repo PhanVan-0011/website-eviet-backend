@@ -36,5 +36,17 @@ class ProductSeeder extends Seeder
                 'updated_at' => now(),
             ],
         ]);
+        // Gán ảnh mẫu cho từng sản phẩm
+        $products = \App\Models\Product::all();
+        $sampleImages = [
+            'products/caphe.jpg',
+            'products/banhtrang.jpg',
+        ];
+        foreach ($products as $i => $product) {
+            $product->images()->create([
+                'image_url' => $sampleImages[$i % count($sampleImages)],
+                'is_featured' => 1,
+            ]);
+        }
     }
 }

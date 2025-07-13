@@ -76,5 +76,20 @@ class UserSeeder extends Seeder
                 'updated_at' => now(),
             ],
         ]);
+        // Gán ảnh mẫu cho từng user
+        $users = \App\Models\User::all();
+        $sampleImages = [
+            'users/admin.jpg',
+            'users/editor.jpg',
+            'users/user.jpg',
+            'users/admin1.jpg',
+            'users/admin2.jpg',
+        ];
+        foreach ($users as $i => $user) {
+            $user->image()->create([
+                'image_url' => $sampleImages[$i % count($sampleImages)],
+                'is_featured' => 1,
+            ]);
+        }
     }
 }

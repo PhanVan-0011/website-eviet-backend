@@ -56,6 +56,19 @@ class PostSeeder extends Seeder
                     'updated_at' => now(),
                 ]);
             }
+            // Gán ảnh mẫu cho từng post
+            $sampleImages = [
+                'posts/post1.jpg',
+                'posts/post2.jpg',
+                'posts/post3.jpg',
+            ];
+            $postModel = \App\Models\Post::find($postId);
+            if ($postModel) {
+                $postModel->images()->create([
+                    'image_url' => $sampleImages[$index % count($sampleImages)],
+                    'is_featured' => 1,
+                ]);
+            }
         }
     }
 }

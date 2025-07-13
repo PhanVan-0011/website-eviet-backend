@@ -17,40 +17,46 @@ class SliderSeeder extends Seeder
         $comboId = Combo::first()?->id ?? 1;
         $postId = Post::first()?->id ?? 1;
 
-        DB::table('sliders')->insert([
+        // Danh sách slider mẫu
+        $sliders = [
             [
                 'title' => 'Chào mừng đến với E-Viet',
                 'description' => 'Khám phá thế giới mua sắm trực tuyến',
-                'image_url' => 'sliders/welcome.jpg',
                 'display_order' => 1,
                 'is_active' => true,
                 'linkable_type' => 'App\\Models\\Product',
                 'linkable_id' => $productId,
-                'created_at' => now(),
-                'updated_at' => now(),
             ],
             [
                 'title' => 'Ưu đãi đặc biệt',
                 'description' => 'Giảm giá lên đến 50% cho các sản phẩm',
-                'image_url' => 'sliders/special-offer.jpg',
                 'display_order' => 2,
                 'is_active' => true,
                 'linkable_type' => 'App\\Models\\Combo',
                 'linkable_id' => $comboId,
-                'created_at' => now(),
-                'updated_at' => now(),
             ],
             [
                 'title' => 'Sản phẩm mới',
                 'description' => 'Khám phá các sản phẩm mới nhất',
-                'image_url' => 'sliders/new-products.jpg',
                 'display_order' => 3,
                 'is_active' => true,
                 'linkable_type' => 'App\\Models\\Post',
                 'linkable_id' => $postId,
-                'created_at' => now(),
-                'updated_at' => now(),
             ],
-        ]);
+        ];
+
+        $imagePaths = [
+            'sliders/welcome.jpg',
+            'sliders/special-offer.jpg',
+            'sliders/new-products.jpg',
+        ];
+
+        foreach ($sliders as $i => $sliderData) {
+            $slider = \App\Models\Slider::create($sliderData);
+            $slider->image()->create([
+                'image_url' => $imagePaths[$i],
+                'is_featured' => 1,
+            ]);
+        }
     }
 }

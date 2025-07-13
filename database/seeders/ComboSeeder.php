@@ -76,5 +76,20 @@ class ComboSeeder extends Seeder
                 'updated_at' => now(),
             ]
         ]);
+        // Gán ảnh mẫu cho từng combo
+        $combos = \App\Models\Combo::all();
+        $sampleImages = [
+            'combos/combo1.jpg',
+            'combos/combo2.jpg',
+            'combos/combo3.jpg',
+            'combos/combo4.jpg',
+            'combos/combo5.jpg',
+        ];
+        foreach ($combos as $i => $combo) {
+            $combo->image()->create([
+                'image_url' => $sampleImages[$i % count($sampleImages)],
+                'is_featured' => 1,
+            ]);
+        }
     }
 }
