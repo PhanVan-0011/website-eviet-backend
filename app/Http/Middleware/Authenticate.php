@@ -28,7 +28,7 @@ class Authenticate extends Middleware
     protected function unauthenticated($request, array $guards)
     {
         if ($request->expectsJson()) {
-            abort(response()->json(['error' => 'Unauthenticated'], 401));
+            abort(response()->json(['error' => 'Chưa được xác thực. Vui lòng đăng nhập.'], 401));
         }
 
         parent::unauthenticated($request, $guards);

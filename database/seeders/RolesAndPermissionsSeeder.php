@@ -55,15 +55,32 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'products.update', 'display_name' => 'Sửa Sản phẩm'],
             ['name' => 'products.delete', 'display_name' => 'Xóa Sản phẩm'],
 
-            // Quản lý các module khác
+            // Quản lý danh mục
             ['name' => 'categories.manage', 'display_name' => 'Quản lý Danh mục'],
+            ['name' => 'categories.view', 'display_name' => 'Xem Danh mục'],
+
+            // Quản lý Combo
             ['name' => 'combos.manage', 'display_name' => 'Quản lý Combo'],
+            ['name' => 'combos.view', 'display_name' => 'Xem Combo'],
+
+            // Quản lý Khuyến mãi
+            ['name' => 'promotions.manage', 'display_name' => 'Quản lý Khuyến mãi'],
             ['name' => 'promotions.view', 'display_name' => 'Xem Khuyến mãi'],
             ['name' => 'promotions.create', 'display_name' => 'Tạo Khuyến mãi'],
             ['name' => 'promotions.update', 'display_name' => 'Sửa Khuyến mãi'],
             ['name' => 'promotions.delete', 'display_name' => 'Xóa Khuyến mãi'],
+
+            // Quản lý Slider
             ['name' => 'sliders.manage', 'display_name' => 'Quản lý Slider'],
+            ['name' => 'sliders.view', 'display_name' => 'Xem Slider'],
+                
+            // Quản lý bài viết
             ['name' => 'posts.manage', 'display_name' => 'Quản lý Bài viết'],
+            ['name' => 'posts.view', 'display_name' => 'Xem Bài viết'],
+
+            // Quản lý phương thức thanh toán
+            ['name' => 'payment_methods.manage', 'display_name' => 'Quản lý phương thức thanh toán'],
+            ['name' => 'payment_methods.view', 'display_name' => 'Xem phương thức thanh toán'],
 
             // Quản lý Hệ thống
             ['name' => 'users.manage', 'display_name' => 'Quản lý Người dùng'],
@@ -90,7 +107,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'content-editor', 'guard_name' => $guardName],
             ['display_name' => 'Biên tập viên']
         );
-        $editorRole->syncPermissions(['sliders.manage', 'posts.manage']);
+        $editorRole->syncPermissions(['sliders.manage', 'posts.manage', 'products.view', 'categories.view','combos.view']);
 
         $productManagerRole = Role::updateOrCreate(
             ['name' => 'product-manager', 'guard_name' => $guardName],
@@ -102,7 +119,9 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'sales-manager', 'guard_name' => $guardName],
             ['display_name' => 'Quản lý Bán hàng']
         );
-        $salesManagerRole->syncPermissions(['orders.view', 'orders.create', 'orders.update', 'orders.update_status', 'orders.cancel', 'orders.update_payment', 'promotions.view', 'promotions.create', 'promotions.update', 'promotions.delete', 'dashboard.view']);
+        $salesManagerRole->syncPermissions(['orders.view', 'orders.create', 'orders.update', 'orders.update_status',
+         'orders.cancel', 'orders.update_payment', 'promotions.view', 'promotions.create', 'promotions.update',
+         'promotions.delete', 'dashboard.view','combos.view', 'products.view','categories.view']);
 
         $superAdminRole = Role::updateOrCreate(
             ['name' => 'super-admin', 'guard_name' => $guardName],
@@ -118,19 +137,32 @@ class RolesAndPermissionsSeeder extends Seeder
         $this->createUser('Support Staff', 'support@example.com', '0912345679', $supportRole);
     }
 
-    /**
-     * Hàm hỗ trợ để tạo người dùng và gán vai trò một cách gọn gàng.
-     */
-    private function createUser(string $name, string $email, string $phone, Role $role): void
-    {
-        $user = User::updateOrCreate(
-            ['email' => $email],
-            [
-                'name' => $name,
-                'phone' => $phone,
-                'password' => bcrypt('password123') // Mật khẩu chung cho tất cả tài khoản mẫu
-            ]
-        );
-        $user->syncRoles([$role]);
+   private function createUser(string $name, string $email, string $phone, Role $role): void
+{
+    //Tìm người dùng bằng email/SĐT, KỂ CẢ NHỮNG USER ĐÃ BỊ XÓA MỀM
+    $user = User::where('email', $email)
+                ->orWhere('phone', $phone)
+                ->withTrashed() //tìm cả trong "thùng rác"
+                ->first();
+
+    if ($user) {
+        // Nếu người dùng tồn tại nhưng đang ở trong "thùng rác", hãy khôi phục lại
+        if ($user->trashed()) {
+            $user->restore();
+            echo "Khôi phục thành công người dùng: $email\n";
+        } else {
+            echo "Người dùng đã tồn tại: $email, bỏ qua việc tạo mới.\n";
+        }
+    } else {
+        // Nếu không tìm thấy tạo mới
+        $user = User::create([
+            'name'      => $name,
+            'email'     => $email,
+            'phone'     => $phone,
+            'password'  => bcrypt('password123')
+        ]);
+        echo "Tạo mới thành công người dùng: $email\n";
     }
+    $user->syncRoles($role);
+}
 }
