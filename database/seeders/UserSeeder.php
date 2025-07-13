@@ -79,11 +79,11 @@ class UserSeeder extends Seeder
         // Gán ảnh mẫu cho từng user
         $users = \App\Models\User::all();
         $sampleImages = [
-            'users/admin.jpg',
-            'users/editor.jpg',
-            'users/user.jpg',
-            'users/admin1.jpg',
-            'users/admin2.jpg',
+            '',
+            '',
+            '',
+            '',
+            '',
         ];
         foreach ($users as $i => $user) {
             $user->image()->create([
