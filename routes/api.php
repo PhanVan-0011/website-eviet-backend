@@ -29,6 +29,7 @@ Route::post('/reset-password-by-phone', [AuthController::class, 'resetPasswordBy
 
 // API Images
 Route::get('images/{path}', [ImageController::class, 'show'])->where('path', '.*');
+Route::get('/payment-methods', [PaymentMethodController::class, 'index'])->middleware('auth:sanctum', 'check.permission:payment_methods.view');
 
 // API List Payments
 Route::get('/payment-methods', [PaymentMethodController::class, 'index']);
@@ -57,23 +58,25 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Combo---
-    Route::prefix('combos')->middleware('check.permission:combos.manage')->group(function () {
-        Route::get('/', [ComboController::class, 'index']);
-        Route::delete('/multi-delete', [ComboController::class, 'multiDelete']);
-        Route::post('/', [ComboController::class, 'store']);
-        Route::get('/{id}', [ComboController::class, 'show']);
-        Route::post('/{id}', [ComboController::class, 'update']);
-        Route::delete('/{id}', [ComboController::class, 'destroy']);
+    Route::prefix('combos')->group(function () {
+        Route::get('/', [ComboController::class, 'index'])->middleware('check.permission:combos.view');
+        Route::delete('/multi-delete', [ComboController::class, 'multiDelete'])->middleware('check.permission:combos.manage');
+        Route::get('/{id}', [ComboController::class, 'show'])->middleware('check.permission:combos.view');
+        Route::post('/', [ComboController::class, 'store'])->middleware('check.permission:combos.manage');
+        Route::post('/{id}', [ComboController::class, 'update'])->middleware('check.permission:combos.manage');
+        Route::delete('/{id}', [ComboController::class, 'destroy'])->middleware('check.permission:combos.manage');
+
     });
 
     // ---Category---
-    Route::prefix('categories')->middleware('check.permission:categories.manage')->group(function () {
-        Route::get('/', [CategoryController::class, 'index']);
-        Route::get('/{id}', [CategoryController::class, 'show']);
-        Route::post('/', [CategoryController::class, 'store']);
-        Route::put('/{id}', [CategoryController::class, 'update']);
-        Route::delete('/multi-delete', [CategoryController::class, 'multiDelete']);
-        Route::delete('/{id}', [CategoryController::class, 'destroy']);
+    Route::prefix('categories')->group(function () {
+        Route::get('/', [CategoryController::class, 'index'])->middleware('check.permission:categories.view');
+        Route::delete('/multi-delete', [CategoryController::class, 'multiDelete'])->middleware('check.permission:categories.manage');
+        Route::get('/{id}', [CategoryController::class, 'show'])->middleware('check.permission:categories.view');
+        Route::post('/', [CategoryController::class, 'store'])->middleware('check.permission:categories.manage');
+        Route::put('/{id}', [CategoryController::class, 'update'])->middleware('check.permission:categories.manage');
+        Route::delete('/{id}', [CategoryController::class, 'destroy'])->middleware('check.permission:categories.manage');
+
     });
 
     // ---Product---
@@ -155,5 +158,5 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::post('assign-role/{id}', [PermissionController::class, 'assignRolesToUser'])->middleware('check.permission:roles.manage');
     Route::post('assign-permission/{id}', [PermissionController::class, 'assignPermissionsToUser'])->middleware('check.permission:roles.manage');
     //---Dashboard---
-    Route::get('/dashboard', [DashboardController::class, 'getStatistics'])->middleware('check.permission:dashboard.view,api');
+    Route::get('/dashboard', [DashboardController::class, 'getStatistics'])->middleware('check.permission:dashboard.view');
 });

@@ -56,7 +56,7 @@ class OrderService
                 $query->whereDate('order_date', '<=', $request->input('end_date'));
             }
            $query->orderByRaw("FIELD(status, 'pending', 'processing', 'shipped', 'delivered', 'cancelled')")
-      ->orderByDesc('order_date');
+             ->orderByDesc('order_date');
             // Phân trang thủ công 
             // Tính tổng số bản ghi
             $total = $query->count();

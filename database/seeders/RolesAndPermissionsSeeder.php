@@ -107,7 +107,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'content-editor', 'guard_name' => $guardName],
             ['display_name' => 'Biên tập viên']
         );
-        $editorRole->syncPermissions(['sliders.manage', 'posts.manage', 'products.view', 'categories.view','combos.view']);
+        $editorRole->syncPermissions(['sliders.manage', 'posts.manage', 'products.view', 'categories.view','combos.view','promotions.view']);
 
         $productManagerRole = Role::updateOrCreate(
             ['name' => 'product-manager', 'guard_name' => $guardName],
@@ -121,7 +121,7 @@ class RolesAndPermissionsSeeder extends Seeder
         );
         $salesManagerRole->syncPermissions(['orders.view', 'orders.create', 'orders.update', 'orders.update_status',
          'orders.cancel', 'orders.update_payment', 'promotions.view', 'promotions.create', 'promotions.update',
-         'promotions.delete', 'dashboard.view','combos.view', 'products.view','categories.view']);
+         'promotions.delete', 'dashboard.view','combos.view', 'products.view','categories.view','payment_methods.view']);
 
         $superAdminRole = Role::updateOrCreate(
             ['name' => 'super-admin', 'guard_name' => $guardName],
