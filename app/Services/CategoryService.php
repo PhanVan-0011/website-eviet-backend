@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
-use App\Models\Product;
+
 
 class CategoryService
 {
@@ -57,7 +57,6 @@ class CategoryService
             $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;
             $prevPage = $currentPage > 1 ? $currentPage - 1 : null;
 
-            // Trả về mảng dữ liệu và thông tin phân trang
             return [
                 'data' => $categories,
                 'page' => $currentPage,
@@ -67,7 +66,7 @@ class CategoryService
                 'pre_page' => $prevPage,
             ];
         } catch (Exception $e) {
-            Log::error('Error retrieving categories: ' . $e->getMessage());
+            Log::error('Lỗi khi lấy danh sách danh mục: ' . $e->getMessage());
             throw $e;
         }
     }
@@ -79,15 +78,15 @@ class CategoryService
      * @return \App\Models\Category
      * @throws ModelNotFoundException
      */
-    public function getCategoryById($id)
+     public function getCategoryById($id)
     {
         try {
-            return Category::with(['parent', 'children'])->findOrFail($id);
+            return Category::with(['parent', 'children', 'products'])->findOrFail($id);
         } catch (ModelNotFoundException $e) {
-            Log::error('Category not found: ' . $e->getMessage());
+            Log::error("Không tìm thấy danh mục với ID: $id. " . $e->getMessage());
             throw $e;
         } catch (Exception $e) {
-            Log::error('Error retrieving category: ' . $e->getMessage());
+            Log::error('Lỗi khi lấy thông tin danh mục: ' . $e->getMessage());
             throw $e;
         }
     }
@@ -102,10 +101,7 @@ class CategoryService
     public function createCategory(array $data): Category
     {
         try {
-            return Category::create($data);
-        } catch (QueryException $e) {
-            Log::error('Lỗi khi tạo danh mục: ' . $e->getMessage());
-            throw $e; 
+            return Category::create($data); 
         } catch (Exception $e) {
             Log::error('Lỗi không mong muốn khi tạo danh mục: ' . $e->getMessage());
             throw $e;
@@ -123,18 +119,15 @@ class CategoryService
      */
     public function updateCategory($id, array $data): Category
     {
-        try {
+         try {
             $category = Category::findOrFail($id);
             $category->update($data);
             return $category->refresh()->load(['parent', 'children']);
         } catch (ModelNotFoundException $e) {
-            Log::error('Category not found for update: ' . $e->getMessage());
+            Log::error("Không tìm thấy danh mục để cập nhật với ID: $id. " . $e->getMessage());
             throw $e;
-        } catch (QueryException $e) {
-            Log::error('Error updating category: ' . $e->getMessage());
-            throw $e; // Ném lại ngoại lệ gốc
         } catch (Exception $e) {
-            Log::error('Unexpected error updating category: ' . $e->getMessage());
+            Log::error('Lỗi không mong muốn khi cập nhật danh mục: ' . $e->getMessage());
             throw $e;
         }
     }
@@ -149,21 +142,22 @@ class CategoryService
     public function deleteCategory($id): bool
     {
         try {
-            $category = Category::findOrFail($id);
-            // Kiểm tra xem category có bị ràng buộc bởi sản phẩm không
-            $productCount = Product::where('category_id', $id)->count();
-            if ($productCount > 0) {
-                $message = "Có $productCount danh mục đang được sử dụng, không thể xóa.";
-                Log::warning('Blocked category deletion: ' . $message);
+           $category = Category::findOrFail($id);
+            if ($category->products()->exists()) {
+                $productCount = $category->products()->count();
+                $message = "Danh mục '{$category->name}' đang được sử dụng bởi $productCount sản phẩm, không thể xóa.";
+                Log::warning("Đã chặn xóa danh mục (ID: $id): " . $message);
                 throw new \Exception($message);
             }
-            // Nếu không có liên kết, thực hiện xóa
-            return $category->Delete();
+            
+            return $category->delete();
         } catch (ModelNotFoundException $e) {
-            Log::error('Category not found for deletion: ' . $e->getMessage());
+             Log::error("Không tìm thấy danh mục để xóa với ID: $id. " . $e->getMessage());
             throw $e;
         } catch (Exception $e) {
-            Log::error('Unexpected error deleting category: ' . $e->getMessage());
+            if ($e instanceof ModelNotFoundException == false) {
+                 Log::error("Lỗi không mong muốn khi xóa danh mục (ID: $id): " . $e->getMessage());
+            }
             throw $e;
         }
     }
@@ -176,39 +170,29 @@ class CategoryService
      */
     public function multiDelete($ids): int
     {
-        try {
+       try {
             if (is_string($ids)) {
                 $ids = array_map('intval', explode(',', $ids));
             }
-            //Kiểm tra ID có tồn tại không
-            $existingIds = Category::whereIn('id', $ids)->pluck('id')->toArray();
-            $nonExistingIds = array_diff($ids, $existingIds);
-            if (!empty($nonExistingIds)) {
-                Log::error('IDs not found for deletion: ' . implode(',', $nonExistingIds));
-                throw new ModelNotFoundException('ID cần xóa không tồn tại trong hệ thống');
-            }
-            //Kiểm tra xem category có bị ràng buộc bởi sản phẩm không
-            $errors = [];
+            $categoriesWithProducts = Category::whereIn('id', $ids)->whereHas('products')->get();
 
-            foreach ($ids as $id) {
-                $productCount = Product::where('category_id', $id)->count();
-                if ($productCount > 0) {
-                    $errors[] = "Có $productCount danh mục đang được sử dụng, không thể xóa.";
-                }
-            }
+            if ($categoriesWithProducts->isNotEmpty()) {
+                $errors = $categoriesWithProducts->map(function ($category) {
+                    return "Danh mục '{$category->name}' đang có sản phẩm, không thể xóa.";
+                })->all();
 
-            if (!empty($errors)) {
-                // Ghi log lỗi cụ thể
-                Log::warning('Blocked category deletion due to linked products: ' . implode(' ', $errors));
-                throw new \Exception(implode(' ', $errors));
+                $errorMessage = implode(' ', $errors);
+                Log::warning('Đã chặn xóa nhiều danh mục do có liên kết sản phẩm: ' . $errorMessage);
+                throw new \Exception($errorMessage);
             }
-            //Nếu không có liên kết, thực hiện xóa
-            return Category::whereIn('id', $ids)->Delete();
+            return Category::destroy($ids);
         } catch (ModelNotFoundException $e) {
-            Log::error('Error in multi-delete: ' . $e->getMessage());
+            Log::error('Lỗi khi xóa nhiều danh mục: ' . $e->getMessage());
             throw $e;
         } catch (Exception $e) {
-            Log::error('Unexpected error in multi-delete: ' . $e->getMessage());
+            if ($e instanceof ModelNotFoundException == false) {
+                Log::error('Lỗi không mong muốn khi xóa nhiều danh mục: ' . $e->getMessage());
+            }
             throw $e;
         }
     }

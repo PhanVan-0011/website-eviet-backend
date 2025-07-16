@@ -26,6 +26,7 @@ class UpdateComboRequest extends FormRequest
      */
     public function rules(): array
     {
+        //dd($this->route('id')); 
         $comboId = $this->route('id');
         return [
             'name'                  => ['sometimes', 'required', 'string', 'max:200', Rule::unique('combos', 'name')->ignore($comboId)],
