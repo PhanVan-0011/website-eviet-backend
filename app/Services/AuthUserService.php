@@ -24,7 +24,7 @@ class AuthUserService
     /**
      * Xác thực và đăng nhập người dùng.
      */
-    public function login(string $login, string $password): ?User
+    public function login(string $login, string $password)
     {
         try{
                 $isEmail = filter_var($login, FILTER_VALIDATE_EMAIL);
@@ -32,10 +32,15 @@ class AuthUserService
                 $user = $isEmail
                     ? $query->where('email', $login)->first()
                     : $query->where('phone', $login)->first();
+                if (!$user->is_active) {
+                    return 'locked'; // Tài khoản bị khóa
+                }
 
                 if (!$user || !Hash::check($password, $user->password) || !$user->is_active) {
                     return null;
                 }
+
+
                 $user->last_login_at = now();
                 $user->save();
 

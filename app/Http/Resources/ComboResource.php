@@ -25,12 +25,11 @@ class ComboResource extends JsonResource
                 return $this->image ? [new ImageResource($this->image)] : [];
             }),
              
-            
-            'start_date'  => $this->start_date ? $this->start_date->format('Y-m-d H:i:s') : null,
-            'end_date'    => $this->end_date ? $this->end_date->format('Y-m-d H:i:s') : null,
+            'start_date' => optional($this->start_date)->format('Y-m-d'),
+            'end_date' => optional($this->end_date)->format('Y-m-d'),
             'is_active'   => (bool) $this->is_active, // Ép kiểu để đảm bảo là boolean
-            'created_at'  => $this->created_at->format('Y-m-d H:i:s'),
-            'updated_at'  => $this->updated_at->format('Y-m-d H:i:s'),
+            'created_at'  => optional($this->created_at)->format('Y-m-d H:i:s'),
+            'updated_at'  => optional($this->updated_at)->format('Y-m-d H:i:s'),
             'items_count' => $this->whenCounted('items'),
             'items'       => ComboItemResource::collection($this->whenLoaded('items')),
 

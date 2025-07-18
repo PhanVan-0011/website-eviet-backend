@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Exception;
+use App\Models\Category;
 use Illuminate\Support\Facades\Log;
 
 class CategoryController extends Controller
@@ -37,22 +38,34 @@ class CategoryController extends Controller
     public function index(Request $request)
     {
         try {
-            $data = $this->categoryService->getAllCategories($request);
-            return response()->json([
-                'success' => true,
-                'data' => CategoryResource::collection($data['data']),
-                'pagination' => [
-                    'page' => $data['page'],
-                    'total' => $data['total'],
-                    'last_page' => $data['last_page'],
-                    'next_page' => $data['next_page'],
-                    'pre_page' => $data['pre_page'],
-                ],
-                'message' => 'Lấy danh sách danh mục thành công',
-                'timestamp' => now()->format('d-m-Y H:i:s'),
-            ], 200);
-        } catch (Exception $e) {
-            Log::error('Controller error retrieving categories: ' . $e->getMessage());
+            if ($request->query('context') === 'select_list') {
+
+                $this->authorize('categories.select_list'); // Kiểm tra quyền 'select_list'
+
+                $data = Category::where('status', 1)
+                    ->select('id', 'name')
+                    ->latest()
+                    ->get();
+
+                return response()->json($data);
+            } else {
+                $this->authorize('categories.view');
+                $data = $this->categoryService->getAllCategories($request);
+                return response()->json([
+                    'success' => true,
+                    'data' => CategoryResource::collection($data['data']),
+                    'pagination' => [
+                        'page' => $data['page'],
+                        'total' => $data['total'],
+                        'last_page' => $data['last_page'],
+                        'next_page' => $data['next_page'],
+                        'pre_page' => $data['pre_page'],
+                    ],
+                    'message' => 'Lấy danh sách danh mục thành công',
+                    'timestamp' => now()->format('d-m-Y H:i:s'),
+                ], 200);
+            }
+        } catch (Exception $e) { 
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy danh sách danh mục',
@@ -66,6 +79,7 @@ class CategoryController extends Controller
      */
     public function show($category)
     {
+        $this->authorize('categories.view');
         try {
             $category = $this->categoryService->getCategoryById($category);
             return response()->json([
@@ -74,13 +88,11 @@ class CategoryController extends Controller
                 'message' => 'Lấy thông tin danh mục thành công',
             ], 200);
         } catch (ModelNotFoundException $e) {
-            Log::error('Category not found: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Không tìm thấy danh mục',
             ], 404);
         } catch (Exception $e) {
-            Log::error('Error retrieving category: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy thông tin danh mục',
@@ -92,6 +104,7 @@ class CategoryController extends Controller
      */
     public function store(StoreCategoryRequest $request)
     {
+        $this->authorize('categories.manage');
         try {
             $category = $this->categoryService->createCategory($request->validated());
             return response()->json([
@@ -99,14 +112,7 @@ class CategoryController extends Controller
                 'data' => new CategoryResource($category),
                 'message' => 'Tạo danh mục thành công',
             ], 201);
-        } catch (QueryException $e) {
-            Log::error('Error creating category: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Tên danh mục đã tồn tại',
-            ], 409);
-        } catch (Exception $e) {
-            Log::error('Unexpected error creating category: ' . $e->getMessage());
+        }catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi tạo danh mục',
@@ -118,6 +124,7 @@ class CategoryController extends Controller
      */
     public function update(UpdateCategoryRequest $request, $id)
     {
+        $this->authorize('categories.manage');
         try {
             $category = $this->categoryService->updateCategory($id, $request->validated());
             return response()->json([
@@ -126,19 +133,16 @@ class CategoryController extends Controller
                 'message' => 'Cập nhật danh mục thành công',
             ], 200);
         } catch (ModelNotFoundException $e) {
-            Log::error('Category not found for update: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Không tìm thấy danh mục',
             ], 404);
         } catch (QueryException $e) {
-            Log::error('Error updating category: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Tên danh mục đã tồn tại',
             ], 409);
         } catch (Exception $e) {
-            Log::error('Unexpected error updating category: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi cập nhật danh mục',
@@ -151,6 +155,7 @@ class CategoryController extends Controller
      */
     public function destroy($id)
     {
+        $this->authorize('categories.manage');
         try {
             $deleted = $this->categoryService->deleteCategory($id);
 
@@ -170,7 +175,6 @@ class CategoryController extends Controller
                 'message' => 'Danh mục không tồn tại',
             ], 404);
         } catch (Exception $e) {
-            Log::error('Unexpected error in delete category: ' . $e->getMessage(), ['exception' => $e]);
             if (str_contains($e->getMessage(), 'không thể xóa') || str_contains($e->getMessage(), 'đang được sử dụng')) {
                 return response()->json([
                     'success' => false,
@@ -188,6 +192,7 @@ class CategoryController extends Controller
      */
     public function multiDelete(MultiDeleteCategoryRequest $request)
     {
+        $this->authorize('categories.manage');
         try {
             $deletedCount = $this->categoryService->multiDelete($request->validated()['ids']);
 
@@ -196,13 +201,11 @@ class CategoryController extends Controller
                 'message' => "Đã xóa thành công {$deletedCount} danh mục"
             ]);
         } catch (ModelNotFoundException $e) {
-            Log::error('Error in multi-delete: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 404);
         } catch (Exception $e) {
-            Log::error('Unexpected error in multi-delete: ' . $e->getMessage(), ['exception' => $e]);
             if (str_contains($e->getMessage(), 'không thể xóa') || str_contains($e->getMessage(), 'đang được sử dụng')) {
                 return response()->json([
                     'success' => false,

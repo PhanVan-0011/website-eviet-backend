@@ -19,6 +19,7 @@ class DashBoardController extends Controller
     public function getStatistics(Request $request)
     {
         try {
+            $this->authorize('dashboard.view');
             // Logic kiểm tra quyền đã được chuyển sang middleware trên route.
             $stats = $this->dashboardService->getDashboardStatistics();
 

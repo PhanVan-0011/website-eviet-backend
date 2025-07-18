@@ -6,12 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Slider\StoreSliderRequest;
 use App\Http\Requests\Api\Slider\UpdateSliderRequest;
 use App\Http\Requests\Api\Slider\MultiDeleteSliderRequest;
-
 use App\Http\Resources\SliderResource;
 use App\Services\SliderService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Models\Slider;
 
 class SliderController extends Controller
 {
@@ -26,22 +25,47 @@ class SliderController extends Controller
     public function index(Request $request)
     {
         try {
-            $data = $this->sliderService->getAllSliders($request);
-            return response()->json([
-                'success' => true,
-                'data' => SliderResource::collection($data['data']),
-                'pagination' => [
-                    'page' => $data['page'],
-                    'total' => $data['total'],
-                    'last_page' => $data['last_page'],
-                    'next_page' => $data['next_page'],
-                    'prev_page' => $data['prev_page'],
-                ],
-                'message' => 'Lấy danh sách slider thành công',
-                'timestamp' => now()->format('Y-m-d H:i:s'),
-            ], 200);
+           if ($request->query('context') === 'select_list') {
+
+                $this->authorize('sliders.select_list');
+
+                $sliders = Slider::where('is_active', 1)->with('image')->latest()->get();
+                $data = $sliders->map(function ($slider) {
+                    $imageUrl = null;
+                    if ($slider->image && $slider->image->image_url) {
+                        $basePath = $slider->image->image_url;
+                        $directory = dirname($basePath);
+                        $fileName = basename($basePath);
+                        $thumbPath = "{$directory}/thumb/{$fileName}";
+                        $imageUrl = asset('storage/' . $thumbPath);
+                    }
+                    return [
+                        'id' => $slider->id,
+                        'title' => $slider->title,
+                        'image_url' => $imageUrl,
+                    ];
+                });
+                return response()->json($data);
+            }
+            else {
+                $this->authorize('sliders.view');
+
+                $data = $this->sliderService->getAllSliders($request);
+                return response()->json([
+                    'success' => true,
+                    'data' => SliderResource::collection($data['data']),
+                    'pagination' => [
+                        'page' => $data['page'],
+                        'total' => $data['total'],
+                        'last_page' => $data['last_page'],
+                        'next_page' => $data['next_page'],
+                        'prev_page' => $data['prev_page'],
+                    ],
+                    'message' => 'Lấy danh sách slider thành công',
+                    'timestamp' => now()->format('Y-m-d H:i:s'),
+                ], 200);
+            }
         } catch (\Exception $e) {
-            Log::error('Controller error retrieving sliders: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy danh sách slider ',
@@ -52,6 +76,7 @@ class SliderController extends Controller
     // Tạo slider mới
     public function store(StoreSliderRequest $request)
     {
+        $this->authorize('sliders.manage');
         try {
             $slider = $this->sliderService->createSlider($request->validated());
             return response()->json([
@@ -60,7 +85,6 @@ class SliderController extends Controller
                 'data' => new SliderResource($slider),
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi tạo slider: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                  'message' => 'Lỗi khi tạo slider'
@@ -70,6 +94,7 @@ class SliderController extends Controller
     // Xem chi tiết slider
     public function show(int $id)
     {
+        $this->authorize('sliders.view');
         try {
             $slider = $this->sliderService->getSliderById($id);
             return response()->json([
@@ -82,7 +107,6 @@ class SliderController extends Controller
                 'message' => 'Slider không tồn tại',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Slider show error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy thông tin slider'
@@ -93,6 +117,7 @@ class SliderController extends Controller
     // Cập nhật slider
     public function update(UpdateSliderRequest $request, int $id)
     {
+        $this->authorize('sliders.manage');
         try {
            $slider = $this->sliderService->updateSlider($id, $request->validated());
 
@@ -107,7 +132,6 @@ class SliderController extends Controller
                 'message' => 'Slider không tồn tại',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Lỗi cập nhật slider: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi cập nhật slider',
@@ -118,6 +142,7 @@ class SliderController extends Controller
     // Xóa slider đơn
     public function destroy(int $id)
     {
+        $this->authorize('sliders.manage');
         try {
             $delete = $this->sliderService->delete($id);
 
@@ -132,7 +157,6 @@ class SliderController extends Controller
                 'message' => 'Xóa slider thành công'
             ]);
         } catch (\Exception $e) {
-            Log::error('Slider delete error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi xóa slider',
@@ -143,6 +167,7 @@ class SliderController extends Controller
 
     public function multiDelete(MultiDeleteSliderRequest $request)
     {
+        $this->authorize('sliders.manage');
         try {
             $deletedCount = $this->sliderService->deleteMultiple($request->validated()['ids']);
             return response()->json([
@@ -155,7 +180,6 @@ class SliderController extends Controller
                 'message' => $e->getMessage(), // "ID cần xóa không tồn tại trong hệ thống"
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Slider multiDelete error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Đã xảy ra lỗi khi xóa sliders',

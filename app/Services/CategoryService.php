@@ -13,23 +13,15 @@ class CategoryService
 {
     /**
      * Lấy danh sách tất cả danh mục với phân trang thủ công, tìm kiếm và sắp xếp
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return array Mảng chứa dữ liệu danh mục và thông tin phân trang
-     * @throws Exception
      */
     public function getAllCategories($request)
     {
         try {
-            // Chuẩn hóa các tham số đầu vào
             $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
             $keyword = (string) $request->input('keyword', '');
-
-            // Khởi tạo truy vấn cơ bản
             $query = Category::query();
 
-            // Áp dụng tìm kiếm nếu có từ khóa
             if (!empty($keyword)) {
                 $query->where(function ($q) use ($keyword) {
                     $q->where('name', 'like', "%{$keyword}%")
@@ -37,22 +29,14 @@ class CategoryService
                 });
             }
 
-            // Sắp xếp theo thời gian tạo mới nhất
             $query->orderBy('id', 'desc');
 
-
-
-            // Tải quan hệ parent và children
             $query->with(['parent', 'children'])->withCount('products');
-
-            // Tính tổng số bản ghi
             $total = $query->count();
 
-            // Thực hiện phân trang thủ công
             $offset = ($currentPage - 1) * $perPage;
             $categories = $query->skip($offset)->take($perPage)->get();
 
-            // Tính toán thông tin phân trang
             $lastPage = (int) ceil($total / $perPage);
             $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;
             $prevPage = $currentPage > 1 ? $currentPage - 1 : null;

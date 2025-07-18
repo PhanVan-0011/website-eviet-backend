@@ -31,12 +31,6 @@ class ComboService
             $minPrice = $request->input('min_price');
             $maxPrice = $request->input('max_price');
 
-            $startDateFrom = $request->input('start_date_from');
-            $startDateTo   = $request->input('start_date_to');
-
-            $endDateFrom   = $request->input('end_date_from');
-            $endDateTo     = $request->input('end_date_to');
-
             //$query = Combo::query();
             $query = Combo::query()->with(['image', 'items']);
 
@@ -60,19 +54,13 @@ class ComboService
             }
 
             // Lọc theo khoảng ngày bắt đầu
-            if ($startDateFrom) {
-                $query->where('start_date', '>=', $startDateFrom);
+            if ($request->filled('start_date')) {
+                $query->whereDate('start_date', '>=', $request->input('start_date'));
             }
-            if ($startDateTo) {
-                $query->where('start_date', '<=', $startDateTo);
+            if ($request->filled('end_date')) {
+                $query->whereDate('end_date', '<=', $request->input('end_date'));
             }
-            // Lọc theo khoảng ngày kết thúc
-            if ($endDateFrom) {
-                $query->where('end_date', '>=', $endDateFrom);
-            }
-            if ($endDateTo) {
-                $query->where('end_date', '<=', $endDateTo);
-            }
+            
             $query->orderBy('created_at', 'desc');
 
             $total = $query->count();
@@ -119,13 +107,11 @@ class ComboService
     {
         try {
             return DB::transaction(function () use ($data) {
-                 // SỬA LẠI Ở ĐÂY: Xử lý file đơn lẻ
                 $imageFile = Arr::pull($data, 'image_url');
                 $items = Arr::pull($data, 'items', []);
 
                 $combo = Combo::create($data);
 
-                // SỬA LẠI Ở ĐÂY: Bỏ logic xử lý mảng
                 if ($imageFile instanceof UploadedFile) {
                     $pathData = $this->imageService->store($imageFile, 'combos', $combo->name);
                     if (!$pathData) {
@@ -136,7 +122,7 @@ class ComboService
                         'is_featured' => true
                     ]);
                 }
-                
+
                 if (!empty($items)) {
                     $combo->items()->createMany($items);
                 }
@@ -229,7 +215,7 @@ class ComboService
     /**
      * Xóa nhiều combo dựa trên một chuỗi các ID.
      */
-   public function deleteMultiple(string $ids): int
+    public function deleteMultiple(string $ids): int
     {
         $idArray = array_filter(array_map('intval', explode(',', $ids)));
 

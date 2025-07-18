@@ -10,7 +10,7 @@ use App\Http\Resources\PostResource;
 use App\Services\PostService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-
+use App\Models\Post;
 
 class PostController extends Controller
 {
@@ -26,20 +26,38 @@ class PostController extends Controller
      public function index(Request $request)
     {
         try {
-            $data = $this->postService->getAllPosts($request);
-            return response()->json([
-                'success' => true,
-                'data' => PostResource::collection($data['data']),
-                'pagination' => [
-                    'page' => $data['page'],
-                    'total' => $data['total'],
-                    'last_page' => $data['last_page'],
-                    'next_page' => $data['next_page'],
-                    'pre_page' => $data['pre_page'],
-                ],
-                'message' => 'Lấy danh sách bài viết thành công',
-                'timestamp' => now()->format('Y-m-d H:i:s'),
-            ], 200);
+           if ($request->query('context') === 'select_list') {
+                
+                $this->authorize('posts.select_list');
+
+                $posts = Post::where('status', 1)->with('images')->latest()->get();
+                $data = $posts->map(function ($post) {
+                    return [
+                        'id' => $post->id,
+                        'title' => $post->title,
+                        'image_urls' => $this->formatImages($post->images),
+                    ];
+                });
+                return response()->json($data);
+            } 
+            else {
+                $this->authorize('posts.view'); // Kiểm tra quyền 'view'
+
+                $data = $this->postService->getAllPosts($request);
+                return response()->json([
+                    'success' => true,
+                    'data' => PostResource::collection($data['data']),
+                    'pagination' => [
+                        'page' => $data['page'],
+                        'total' => $data['total'],
+                        'last_page' => $data['last_page'],
+                        'next_page' => $data['next_page'],
+                        'pre_page' => $data['pre_page'],
+                    ],
+                    'message' => 'Lấy danh sách bài viết thành công',
+                    'timestamp' => now()->format('Y-m-d H:i:s'),
+                ], 200);
+            }
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -54,6 +72,7 @@ class PostController extends Controller
      */
     public function show(int $id)
     {
+        $this->authorize('posts.view');
         try {
             $post = $this->postService->getPostById($id);
             return response()->json([
@@ -72,6 +91,7 @@ class PostController extends Controller
      */
     public function store(StorePostRequest $request)
     {
+        $this->authorize('posts.manage');
         try {
             $post = $this->postService->createPost($request->validated());
             return response()->json([
@@ -89,6 +109,7 @@ class PostController extends Controller
      */
     public function update(UpdatePostRequest $request, int $id)
     {
+        $this->authorize('posts.manage');
         try {
             $post = $this->postService->updatePost($id, $request->validated());
             return response()->json([
@@ -108,6 +129,7 @@ class PostController extends Controller
      */
     public function destroy(int $id)
     {
+        $this->authorize('posts.manage');
         try {
             $this->postService->deletePost($id);
             return response()->json(['success' => true, 'message' => 'Xóa bài viết thành công'], 200);
@@ -123,6 +145,7 @@ class PostController extends Controller
      */
     public function multiDelete(MultiDeletePostRequest $request)
     {
+        $this->authorize('posts.manage');
         try {
             $validated = $request->validated();
             $deletedCount = $this->postService->multiDeletePosts($validated['ids']);
