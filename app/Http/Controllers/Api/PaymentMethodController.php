@@ -15,21 +15,11 @@ class PaymentMethodController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        if ($request->query('context') === 'select_list') {
 
-            $this->authorize('payment_methods.select_list');
-            $methods = PaymentMethod::where('is_active', true)
-                ->select('id', 'name', 'code')
-                ->get();
-
-            return response()->json($methods);
-        } else {
-            $this->authorize('payment_methods.view');
-            $methods = PaymentMethod::where('is_active', true)->get();
-            return response()->json([
-                'success' => true,
-                'data' => PaymentMethodResource::collection($methods)
-            ]);
-        }
+        $methods = PaymentMethod::where('is_active', true)->get();
+        return response()->json([
+            'success' => true,
+            'data' => PaymentMethodResource::collection($methods)
+        ]);
     }
 }

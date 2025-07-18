@@ -156,6 +156,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('payment-methods', [SelectListController::class, 'paymentMethods'])->middleware('check.permission:payment_methods.select_list');
         Route::get('users', [SelectListController::class, 'users'])->middleware('check.permission:users.select_list');
         Route::get('roles', [SelectListController::class, 'roles'])->middleware('check.permission:roles.select_list');
+        Route::get('orders', [SelectListController::class, 'orders'])->middleware('check.permission:orders.select_list');
     });
 
 

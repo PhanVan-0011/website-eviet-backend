@@ -11,6 +11,7 @@ use App\Models\Slider;
 use App\Models\Post;
 use App\Models\PaymentMethod;
 use App\Models\User;
+use App\Models\Order;
 use Spatie\Permission\Models\Role;
 
 class SelectListController extends Controller
@@ -218,6 +219,17 @@ class SelectListController extends Controller
                     ->select('id', 'display_name as name')
                     ->orderBy('name')
                     ->get();
+
+        return response()->json($data);
+    }
+     /**
+     * Trả về danh sách đơn hàng rút gọn.
+     */
+    public function orders()
+    {
+        $data = Order::select('id', 'order_code')
+                     ->latest()
+                     ->get();
 
         return response()->json($data);
     }

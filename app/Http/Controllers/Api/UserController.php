@@ -6,9 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Services\UserService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use App\Http\Requests\Api\User\MultiDeleteUserRequest;
 use App\Http\Requests\Api\User\StoreUserRequest;
@@ -83,7 +80,6 @@ class UserController extends Controller
      */
     public function store(StoreUserRequest $request)
     {
-
         try {
             $user = $this->userService->createUser($request->validated());
             return response()->json([

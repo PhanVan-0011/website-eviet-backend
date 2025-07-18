@@ -25,6 +25,7 @@ class PermissionController extends Controller
      */
     public function index(): JsonResponse
     {
+         $this->authorize('roles.manage');
         try {
             $groupedPermissions = $this->permissionService->getGroupedPermissions();
 
@@ -47,6 +48,7 @@ class PermissionController extends Controller
      */
     public function assignRolesToUser(AssignRoleRequest $request, $id)
     {
+         $this->authorize('roles.manage');
         try {
             $user = $this->permissionService->assignRolesToUser($id, $request->input('roles'));
             return response()->json([
@@ -67,6 +69,7 @@ class PermissionController extends Controller
      */
     public function assignPermissionsToUser(AssignPermissionRequest $request, $id)
     {
+         $this->authorize('roles.manage');
         try {
             $user = $this->permissionService->assignPermissionsToUser($id, $request->input('permissions'));
             return response()->json([

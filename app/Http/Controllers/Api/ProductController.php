@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Exception;
 use App\Http\Requests\Api\Product\MultiDeleteProductRequest;
 use App\Traits\FileUploadTrait;
-use App\Models\Product;
 
 class ProductController extends Controller
 {
@@ -29,21 +28,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         try {
-            if ($request->query('context') === 'select_list') {
-
-                $this->authorize('products.select_list'); 
-                $products = Product::where('status', 1)->with('images')->latest()->get();
-                $data = $products->map(function ($product) {
-                    return [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'product_code' => $product->product_code,
-                        'image_urls' => $this->formatImages($product->images)
-                    ];
-                });
-                return response()->json($data);
-            }
-        else{
+            
             $data = $this->productService->getAllProducts($request);
             return response()->json([
                 'success' => true,
@@ -57,7 +42,6 @@ class ProductController extends Controller
                     'pre_page' => $data['pre_page'],
                 ],
             ], 200);
-        }
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -71,7 +55,6 @@ class ProductController extends Controller
      */
     public function store(StoreProductRequest $request)
     {
-        $this->authorize('products.create');
         try {
             $product = $this->productService->createProduct($request->validated());
             return response()->json([
@@ -93,7 +76,6 @@ class ProductController extends Controller
      */
     public function show(int $id)
     {
-        $this->authorize('products.view');
         try {
             $product = $this->productService->getProductById($id);
             return response()->json([
@@ -113,7 +95,6 @@ class ProductController extends Controller
      */
    public function update(UpdateProductRequest $request, int $id)
     {
-        $this->authorize('products.update');
         try {
             $product = $this->productService->updateProduct($id, $request->validated());
             return response()->json([
@@ -137,7 +118,6 @@ class ProductController extends Controller
      */
     public function destroy(int $id)
     {
-        $this->authorize('products.delete');
         try {
             $this->productService->deleteProduct($id);
             return response()->json([
@@ -155,7 +135,6 @@ class ProductController extends Controller
      */
     public function multiDelete(MultiDeleteProductRequest $request)
     {
-        $this->authorize('products.delete');
         try {
             $deletedCount = $this->productService->multiDeleteProducts($request->validated()['ids']);
             return response()->json([

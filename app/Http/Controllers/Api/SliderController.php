@@ -25,31 +25,7 @@ class SliderController extends Controller
     public function index(Request $request)
     {
         try {
-           if ($request->query('context') === 'select_list') {
-
-                $this->authorize('sliders.select_list');
-
-                $sliders = Slider::where('is_active', 1)->with('image')->latest()->get();
-                $data = $sliders->map(function ($slider) {
-                    $imageUrl = null;
-                    if ($slider->image && $slider->image->image_url) {
-                        $basePath = $slider->image->image_url;
-                        $directory = dirname($basePath);
-                        $fileName = basename($basePath);
-                        $thumbPath = "{$directory}/thumb/{$fileName}";
-                        $imageUrl = asset('storage/' . $thumbPath);
-                    }
-                    return [
-                        'id' => $slider->id,
-                        'title' => $slider->title,
-                        'image_url' => $imageUrl,
-                    ];
-                });
-                return response()->json($data);
-            }
-            else {
-                $this->authorize('sliders.view');
-
+           
                 $data = $this->sliderService->getAllSliders($request);
                 return response()->json([
                     'success' => true,
@@ -64,7 +40,6 @@ class SliderController extends Controller
                     'message' => 'Lấy danh sách slider thành công',
                     'timestamp' => now()->format('Y-m-d H:i:s'),
                 ], 200);
-            }
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -76,7 +51,6 @@ class SliderController extends Controller
     // Tạo slider mới
     public function store(StoreSliderRequest $request)
     {
-        $this->authorize('sliders.manage');
         try {
             $slider = $this->sliderService->createSlider($request->validated());
             return response()->json([
@@ -94,7 +68,6 @@ class SliderController extends Controller
     // Xem chi tiết slider
     public function show(int $id)
     {
-        $this->authorize('sliders.view');
         try {
             $slider = $this->sliderService->getSliderById($id);
             return response()->json([
@@ -117,7 +90,6 @@ class SliderController extends Controller
     // Cập nhật slider
     public function update(UpdateSliderRequest $request, int $id)
     {
-        $this->authorize('sliders.manage');
         try {
            $slider = $this->sliderService->updateSlider($id, $request->validated());
 
@@ -142,7 +114,6 @@ class SliderController extends Controller
     // Xóa slider đơn
     public function destroy(int $id)
     {
-        $this->authorize('sliders.manage');
         try {
             $delete = $this->sliderService->delete($id);
 
@@ -167,7 +138,6 @@ class SliderController extends Controller
 
     public function multiDelete(MultiDeleteSliderRequest $request)
     {
-        $this->authorize('sliders.manage');
         try {
             $deletedCount = $this->sliderService->deleteMultiple($request->validated()['ids']);
             return response()->json([
