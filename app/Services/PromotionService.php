@@ -14,7 +14,7 @@ class PromotionService
     {
         try {
             // 1. Lấy các tham số đầu vào
-            $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
+            $perPage = max(1, min(100, (int) $request->input('limit', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
 
             // 2. Tạo câu truy vấn cơ bản
@@ -94,20 +94,20 @@ class PromotionService
     {
         try {
             return DB::transaction(function () use ($data) {
-            $promotion = Promotion::create($data);
+                $promotion = Promotion::create($data);
 
-            if ($promotion->application_type === 'products' && !empty($data['product_ids'])) {
-                $promotion->products()->attach($data['product_ids']);
-            }
-            if ($promotion->application_type === 'categories' && !empty($data['category_ids'])) {
-                $promotion->categories()->attach($data['category_ids']);
-            }
-            if ($promotion->application_type === 'combos' && !empty($data['combo_ids'])) {
-                $promotion->combos()->attach($data['combo_ids']);
-            }
+                if ($promotion->application_type === 'products' && !empty($data['product_ids'])) {
+                    $promotion->products()->attach($data['product_ids']);
+                }
+                if ($promotion->application_type === 'categories' && !empty($data['category_ids'])) {
+                    $promotion->categories()->attach($data['category_ids']);
+                }
+                if ($promotion->application_type === 'combos' && !empty($data['combo_ids'])) {
+                    $promotion->combos()->attach($data['combo_ids']);
+                }
 
-            return $promotion;
-        });
+                return $promotion;
+            });
         } catch (\Exception $e) {
             Log::error('Lỗi khi tạo khuyến mãi: ' . $e->getMessage());
             throw $e;
@@ -125,7 +125,7 @@ class PromotionService
                 $promotion->update($data);
                 $newApplicationType = $promotion->application_type;
 
-                 // Đồng bộ hóa các liên kết một cách cẩn thận
+                // Đồng bộ hóa các liên kết một cách cẩn thận
                 $promotion->products()->sync($newApplicationType === 'products' ? ($data['product_ids'] ?? []) : []);
                 $promotion->categories()->sync($newApplicationType === 'categories' ? ($data['category_ids'] ?? []) : []);
                 $promotion->combos()->sync($newApplicationType === 'combos' ? ($data['combo_ids'] ?? []) : []);
@@ -151,7 +151,7 @@ class PromotionService
                 // Tiến hành vô hiệu hóa
                 $promotion->is_active = false;
                 $promotion->save();
-                return false; 
+                return false;
             }
 
             // Nếu khuyến mãi chưa từng được sử dụng xóa vĩnh viễn.
@@ -159,9 +159,9 @@ class PromotionService
         } catch (\Exception $e) {
             Log::error('Lỗi khi tạo khuyến mãi: ' . $e->getMessage());
             throw $e;
-        } 
+        }
     }
-     public function deleteMultiplePromotions(array $promotionIds): array
+    public function deleteMultiplePromotions(array $promotionIds): array
     {
         // Khởi tạo các biến đếm và mảng chứa lỗi
         $hardDeletedCount = 0;
@@ -185,10 +185,9 @@ class PromotionService
                     $promotion->delete();
                     $hardDeletedCount++;
                 }
-                
+
                 // Nếu tất cả các hành động trên đều thành công, lưu lại thay đổi vào CSDL.
                 DB::commit();
-
             } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error("Lỗi khi xử lý xóa khuyến mãi ID {$promotion->id}", [
@@ -200,7 +199,7 @@ class PromotionService
                 $failedPromotions[] = [
                     'id' => $promotion->id,
                     'code' => $promotion->code,
-                    'reason' => 'Lỗi hệ thống khi xử lý.', 
+                    'reason' => 'Lỗi hệ thống khi xử lý.',
                 ];
             }
         }

@@ -23,7 +23,7 @@ class ComboService
     public function getAllCombos($request): array
     {
         try {
-            $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
+            $perPage = max(1, min(100, (int) $request->input('limit', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
             $keyword = trim((string) $request->input('keyword', ''));
             $isActive = $request->input('is_active');
@@ -119,7 +119,7 @@ class ComboService
     {
         try {
             return DB::transaction(function () use ($data) {
-                 // SỬA LẠI Ở ĐÂY: Xử lý file đơn lẻ
+                // SỬA LẠI Ở ĐÂY: Xử lý file đơn lẻ
                 $imageFile = Arr::pull($data, 'image_url');
                 $items = Arr::pull($data, 'items', []);
 
@@ -136,7 +136,7 @@ class ComboService
                         'is_featured' => true
                     ]);
                 }
-                
+
                 if (!empty($items)) {
                     $combo->items()->createMany($items);
                 }
@@ -229,7 +229,7 @@ class ComboService
     /**
      * Xóa nhiều combo dựa trên một chuỗi các ID.
      */
-   public function deleteMultiple(string $ids): int
+    public function deleteMultiple(string $ids): int
     {
         $idArray = array_filter(array_map('intval', explode(',', $ids)));
 

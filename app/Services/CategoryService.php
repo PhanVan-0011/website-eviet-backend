@@ -22,7 +22,7 @@ class CategoryService
     {
         try {
             // Chuẩn hóa các tham số đầu vào
-            $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
+            $perPage = max(1, min(100, (int) $request->input('limit', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
             $keyword = (string) $request->input('keyword', '');
 
@@ -78,7 +78,7 @@ class CategoryService
      * @return \App\Models\Category
      * @throws ModelNotFoundException
      */
-     public function getCategoryById($id)
+    public function getCategoryById($id)
     {
         try {
             return Category::with(['parent', 'children', 'products'])->findOrFail($id);
@@ -101,7 +101,7 @@ class CategoryService
     public function createCategory(array $data): Category
     {
         try {
-            return Category::create($data); 
+            return Category::create($data);
         } catch (Exception $e) {
             Log::error('Lỗi không mong muốn khi tạo danh mục: ' . $e->getMessage());
             throw $e;
@@ -119,7 +119,7 @@ class CategoryService
      */
     public function updateCategory($id, array $data): Category
     {
-         try {
+        try {
             $category = Category::findOrFail($id);
             $category->update($data);
             return $category->refresh()->load(['parent', 'children']);
@@ -142,21 +142,21 @@ class CategoryService
     public function deleteCategory($id): bool
     {
         try {
-           $category = Category::findOrFail($id);
+            $category = Category::findOrFail($id);
             if ($category->products()->exists()) {
                 $productCount = $category->products()->count();
                 $message = "Danh mục '{$category->name}' đang được sử dụng bởi $productCount sản phẩm, không thể xóa.";
                 Log::warning("Đã chặn xóa danh mục (ID: $id): " . $message);
                 throw new \Exception($message);
             }
-            
+
             return $category->delete();
         } catch (ModelNotFoundException $e) {
-             Log::error("Không tìm thấy danh mục để xóa với ID: $id. " . $e->getMessage());
+            Log::error("Không tìm thấy danh mục để xóa với ID: $id. " . $e->getMessage());
             throw $e;
         } catch (Exception $e) {
             if ($e instanceof ModelNotFoundException == false) {
-                 Log::error("Lỗi không mong muốn khi xóa danh mục (ID: $id): " . $e->getMessage());
+                Log::error("Lỗi không mong muốn khi xóa danh mục (ID: $id): " . $e->getMessage());
             }
             throw $e;
         }
@@ -170,7 +170,7 @@ class CategoryService
      */
     public function multiDelete($ids): int
     {
-       try {
+        try {
             if (is_string($ids)) {
                 $ids = array_map('intval', explode(',', $ids));
             }

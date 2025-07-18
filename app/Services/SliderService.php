@@ -23,7 +23,7 @@ class SliderService
     {
         try {
 
-            $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
+            $perPage = max(1, min(100, (int) $request->input('limit', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
             $keyword = trim((string) $request->input('keyword', ''));
             $isActive = $request->input('is_active'); // bool hoặc null
@@ -80,9 +80,9 @@ class SliderService
         }
     }
 
-     public function createSlider(array $data): Slider
+    public function createSlider(array $data): Slider
     {
-         try {
+        try {
             return DB::transaction(function () use ($data) {
                 if (isset($data['linkable_type'])) {
                     $data['linkable_type'] = $this->mapLinkableTypeToModelClass($data['linkable_type']);
@@ -91,7 +91,7 @@ class SliderService
                 unset($data['image_url']);
 
                 $slider = Slider::create($data);
-               if ($imageFile) {
+                if ($imageFile) {
                     $basePath = $this->imageService->store($imageFile, 'sliders', $slider->title);
                     if ($basePath) {
                         $slider->image()->create([
@@ -110,10 +110,10 @@ class SliderService
 
     public function updateSlider(int $id, array $data)
     {
-       try {
+        try {
             $slider = $this->getSliderById($id);
             return DB::transaction(function () use ($slider, $data) {
-               $imageFile = $data['image_url'] ?? null;
+                $imageFile = $data['image_url'] ?? null;
                 unset($data['image_url']);
 
                 if ($imageFile) {
@@ -123,7 +123,7 @@ class SliderService
                     $newBasePath = $this->imageService->store($imageFile, 'sliders', $data['title'] ?? $slider->title);
                     if ($newBasePath) {
                         $slider->image()->updateOrCreate(
-                            ['imageable_id' => $slider->id], 
+                            ['imageable_id' => $slider->id],
                             ['image_url' => $newBasePath, 'is_featured' => 1]
                         );
                     }
@@ -165,7 +165,7 @@ class SliderService
     public function deleteMultiple(array $ids): int
     {
         try {
-            return DB::transaction(function () use ($ids) { 
+            return DB::transaction(function () use ($ids) {
                 $sliders = Slider::with('image')->whereIn('id', $ids)->get();
                 $deletedCount = 0;
 

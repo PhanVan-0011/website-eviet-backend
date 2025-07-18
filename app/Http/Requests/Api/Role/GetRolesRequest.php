@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\Role;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
+
 class GetRolesRequest extends FormRequest
 {
     /**
@@ -12,7 +13,7 @@ class GetRolesRequest extends FormRequest
      */
     public function authorize(): bool
     {
-          return $this->user()->can('roles.manage');
+        return $this->user()->can('roles.manage');
     }
 
     /**
@@ -25,7 +26,7 @@ class GetRolesRequest extends FormRequest
         return [
             'keyword' => ['nullable', 'string', 'max:50'],
             'permission_name' => ['nullable', 'string', 'exists:permissions,name'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
     public function messages(): array
@@ -34,7 +35,7 @@ class GetRolesRequest extends FormRequest
             'keyword.string' => 'Từ khóa tìm kiếm phải là một chuỗi.',
             'keyword.max' => 'Từ khóa tìm kiếm không được vượt quá 50 ký tự.',
             'permission_name.exists' => 'Tên quyền hạn không tồn tại.',
-            'per_page.integer' => 'Số mục trên mỗi trang phải là một số nguyên.',
+            'limit.integer' => 'Số mục trên mỗi trang phải là một số nguyên.',
         ];
     }
     protected function failedValidation(Validator $validator)
