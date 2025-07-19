@@ -17,13 +17,13 @@ class RoleService
     public function getAllRoles(Request $request): array
     {
         try {
-            $perPage = max(1, min(100, (int) $request->input('per_page', 10)));
+            $perPage = max(1, min(100, (int) $request->input('limit', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
 
             $query = Role::query()
                 ->where('name', '!=', 'super-admin')
-                  ->with(['permissions'])
-                  ->withCount('users');
+                ->with(['permissions'])
+                ->withCount('users');
 
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
@@ -109,7 +109,7 @@ class RoleService
     {
         try {
             return DB::transaction(function () use ($role, $data) {
-               $role->update($data);
+                $role->update($data);
                 if (array_key_exists('permissions', $data)) {
                     $role->syncPermissions($data['permissions']);
                 }

@@ -57,8 +57,7 @@ class OrderService
             }
            $query->orderByRaw("FIELD(status, 'pending', 'processing', 'shipped', 'delivered', 'cancelled')")
              ->orderByDesc('order_date');
-            // Phân trang thủ công 
-            // Tính tổng số bản ghi
+             
             $total = $query->count();
             $offset = ($currentPage - 1) * $perPage;
             $orders = $query->skip($offset)->take($perPage)->get();

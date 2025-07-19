@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Services\PromotionService;
 use App\Models\Promotion;
 use App\Http\Resources\PromotionResource;
@@ -14,8 +13,6 @@ use App\Http\Requests\Api\Promotion\MultiDeletePromotionRequest;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Exception;
-use Illuminate\Support\Facades\Log;
-
 
 class PromotionController extends Controller
 {
@@ -29,22 +26,21 @@ class PromotionController extends Controller
    public function index(GetPromotionsRequest $request)
     {
         try {
-            $data = $this->promotionService->getAllPromotions($request);
-            return response()->json([
-                'success' => true,
-                'data' => PromotionResource::collection($data['data']),
-                'pagination' => [
-                    'page' => $data['page'],
-                    'total' => $data['total'],
-                    'last_page' => $data['last_page'],
-                    'next_page' => $data['next_page'],
-                    'pre_page' => $data['pre_page'],
-                ],
-                'message' => 'Lấy danh sách khuyến mãi thành công',
-                'timestamp' => now()->format('Y-m-d H:i:s'),
-            ], 200);
+                $data = $this->promotionService->getAllPromotions($request);
+                return response()->json([
+                    'success' => true,
+                    'data' => PromotionResource::collection($data['data']),
+                    'pagination' => [
+                        'page' => $data['page'],
+                        'total' => $data['total'],
+                        'last_page' => $data['last_page'],
+                        'next_page' => $data['next_page'],
+                        'pre_page' => $data['pre_page'],
+                    ],
+                    'message' => 'Lấy danh sách khuyến mãi thành công',
+                    'timestamp' => now()->format('Y-m-d H:i:s'),
+                ], 200);
         } catch (Exception $e) {
-            Log::error('Controller error retrieving promotions: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy danh sách khuyến mãi',
@@ -63,12 +59,6 @@ class PromotionController extends Controller
                 'data' => new PromotionResource($promotion->load(['products', 'categories', 'combos'])),
             ], 201);
         } catch (\Exception $e) {
-             // Ghi lại log lỗi chi tiết
-            Log::error('Lỗi khi tạo khuyến mãi:', [
-                'message' => $e->getMessage(),
-                'data' => $request->all(), // Ghi lại dữ liệu đầu vào đã gây ra lỗi
-                'trace' => $e->getTraceAsString()
-            ]);
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
@@ -89,7 +79,6 @@ class PromotionController extends Controller
                 'message' => "Không tìm thấy khuyến mãi với ID {$id}."
             ], 404);
         }catch (Exception $e) {
-            Log::error("Lỗi Controller khi xem chi tiết khuyến mãi ID: {$id}", ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy chi tiết khuyến mãi.'
@@ -110,7 +99,6 @@ class PromotionController extends Controller
         }  catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => "Không tìm thấy khuyến mãi với ID {$id}."], 404);
         } catch (Exception $e) {
-            Log::error("Lỗi Controller khi xóa khuyến mãi ID: {$id}", ['error' => $e->getMessage()]);
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
@@ -127,7 +115,6 @@ class PromotionController extends Controller
         }catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => "Không tìm thấy khuyến mãi với ID {$id}."], 404);
         } catch (Exception $e) {
-            Log::error("Lỗi Controller khi xóa khuyến mãi ID: {$id}", ['error' => $e->getMessage()]);
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
@@ -152,12 +139,6 @@ class PromotionController extends Controller
             ]);
 
         } catch (Exception $e) {
-            // Ghi log cho các lỗi không lường trước được ở tầng Controller
-            Log::error("Lỗi nghiêm trọng khi thực hiện xóa nhiều khuyến mãi", [
-                'message' => $e->getMessage(),
-                'requested_ids' => $request->validated()['promotion_ids'],
-                'trace' => $e->getTraceAsString()
-            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã có lỗi hệ thống xảy ra trong quá trình xử lý.',

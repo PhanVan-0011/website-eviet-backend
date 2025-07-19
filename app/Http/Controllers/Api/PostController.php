@@ -10,7 +10,7 @@ use App\Http\Resources\PostResource;
 use App\Services\PostService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-
+use App\Models\Post;
 
 class PostController extends Controller
 {
@@ -23,9 +23,12 @@ class PostController extends Controller
     /**
      * Lấy danh sách tất cả bài viết với phân trang, tìm kiếm và sắp xếp.
      */
-     public function index(Request $request)
+    public function index(Request $request)
     {
         try {
+
+            $this->authorize('posts.view'); // Kiểm tra quyền 'view'
+
             $data = $this->postService->getAllPosts($request);
             return response()->json([
                 'success' => true,
@@ -83,7 +86,7 @@ class PostController extends Controller
             return response()->json(['success' => false, 'message' => 'Đã xảy ra lỗi khi tạo bài viết.'], 500);
         }
     }
- 
+
     /**
      * Cập nhật một bài viết.
      */
@@ -103,7 +106,7 @@ class PostController extends Controller
         }
     }
 
-   /**
+    /**
      * Xóa một bài viết.
      */
     public function destroy(int $id)
@@ -118,7 +121,7 @@ class PostController extends Controller
         }
     }
 
-   /**
+    /**
      * Xóa nhiều bài viết.
      */
     public function multiDelete(MultiDeletePostRequest $request)
@@ -126,7 +129,7 @@ class PostController extends Controller
         try {
             $validated = $request->validated();
             $deletedCount = $this->postService->multiDeletePosts($validated['ids']);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => "Đã xóa thành công {$deletedCount} bài viết.",

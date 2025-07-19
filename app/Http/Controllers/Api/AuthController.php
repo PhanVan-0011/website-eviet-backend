@@ -10,6 +10,8 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 use App\Services\AuthUserService;
 use App\Http\Resources\UserResource;
+use App\Models\User;
+
 class AuthController extends Controller
 {
     protected $authUserService;
@@ -63,30 +65,36 @@ class AuthController extends Controller
     public function login(LoginRequest $request)
     {
         try {
-            $user = $this->authUserService->login($request->login, $request->password);
+            $result = $this->authUserService->login($request->login, $request->password);
 
-            if (!$user) {
+            if ($result instanceof User) {
+                $token = $result->createToken('auth_token')->plainTextToken;
+
                 return response()->json([
-                    'success' => false,
-                    'message' => filter_var($request->login, FILTER_VALIDATE_EMAIL)
-                        ? 'Email hoặc mật khẩu không đúng'
-                        : 'Số điện thoại hoặc mật khẩu không đúng',
-                ], 401);
+                    'success' => true,
+                    'message' => 'Đăng nhập thành công',
+                    'data' => [
+                        'user' => new UserResource($result),
+                        'access_token' => $token,
+                        'token_type' => 'Bearer',
+                    ],
+                ], 200);
             }
 
-            $token = $user->createToken('auth_token')->plainTextToken;
+            // Nếu không phải là User, xử lý từng lỗi
+            $isLocked = $result === 'locked';
+            $isEmail = filter_var($request->login, FILTER_VALIDATE_EMAIL);
 
             return response()->json([
-                'success' => true,
-                'message' => 'Đăng nhập thành công',
-                'data' => [
-                    'user' => new UserResource($user),
-                    'access_token' => $token,
-                    'token_type' => 'Bearer',
-                ],
-            ], 200);
+                'success' => false,
+                'message' => $isLocked
+                    ? 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.'
+                    : ($isEmail
+                        ? 'Email hoặc mật khẩu không đúng'
+                        : 'Số điện thoại hoặc mật khẩu không đúng'),
+            ], 401);
         } catch (\Throwable $e) {
-            Log::error('Error during login: ' . $e->getMessage(), ['exception' => $e]);
+            Log::error('Lỗi trong quá trình: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã xảy ra lỗi không mong muốn.',
@@ -109,14 +117,8 @@ class AuthController extends Controller
                 'message' => $isLoggedOut ? 'Đăng xuất thành công' : 'Đã đăng xuất hoặc không có token hợp lệ',
                 'timestamp' => now()->format('Y-m-d H:i:s'),
             ], 200);
-        } catch (QueryException $e) {
-            Log::error('Database error during logout: ' . $e->getMessage(), ['exception' => $e]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi cơ sở dữ liệu.',
-            ], 500);
         } catch (\Throwable $e) {
-            Log::error('Error during logout: ' . $e->getMessage(), ['exception' => $e]);
+            Log::error('Lỗi trong quá trình đăng xuất: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã xảy ra lỗi khi đăng xuất.',

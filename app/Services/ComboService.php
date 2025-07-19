@@ -31,12 +31,6 @@ class ComboService
             $minPrice = $request->input('min_price');
             $maxPrice = $request->input('max_price');
 
-            $startDateFrom = $request->input('start_date_from');
-            $startDateTo   = $request->input('start_date_to');
-
-            $endDateFrom   = $request->input('end_date_from');
-            $endDateTo     = $request->input('end_date_to');
-
             //$query = Combo::query();
             $query = Combo::query()->with(['image', 'items']);
 
@@ -60,19 +54,13 @@ class ComboService
             }
 
             // Lọc theo khoảng ngày bắt đầu
-            if ($startDateFrom) {
-                $query->where('start_date', '>=', $startDateFrom);
+            if ($request->filled('start_date')) {
+                $query->whereDate('start_date', '>=', $request->input('start_date'));
             }
-            if ($startDateTo) {
-                $query->where('start_date', '<=', $startDateTo);
+            if ($request->filled('end_date')) {
+                $query->whereDate('end_date', '<=', $request->input('end_date'));
             }
-            // Lọc theo khoảng ngày kết thúc
-            if ($endDateFrom) {
-                $query->where('end_date', '>=', $endDateFrom);
-            }
-            if ($endDateTo) {
-                $query->where('end_date', '<=', $endDateTo);
-            }
+
             $query->orderBy('created_at', 'desc');
 
             $total = $query->count();
@@ -125,7 +113,6 @@ class ComboService
 
                 $combo = Combo::create($data);
 
-                // SỬA LẠI Ở ĐÂY: Bỏ logic xử lý mảng
                 if ($imageFile instanceof UploadedFile) {
                     $pathData = $this->imageService->store($imageFile, 'combos', $combo->name);
                     if (!$pathData) {

@@ -27,6 +27,7 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         try {
+            $this->authorize('orders.view');
             $result = $this->orderService->getAllOrders($request);
 
             return response()->json([
@@ -99,7 +100,6 @@ class OrderController extends Controller
                 'data' => new OrderResource($updatedOrder),
             ]);
         } catch (\Exception $e) {
-            Log::error("Lỗi khi cập nhật đơn hàng #{$order->id}: " . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Cập nhật đơn hàng thất bại',
@@ -117,7 +117,6 @@ class OrderController extends Controller
                 'data' => new OrderResource($updatedOrder),
             ]);
         } catch (\Exception $e) {
-            Log::error("Lỗi khi cập nhật trạng thái thanh toán cho đơn hàng #{$order->id}: " . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -125,9 +124,10 @@ class OrderController extends Controller
         }
     }
 
-    public function multiCancel(MultiDeleteOrderRequest $request){
+    public function multiCancel(MultiDeleteOrderRequest $request)
+    {
         try {
-            
+
             $result = $this->orderService->cancelMultipleOrders($request->validated()['order_ids']);
             $successCount = $result['success_count'];
             $failedCount = count($result['failed_orders']);
@@ -146,7 +146,6 @@ class OrderController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
-            Log::error("Lỗi khi hủy nhiều đơn hàng: " . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Đã có lỗi xảy ra trong quá trình xử lý.'], 500);
         }
     }

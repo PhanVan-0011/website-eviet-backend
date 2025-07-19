@@ -42,7 +42,6 @@ class RoleController extends Controller
                 'timestamp' => now()->format('Y-m-d H:i:s'),
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Controller error retrieving roles: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy danh sách vai trò',
@@ -62,7 +61,6 @@ class RoleController extends Controller
                 'data' => new RoleResource($role)
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Lỗi Controller khi tạo vai trò:', ['message' => $e->getMessage(), 'data' => $request->all()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã có lỗi xảy ra khi tạo vai trò.'
@@ -102,7 +100,6 @@ class RoleController extends Controller
                 'message' => "Không tìm thấy vai trò với ID {$id}.",
             ], 404);
         } catch (\Exception $e) {
-            Log::error("Lỗi Controller khi cập nhật vai trò ID: {$role->id}", ['message' => $e->getMessage(), 'data' => $request->all()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã có lỗi xảy ra khi cập nhật vai trò.'
@@ -125,7 +122,6 @@ class RoleController extends Controller
                 'message' => "Vai trò với ID {$id} không tồn tại.",
             ], 404);
         } catch (\Exception $e) {
-            Log::error("Lỗi Controller khi xóa vai trò ID: {$id}", ['message' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -156,10 +152,6 @@ class RoleController extends Controller
                 'details' => $result
             ], $successCount > 0 ? 200 : 400);
         } catch (\Exception $e) {
-            Log::error("Lỗi nghiêm trọng khi xóa nhiều vai trò", [
-                'message' => $e->getMessage(),
-                'ids' => $request->input('role_ids')
-            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã có lỗi hệ thống xảy ra.'
