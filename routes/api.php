@@ -24,12 +24,13 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/reset-password-by-phone', [AuthController::class, 'resetPasswordByPhone']);
 Route::get('images/{path}', [ImageController::class, 'show'])->where('path', '.*');
+Route::post('upload-image', [ImageController::class, 'uploadGeneric']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/profile/update', [AuthController::class, 'update_profile']);
-    
+
     Route::get('/payment-methods', [PaymentMethodController::class, 'index'])->middleware('check.permission:payment_methods.view');
 });
 
@@ -114,11 +115,11 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/multi-delete', [AdminUserController::class, 'multiDelete'])->name('admins.multi-delete');
         Route::get('/{id}', [AdminUserController::class, 'show'])->name('admins.show');
         Route::post('/{id}', [AdminUserController::class, 'update'])->name('admins.update');
-        Route::delete('/{id}', [AdminUserController::class, 'destroy'])->name('admins.destroy'); 
+        Route::delete('/{id}', [AdminUserController::class, 'destroy'])->name('admins.destroy');
         Route::post('/{id}/restore', [AdminUserController::class, 'restore'])->name('admins.restore');
         Route::delete('/{id}/force-delete', [AdminUserController::class, 'forceDelete'])->name('admins.force-delete');
     });
-    
+
     // ---Order---
     Route::prefix('orders')->middleware('check.permission:orders.view')->group(function () {
         Route::get('/', [OrderController::class, 'index']);
@@ -141,6 +142,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/permissions', [PermissionController::class, 'index'])->middleware('check.permission:roles.manage');
     Route::post('assign-role/{id}', [PermissionController::class, 'assignRolesToUser'])->middleware('check.permission:roles.manage');
     Route::post('assign-permission/{id}', [PermissionController::class, 'assignPermissionsToUser'])->middleware('check.permission:roles.manage');
+
 
     //---Dashboard---
     Route::get('/dashboard', [DashboardController::class, 'getStatistics'])->middleware('check.permission:dashboard.view');
