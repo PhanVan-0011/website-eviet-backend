@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
-use App\Http\Controllers\Api\SelectListController;
 use App\Http\Controllers\Api\SliderController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
@@ -143,22 +141,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/permissions', [PermissionController::class, 'index'])->middleware('check.permission:roles.manage');
     Route::post('assign-role/{id}', [PermissionController::class, 'assignRolesToUser'])->middleware('check.permission:roles.manage');
     Route::post('assign-permission/{id}', [PermissionController::class, 'assignPermissionsToUser'])->middleware('check.permission:roles.manage');
-
-
-    Route::prefix('select-lists')->name('select-lists.')->group(function () {
-        
-        Route::get('products', [SelectListController::class, 'products'])->middleware('check.permission:products.select_list');
-        Route::get('categories', [SelectListController::class, 'categories'])->middleware('check.permission:categories.select_list');
-        Route::get('combos', [SelectListController::class, 'combos'])->middleware('check.permission:combos.select_list');
-        Route::get('promotions', [SelectListController::class, 'promotions'])->middleware('check.permission:promotions.select_list');
-        Route::get('sliders', [SelectListController::class, 'sliders'])->middleware('check.permission:sliders.select_list');
-        Route::get('posts', [SelectListController::class, 'posts'])->middleware('check.permission:posts.select_list');
-        Route::get('payment-methods', [SelectListController::class, 'paymentMethods'])->middleware('check.permission:payment_methods.select_list');
-        Route::get('users', [SelectListController::class, 'users'])->middleware('check.permission:users.select_list');
-        Route::get('roles', [SelectListController::class, 'roles'])->middleware('check.permission:roles.select_list');
-        Route::get('orders', [SelectListController::class, 'orders'])->middleware('check.permission:orders.select_list');
-    });
-
 
     //---Dashboard---
     Route::get('/dashboard', [DashboardController::class, 'getStatistics'])->middleware('check.permission:dashboard.view');
