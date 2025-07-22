@@ -26,7 +26,7 @@ class GetRolesRequest extends FormRequest
         return [
             'keyword' => ['nullable', 'string', 'max:50'],
             'permission_name' => ['nullable', 'string', 'exists:permissions,name'],
-            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:1000'],
         ];
     }
     public function messages(): array
