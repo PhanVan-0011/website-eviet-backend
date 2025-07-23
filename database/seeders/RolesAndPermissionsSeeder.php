@@ -18,7 +18,7 @@ class RolesAndPermissionsSeeder extends Seeder
     {
         // Xóa cache của Spatie để đảm bảo các thay đổi được áp dụng
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-        
+
         $shouldReset = false; // Đặt thành true nếu bạn muốn xóa toàn bộ và tạo lại từ đầu
         if ($shouldReset) {
             Schema::disableForeignKeyConstraints();
@@ -36,7 +36,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $permissions = [
             // Quản lý dashboard
             ['name' => 'dashboard.view', 'display_name' => 'Xem Dashboard tổng quan'],
-            
+
             // Quản lý Đơn hàng
             ['name' => 'orders.view', 'display_name' => 'Xem Đơn hàng'],
             ['name' => 'orders.create', 'display_name' => 'Tạo Đơn hàng'],
@@ -50,45 +50,45 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'products.create', 'display_name' => 'Tạo mới Sản phẩm'],
             ['name' => 'products.update', 'display_name' => 'Cập nhật Sản phẩm'],
             ['name' => 'products.delete', 'display_name' => 'Xóa Sản phẩm'],
-            ['name' => 'products.select_list', 'display_name' => 'Chọn Sản phẩm để liên kết'],
+            // ['name' => 'products.select_list', 'display_name' => 'Chọn Sản phẩm để liên kết'],
 
             // Quản lý danh mục
             ['name' => 'categories.view', 'display_name' => 'Xem chi tiết Danh mục'],
             ['name' => 'categories.manage', 'display_name' => 'Quản lý Danh mục (Thêm/Sửa/Xóa)'],
-            ['name' => 'categories.select_list', 'display_name' => 'Chọn Danh mục để liên kết'],
+            // ['name' => 'categories.select_list', 'display_name' => 'Chọn Danh mục để liên kết'],
 
             // Quản lý Combo
             ['name' => 'combos.view', 'display_name' => 'Xem chi tiết Combo'],
             ['name' => 'combos.manage', 'display_name' => 'Quản lý Combo (Thêm/Sửa/Xóa)'],
-            ['name' => 'combos.select_list', 'display_name' => 'Chọn Combo để liên kết'],
-            
+            // ['name' => 'combos.select_list', 'display_name' => 'Chọn Combo để liên kết'],
+
             // Quản lý Khuyến mãi
             ['name' => 'promotions.view', 'display_name' => 'Xem chi tiết Khuyến mãi'],
             ['name' => 'promotions.create', 'display_name' => 'Tạo Khuyến mãi'],
             ['name' => 'promotions.update', 'display_name' => 'Sửa Khuyến mãi'],
             ['name' => 'promotions.delete', 'display_name' => 'Xóa Khuyến mãi'],
-            ['name' => 'promotions.select_list', 'display_name' => 'Chọn Khuyến mãi để liên kết'],
+            // ['name' => 'promotions.select_list', 'display_name' => 'Chọn Khuyến mãi để liên kết'],
 
             // Quản lý Slider
             ['name' => 'sliders.view', 'display_name' => 'Xem Slider'],
             ['name' => 'sliders.manage', 'display_name' => 'Quản lý Slider (Thêm/Sửa/Xóa)'],
-            ['name' => 'sliders.select_list', 'display_name' => 'Chọn Slider để liên kết'],
+            // ['name' => 'sliders.select_list', 'display_name' => 'Chọn Slider để liên kết'],
 
             // Quản lý bài viết
             ['name' => 'posts.view', 'display_name' => 'Xem Bài viết'],
             ['name' => 'posts.manage', 'display_name' => 'Quản lý Bài viết (Thêm/Sửa/Xóa)'],
-            ['name' => 'posts.select_list', 'display_name' => 'Chọn Bài viết để liên kết'],
+            // ['name' => 'posts.select_list', 'display_name' => 'Chọn Bài viết để liên kết'],
 
             // Quản lý phương thức thanh toán
             ['name' => 'payment_methods.view', 'display_name' => 'Xem phương thức thanh toán'],
             ['name' => 'payment_methods.manage', 'display_name' => 'Quản lý phương thức thanh toán'],
-            ['name' => 'payment_methods.select_list', 'display_name' => 'Chọn PTTT (khi tạo đơn hàng...)'],
+            // ['name' => 'payment_methods.select_list', 'display_name' => 'Chọn PTTT (khi tạo đơn hàng...)'],
 
             // Quản lý Người dùng & Vai trò
             ['name' => 'users.manage', 'display_name' => 'Quản lý Người dùng'],
-            ['name' => 'users.select_list', 'display_name' => 'Chọn Nhân viên (để gán việc...)'],
+            // ['name' => 'users.select_list', 'display_name' => 'Chọn Nhân viên (để gán việc...)'],
             ['name' => 'roles.manage', 'display_name' => 'Quản lý Phân quyền'],
-            ['name' => 'roles.select_list', 'display_name' => 'Chọn Vai trò (khi tạo người dùng)'],
+            // ['name' => 'roles.select_list', 'display_name' => 'Chọn Vai trò (khi tạo người dùng)'],
         ];
 
         // Tạo hoặc cập nhật các permission trong CSDL
@@ -112,12 +112,12 @@ class RolesAndPermissionsSeeder extends Seeder
             ['display_name' => 'Biên tập viên']
         );
         $editorRole->syncPermissions([
-            'sliders.manage', 
-            'posts.manage', 
-            'products.select_list',
-            'categories.select_list',
-            'combos.select_list',
-            'promotions.select_list',
+            'sliders.manage',
+            'posts.manage',
+            // 'products.select_list',
+            // 'categories.select_list',
+            // 'combos.select_list',
+            // 'promotions.select_list',
         ]);
 
         $productManagerRole = Role::updateOrCreate(
@@ -131,15 +131,22 @@ class RolesAndPermissionsSeeder extends Seeder
             ['display_name' => 'Quản lý Bán hàng']
         );
         $salesManagerRole->syncPermissions([
-            'orders.view', 'orders.create', 'orders.update', 'orders.update_status',
-            'orders.cancel', 'orders.update_payment', 
-            'promotions.view', 'promotions.create', 'promotions.update', 'promotions.delete', 
+            'orders.view',
+            'orders.create',
+            'orders.update',
+            'orders.update_status',
+            'orders.cancel',
+            'orders.update_payment',
+            'promotions.view',
+            'promotions.create',
+            'promotions.update',
+            'promotions.delete',
             'dashboard.view',
             'payment_methods.view',
-            'products.select_list',
-            'categories.select_list',
-            'combos.select_list',
-            'users.select_list',
+            // 'products.select_list',
+            // 'categories.select_list',
+            // 'combos.select_list',
+            // 'users.select_list',
         ]);
 
         $superAdminRole = Role::updateOrCreate(
@@ -159,9 +166,9 @@ class RolesAndPermissionsSeeder extends Seeder
     private function createUser(string $name, string $email, string $phone, Role $role): void
     {
         $user = User::where('email', $email)
-                    ->orWhere('phone', $phone)
-                    ->withTrashed()
-                    ->first();
+            ->orWhere('phone', $phone)
+            ->withTrashed()
+            ->first();
 
         if ($user) {
             if ($user->trashed()) {

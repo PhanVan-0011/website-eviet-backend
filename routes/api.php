@@ -38,7 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/profile/update', [AuthController::class, 'update_profile']);
 
-    Route::get('/payment-methods', [PaymentMethodController::class, 'index'])->middleware('check.permission:payment_methods.view');
+    Route::get('/payment-methods', [PaymentMethodController::class, 'index'])->middleware('check.permission:orders.view,payment_methods.view,orders.update');
 });
 
 
@@ -57,7 +57,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Combo---
-    Route::prefix('combos')->middleware('check.permission:combos.view')->group(function () {
+    Route::prefix('combos')->middleware('check.permission:combos.view,orders.update')->group(function () {
         Route::get('/', [ComboController::class, 'index']);
         Route::get('/{id}', [ComboController::class, 'show']);
         Route::post('/', [ComboController::class, 'store'])->middleware('check.permission:combos.manage');
@@ -77,7 +77,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Product---
-    Route::prefix('products')->middleware('check.permission:products.view')->group(function () {
+    Route::prefix('products')->middleware('check.permission:products.view, orders.update')->group(function () {
         Route::get('/', [ProductController::class, 'index']);
         Route::get('/{id}', [ProductController::class, 'show']);
         Route::post('/', [ProductController::class, 'store'])->middleware('check.permission:products.create');
@@ -139,12 +139,12 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 
     // ---Role & Permission---
     Route::prefix('roles')->middleware('check.permission:roles.manage')->group(function () {
-        Route::get('/', [RoleController::class, 'index']);
-        Route::post('/', [RoleController::class, 'store']);
-        Route::delete('/multi-delete', [RoleController::class, 'multiDelete']);
-        Route::get('/{role}', [RoleController::class, 'show']);
-        Route::put('/{id}', [RoleController::class, 'update']);
-        Route::delete('/{role}', [RoleController::class, 'destroy']);
+        Route::get('/', [RoleController::class, 'index'])->name('roles.index');
+        Route::post('/', [RoleController::class, 'store'])->name('roles.store');
+        Route::delete('/multi-delete', [RoleController::class, 'multiDelete'])->name('roles.multi-delete');;
+        Route::get('/{role}', [RoleController::class, 'show'])->name('roles.show');;
+        Route::put('/{id}', [RoleController::class, 'update'])->name('roles.update');;
+        Route::delete('/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
     });
     Route::get('/permissions', [PermissionController::class, 'index'])->middleware('check.permission:roles.manage');
     Route::post('assign-role/{id}', [PermissionController::class, 'assignRolesToUser'])->middleware('check.permission:roles.manage');
