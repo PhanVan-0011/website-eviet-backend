@@ -61,8 +61,4 @@ class User extends Authenticatable
     {
         return $this->morphOne(Image::class, 'imageable');
     }
-    public function otpVerifications()
-    {
-        return $this->hasMany(OtpVerification::class, 'user_id');
-    }
 }

@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Api\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class UpdateProfileRequest extends FormRequest
 {
@@ -56,5 +58,13 @@ class UpdateProfileRequest extends FormRequest
             'address.max' => 'Địa chỉ không được vượt quá 255 ký tự.',
             'address.regex' => 'Địa chỉ chỉ được chứa chữ cái, số, dấu cách, dấu phẩy, dấu chấm và dấu gạch ngang.',
         ];
+    }
+     protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'success' => false,
+            'message' => $validator->errors()->first(),
+            'errors' => $validator->errors(),
+        ], 422));
     }
 }

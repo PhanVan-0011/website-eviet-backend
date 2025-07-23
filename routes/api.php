@@ -20,6 +20,13 @@ use App\Http\Controllers\Api\AdminUserController;
 
 
 // ===  ROUTE PUBLIC ===
+// --- Client Authentication (OTP Flow) ---
+Route::post('/auth/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:3,1');
+Route::post('/auth/otp/verify', [AuthController::class, 'verifyOtpAndLogin']);
+
+
+
+
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/reset-password-by-phone', [AuthController::class, 'resetPasswordByPhone']);
