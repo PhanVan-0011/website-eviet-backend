@@ -26,38 +26,22 @@ class ComboController extends Controller
     public function index(Request $request)
     {
         try {
-            if ($request->query('context') === 'select_list') {
+            // $this->authorize('combos.view'); // Kiểm tra quyền 'view'
 
-                $this->authorize('combos.select_list'); // Kiểm tra quyền 'select_list'
-
-                $combos = Combo::where('is_active', 1)->with('images')->latest()->get();
-                $data = $combos->map(function ($combo) {
-                    return [
-                        'id' => $combo->id,
-                        'name' => $combo->name,
-                        'image_urls' => $this->formatImages($combo->images),
-                    ];
-                });
-                return response()->json($data);
-            }
-            else {
-                $this->authorize('combos.view'); // Kiểm tra quyền 'view'
-
-                $data = $this->comboService->getAllCombos($request);
-                return response()->json([
-                    'success' => true,
-                    'data' => ComboResource::collection($data['data']),
-                    'pagination' => [
-                        'page' => $data['page'],
-                        'total' => $data['total'],
-                        'last_page' => $data['last_page'],
-                        'next_page' => $data['next_page'],
-                        'prev_page' => $data['prev_page'],
-                    ],
-                    'message' => 'Lấy danh sách combo thành công',
-                    'timestamp' => now()->format('Y-m-d H:i:s'),
-                ], 200);
-            }
+            $data = $this->comboService->getAllCombos($request);
+            return response()->json([
+                'success' => true,
+                'data' => ComboResource::collection($data['data']),
+                'pagination' => [
+                    'page' => $data['page'],
+                    'total' => $data['total'],
+                    'last_page' => $data['last_page'],
+                    'next_page' => $data['next_page'],
+                    'prev_page' => $data['prev_page'],
+                ],
+                'message' => 'Lấy danh sách combo thành công',
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ], 200);
         } catch (\Exception $e) {
             Log::error('Lỗi lấy danh sách combo: ' . $e->getMessage());
             return response()->json([
@@ -70,7 +54,7 @@ class ComboController extends Controller
     // Xem chi tiết combo
     public function show(int $id)
     {
-         $this->authorize('combos.view');
+        // $this->authorize('combos.view');
         try {
             $combo = $this->comboService->getComboById($id);
             return response()->json([
@@ -91,8 +75,9 @@ class ComboController extends Controller
         }
     }
     // Tạo combo mới
-    public function store(StoreComboRequest $request){
-        $this->authorize('combos.manage');
+    public function store(StoreComboRequest $request)
+    {
+        // $this->authorize('combos.manage');
         try {
             $combo = $this->comboService->createCombo($request->validated());
             return response()->json([
@@ -112,7 +97,7 @@ class ComboController extends Controller
     // Cập nhật combo
     public function update(UpdateComboRequest $request, int $id)
     {
-        $this->authorize('combos.manage');
+        // $this->authorize('combos.manage');
         try {
             $combo = $this->comboService->updateCombo($id, $request->validated());
 
@@ -139,25 +124,23 @@ class ComboController extends Controller
     // Xóa combo đơn
     public function destroy(int $id)
     {
-        $this->authorize('combos.manage');
+        // $this->authorize('combos.manage');
         try {
             $deleted = $this->comboService->deleteCombo($id);
             return response()->json([
                 'success' => true,
                 'message' => 'Xóa combo thành công'
             ]);
-            
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Combo không tồn tại.'
             ], 404);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             Log::error('Lỗi khi xóa combo: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage() 
+                'message' => $e->getMessage()
             ], 422);
         }
     }
@@ -165,7 +148,7 @@ class ComboController extends Controller
     // Xóa nhiều combo
     public function multiDelete(MultiDeleteComboRequest $request)
     {
-        $this->authorize('combos.manage');
+        // $this->authorize('combos.manage');
         try {
             $deletedCount = $this->comboService->deleteMultiple($request->validated()['ids']);
             return response()->json([
@@ -177,7 +160,6 @@ class ComboController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 404);
-
         } catch (\Exception $e) {
             Log::error('Lỗi không xác định khi xóa nhiều combo: ' . $e->getMessage());
             return response()->json([
