@@ -26,11 +26,6 @@ class ComboController extends Controller
     public function index(Request $request)
     {
         try {
-<<<<<<< HEAD
-=======
-            // $this->authorize('combos.view'); // Kiểm tra quyền 'view'
-
->>>>>>> 43402d9bd66ad359fdda4389015180b5d04b96a2
             $data = $this->comboService->getAllCombos($request);
             return response()->json([
                 'success' => true,
@@ -46,7 +41,6 @@ class ComboController extends Controller
                 'timestamp' => now()->format('Y-m-d H:i:s'),
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Lỗi lấy danh sách combo: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy danh sách combo',
@@ -57,10 +51,6 @@ class ComboController extends Controller
     // Xem chi tiết combo
     public function show(int $id)
     {
-<<<<<<< HEAD
-=======
-        // $this->authorize('combos.view');
->>>>>>> 43402d9bd66ad359fdda4389015180b5d04b96a2
         try {
             $combo = $this->comboService->getComboById($id);
             return response()->json([
@@ -73,7 +63,6 @@ class ComboController extends Controller
                 'message' => 'Combo không tồn tại',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi lấy combo: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy thông tin combo'
@@ -83,10 +72,6 @@ class ComboController extends Controller
     // Tạo combo mới
     public function store(StoreComboRequest $request)
     {
-<<<<<<< HEAD
-=======
-        // $this->authorize('combos.manage');
->>>>>>> 43402d9bd66ad359fdda4389015180b5d04b96a2
         try {
             $combo = $this->comboService->createCombo($request->validated());
             return response()->json([
@@ -95,7 +80,6 @@ class ComboController extends Controller
                 'success' => true,
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Lỗi tạo combo: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi tạo combo',
@@ -106,10 +90,6 @@ class ComboController extends Controller
     // Cập nhật combo
     public function update(UpdateComboRequest $request, int $id)
     {
-<<<<<<< HEAD
-=======
-        // $this->authorize('combos.manage');
->>>>>>> 43402d9bd66ad359fdda4389015180b5d04b96a2
         try {
             $combo = $this->comboService->updateCombo($id, $request->validated());
 
@@ -124,7 +104,6 @@ class ComboController extends Controller
                 'message' => 'Combo không tồn tại',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Lỗi cập nhật combo: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi cập nhật combo',
@@ -136,10 +115,6 @@ class ComboController extends Controller
     // Xóa combo đơn
     public function destroy(int $id)
     {
-<<<<<<< HEAD
-=======
-        // $this->authorize('combos.manage');
->>>>>>> 43402d9bd66ad359fdda4389015180b5d04b96a2
         try {
             $deleted = $this->comboService->deleteCombo($id);
             return response()->json([
@@ -163,10 +138,6 @@ class ComboController extends Controller
     // Xóa nhiều combo
     public function multiDelete(MultiDeleteComboRequest $request)
     {
-<<<<<<< HEAD
-=======
-        // $this->authorize('combos.manage');
->>>>>>> 43402d9bd66ad359fdda4389015180b5d04b96a2
         try {
             $deletedCount = $this->comboService->deleteMultiple($request->validated()['ids']);
             return response()->json([
@@ -179,7 +150,6 @@ class ComboController extends Controller
                 'message' => $e->getMessage(),
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Lỗi không xác định khi xóa nhiều combo: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
