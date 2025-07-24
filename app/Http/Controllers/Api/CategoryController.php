@@ -98,6 +98,7 @@ class CategoryController extends Controller
                 'message' => 'Tạo danh mục thành công',
             ], 201);
         } catch (Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi tạo danh mục',

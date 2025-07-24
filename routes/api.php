@@ -38,7 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/profile/update', [AuthController::class, 'update_profile']);
 
-    Route::get('/payment-methods', [PaymentMethodController::class, 'index'])->middleware('check.permission:orders.view,payment_methods.view,orders.update');
+    Route::get('/payment-methods', [PaymentMethodController::class, 'index'])->middleware('check.permission:orders.view,orders.update,payment_methods.view');
 });
 
 
@@ -47,7 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
 
     // ---Slider---
-    Route::prefix('sliders')->middleware('check.permission:sliders.view')->group(function () {
+    Route::prefix('sliders')->middleware('check.permission:sliders.manage')->group(function () {
         Route::get('/', [SliderController::class, 'index']);
         Route::get('/{id}', [SliderController::class, 'show']);
         Route::post('/', [SliderController::class, 'store'])->middleware('check.permission:sliders.manage');
@@ -57,7 +57,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Combo---
-    Route::prefix('combos')->middleware('check.permission:combos.view,orders.update')->group(function () {
+    Route::prefix('combos')->middleware('check.permission:combos.view,orders.create,orders.update,promotions.create,promotions.update')->group(function () {
         Route::get('/', [ComboController::class, 'index']);
         Route::get('/{id}', [ComboController::class, 'show']);
         Route::post('/', [ComboController::class, 'store'])->middleware('check.permission:combos.manage');
@@ -67,7 +67,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Category---
-    Route::prefix('categories')->middleware('check.permission:categories.view')->group(function () {
+    Route::prefix('categories')->middleware('check.permission:categories.view,promotions.create, promotions.update,products.view,products.create,products.update,posts.manage')->group(function () {
         Route::get('/', [CategoryController::class, 'index']);
         Route::get('/{id}', [CategoryController::class, 'show']);
         Route::post('/', [CategoryController::class, 'store'])->middleware('check.permission:categories.manage');
@@ -77,7 +77,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Product---
-    Route::prefix('products')->middleware('check.permission:products.view, orders.update')->group(function () {
+    Route::prefix('products')->middleware('check.permission:products.view, orders.create,orders.update, promotions.create, promotions.update')->group(function () {
         Route::get('/', [ProductController::class, 'index']);
         Route::get('/{id}', [ProductController::class, 'show']);
         Route::post('/', [ProductController::class, 'store'])->middleware('check.permission:products.create');
@@ -87,7 +87,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Post---
-    Route::prefix('posts')->middleware('check.permission:posts.view')->group(function () {
+    Route::prefix('posts')->middleware('check.permission:posts.manage')->group(function () {
         Route::get('/', [PostController::class, 'index']);
         Route::get('/{id}', [PostController::class, 'show']);
         Route::post('/', [PostController::class, 'store'])->middleware('check.permission:posts.manage');

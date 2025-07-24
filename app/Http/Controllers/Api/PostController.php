@@ -27,7 +27,7 @@ class PostController extends Controller
     {
         try {
 
-            $this->authorize('posts.view'); // Kiểm tra quyền 'view'
+            // $this->authorize('posts.view'); // Kiểm tra quyền 'view'
 
             $data = $this->postService->getAllPosts($request);
             return response()->json([
