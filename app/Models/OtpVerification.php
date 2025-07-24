@@ -14,14 +14,9 @@ class OtpVerification extends Model
         'used',
         'expire_at',
         'purpose',
-        'user_id',
     ];
     protected $casts = [
         'expire_at' => 'datetime',
         'used' => 'boolean',
     ];
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
 }
