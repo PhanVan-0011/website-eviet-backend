@@ -25,7 +25,6 @@ class PermissionController extends Controller
      */
     public function index(): JsonResponse
     {
-         $this->authorize('roles.manage');
         try {
             $groupedPermissions = $this->permissionService->getGroupedPermissions();
 
@@ -35,7 +34,6 @@ class PermissionController extends Controller
                 'data' => $groupedPermissions
             ], 200);
         } catch (Exception $e) {
-            Log::error("Lỗi khi lấy danh sách quyền hạn: ", ['message' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã có lỗi hệ thống xảy ra.'
@@ -48,7 +46,6 @@ class PermissionController extends Controller
      */
     public function assignRolesToUser(AssignRoleRequest $request, $id)
     {
-         $this->authorize('roles.manage');
         try {
             $user = $this->permissionService->assignRolesToUser($id, $request->input('roles'));
             return response()->json([
@@ -69,7 +66,6 @@ class PermissionController extends Controller
      */
     public function assignPermissionsToUser(AssignPermissionRequest $request, $id)
     {
-         $this->authorize('roles.manage');
         try {
             $user = $this->permissionService->assignPermissionsToUser($id, $request->input('permissions'));
             return response()->json([

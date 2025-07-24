@@ -28,7 +28,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         try {
-            
+
             $data = $this->productService->getAllProducts($request);
             return response()->json([
                 'success' => true,
@@ -93,7 +93,7 @@ class ProductController extends Controller
     /**
      * Cập nhật thông tin một sản phẩm
      */
-   public function update(UpdateProductRequest $request, int $id)
+    public function update(UpdateProductRequest $request, int $id)
     {
         try {
             $product = $this->productService->updateProduct($id, $request->validated());
@@ -141,7 +141,7 @@ class ProductController extends Controller
                 'success' => true,
                 'message' => "Đã xóa thành công {$deletedCount} sản phẩm",
             ]);
-        } catch (Exception $e) {  
+        } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }

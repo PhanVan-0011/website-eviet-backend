@@ -19,8 +19,6 @@ class DashBoardController extends Controller
     public function getStatistics(Request $request)
     {
         try {
-            $this->authorize('dashboard.view');
-            // Logic kiểm tra quyền đã được chuyển sang middleware trên route.
             $stats = $this->dashboardService->getDashboardStatistics();
 
             return response()->json([
@@ -28,7 +26,6 @@ class DashBoardController extends Controller
                 'data' => $stats
             ]);
         } catch (Exception $e) {
-            Log::error("Lỗi khi lấy dữ liệu Dashboard: ", ['message' => $e->getMessage()]);
             return response()->json(['success' => false, 'message' => 'Đã có lỗi hệ thống xảy ra.'], 500);
         }
     }

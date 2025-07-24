@@ -27,7 +27,6 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         try {
-            $this->authorize('orders.view');
             $result = $this->orderService->getAllOrders($request);
 
             return response()->json([

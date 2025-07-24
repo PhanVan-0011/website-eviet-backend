@@ -38,34 +38,21 @@ class CategoryController extends Controller
     public function index(Request $request)
     {
         try {
-            if ($request->query('context') === 'select_list') {
-
-                $this->authorize('categories.select_list'); // Kiểm tra quyền 'select_list'
-
-                $data = Category::where('status', 1)
-                    ->select('id', 'name')
-                    ->latest()
-                    ->get();
-
-                return response()->json($data);
-            } else {
-                $this->authorize('categories.view');
-                $data = $this->categoryService->getAllCategories($request);
-                return response()->json([
-                    'success' => true,
-                    'data' => CategoryResource::collection($data['data']),
-                    'pagination' => [
-                        'page' => $data['page'],
-                        'total' => $data['total'],
-                        'last_page' => $data['last_page'],
-                        'next_page' => $data['next_page'],
-                        'pre_page' => $data['pre_page'],
-                    ],
-                    'message' => 'Lấy danh sách danh mục thành công',
-                    'timestamp' => now()->format('d-m-Y H:i:s'),
-                ], 200);
-            }
-        } catch (Exception $e) { 
+            $data = $this->categoryService->getAllCategories($request);
+            return response()->json([
+                'success' => true,
+                'data' => CategoryResource::collection($data['data']),
+                'pagination' => [
+                    'page' => $data['page'],
+                    'total' => $data['total'],
+                    'last_page' => $data['last_page'],
+                    'next_page' => $data['next_page'],
+                    'pre_page' => $data['pre_page'],
+                ],
+                'message' => 'Lấy danh sách danh mục thành công',
+                'timestamp' => now()->format('d-m-Y H:i:s'),
+            ], 200);
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy danh sách danh mục',
@@ -79,7 +66,6 @@ class CategoryController extends Controller
      */
     public function show($category)
     {
-        $this->authorize('categories.view');
         try {
             $category = $this->categoryService->getCategoryById($category);
             return response()->json([
@@ -104,7 +90,6 @@ class CategoryController extends Controller
      */
     public function store(StoreCategoryRequest $request)
     {
-        $this->authorize('categories.manage');
         try {
             $category = $this->categoryService->createCategory($request->validated());
             return response()->json([
@@ -112,7 +97,7 @@ class CategoryController extends Controller
                 'data' => new CategoryResource($category),
                 'message' => 'Tạo danh mục thành công',
             ], 201);
-        }catch (Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi tạo danh mục',
@@ -124,7 +109,6 @@ class CategoryController extends Controller
      */
     public function update(UpdateCategoryRequest $request, $id)
     {
-        $this->authorize('categories.manage');
         try {
             $category = $this->categoryService->updateCategory($id, $request->validated());
             return response()->json([
@@ -155,7 +139,6 @@ class CategoryController extends Controller
      */
     public function destroy($id)
     {
-        $this->authorize('categories.manage');
         try {
             $deleted = $this->categoryService->deleteCategory($id);
 
@@ -191,8 +174,7 @@ class CategoryController extends Controller
      * Xóa nhiều danh mục cùng lúc
      */
     public function multiDelete(MultiDeleteCategoryRequest $request)
-    {
-        $this->authorize('categories.manage');
+    {;
         try {
             $deletedCount = $this->categoryService->multiDelete($request->validated()['ids']);
 
