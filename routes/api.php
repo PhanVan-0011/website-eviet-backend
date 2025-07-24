@@ -57,7 +57,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Combo---
-    Route::prefix('combos')->middleware('check.permission:combos.view,orders.create,orders.update,promotions.create,promotions.update')->group(function () {
+    Route::prefix('combos')->middleware('check.permission:combos.manage,orders.create,orders.update,promotions.create,promotions.update,sliders.manage')->group(function () {
         Route::get('/', [ComboController::class, 'index']);
         Route::get('/{id}', [ComboController::class, 'show']);
         Route::post('/', [ComboController::class, 'store'])->middleware('check.permission:combos.manage');
@@ -77,7 +77,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Product---
-    Route::prefix('products')->middleware('check.permission:products.view, orders.create,orders.update, promotions.create, promotions.update')->group(function () {
+    Route::prefix('products')->middleware('check.permission:products.view, orders.create,orders.update, promotions.create, promotions.update,sliders.manage')->group(function () {
         Route::get('/', [ProductController::class, 'index']);
         Route::get('/{id}', [ProductController::class, 'show']);
         Route::post('/', [ProductController::class, 'store'])->middleware('check.permission:products.create');
@@ -97,7 +97,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Promotion---
-    Route::prefix('promotions')->middleware('check.permission:promotions.view')->group(function () {
+    Route::prefix('promotions')->middleware('check.permission:promotions.view,sliders.manage')->group(function () {
         Route::get('/', [PromotionController::class, 'index']);
         Route::get('/{promotion}', [PromotionController::class, 'show']);
         Route::post('/', [PromotionController::class, 'store'])->middleware('check.permission:promotions.create');
