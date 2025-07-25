@@ -57,7 +57,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Combo---
-    Route::prefix('combos')->middleware('check.permission:combos.view,orders.create,orders.update,promotions.create,promotions.update')->group(function () {
+    Route::prefix('combos')->middleware('check.permission:combos.view,combo.manage,orders.create,orders.update,promotions.create,promotions.update')->group(function () {
         Route::get('/', [ComboController::class, 'index']);
         Route::get('/{id}', [ComboController::class, 'show']);
         Route::post('/', [ComboController::class, 'store'])->middleware('check.permission:combos.manage');
