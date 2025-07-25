@@ -12,13 +12,19 @@ use App\Services\AuthUserService;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 
+use App\Services\OtpService;
+use App\Http\Requests\Api\Auth\SendOtpRequest;
+use App\Http\Requests\Api\Auth\VerifyOtpRequest;
+
 class AuthController extends Controller
 {
     protected $authUserService;
+    protected $otpService;
 
-    public function __construct(AuthUserService $authUserService)
+    public function __construct(AuthUserService $authUserService, OtpService $otpService)
     {
         $this->authUserService = $authUserService;
+        $this->otpService = $otpService;
     }
     /**
      * Đăng ký người dùng.
@@ -42,13 +48,11 @@ class AuthController extends Controller
                 ],
             ], 201);
         } catch (QueryException $e) {
-            Log::error('Error during registration: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Email hoặc số điện thoại đã tồn tại',
             ], 409);
         } catch (\Throwable $e) {
-            Log::error('Unexpected error during registration: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã xảy ra lỗi không mong muốn.',
@@ -94,7 +98,6 @@ class AuthController extends Controller
                         : 'Số điện thoại hoặc mật khẩu không đúng'),
             ], 401);
         } catch (\Throwable $e) {
-            Log::error('Lỗi trong quá trình: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã xảy ra lỗi không mong muốn.',
@@ -118,11 +121,53 @@ class AuthController extends Controller
                 'timestamp' => now()->format('Y-m-d H:i:s'),
             ], 200);
         } catch (\Throwable $e) {
-            Log::error('Lỗi trong quá trình đăng xuất: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json([
                 'success' => false,
                 'message' => 'Đã xảy ra lỗi khi đăng xuất.',
             ], 500);
+        }
+    }
+    /**
+     * Gửi mã OTP đến số điện thoại để đăng nhập/đăng ký.
+     */
+    public function sendOtp(SendOtpRequest $request)
+    {
+        try {
+            $this->otpService->generateAndSendOtp($request->validated()['phone'], 'login');
+            return response()->json(['success' => true, 'message' => 'Mã OTP đã được gửi đến số điện thoại của bạn.']);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Send OTP Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Không thể gửi mã OTP vào lúc này.'], 500);
+        }
+    }
+
+    /**
+     * Xác thực OTP và tiến hành đăng nhập hoặc đăng ký.
+     */
+    public function verifyOtpAndLogin(VerifyOtpRequest $request)
+    {
+        $validated = $request->validated();
+        $isValid = $this->otpService->verifyOtp($validated['phone'], $validated['otp'], 'login');
+
+        if (!$isValid) {
+            return response()->json(['success' => false, 'message' => 'Mã OTP không hợp lệ hoặc đã hết hạn.'], 422);
+        }
+
+        try {
+            $user = $this->authUserService->findOrCreateUserAfterOtp($validated['phone']);
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xác thực thành công!',
+                'data' => [
+                    'user' => new \App\Http\Resources\UserResource($user),
+                    'access_token' => $token,
+                    'token_type' => 'Bearer',
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 403);
         }
     }
 }
