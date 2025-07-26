@@ -116,7 +116,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Product---
-    Route::prefix('products')->middleware('check.permission:products.view, orders.create,orders.update, promotions.create, promotions.update,sliders.manage')->group(function () {
+    Route::prefix('products')->middleware('check.permission:products.view,orders.create,orders.update,promotions.create,promotions.update,sliders.manage,combos.manage')->group(function () {
         Route::get('/', [ProductController::class, 'index']);
         Route::get('/{id}', [ProductController::class, 'show']);
         Route::post('/', [ProductController::class, 'store'])->middleware('check.permission:products.create');
