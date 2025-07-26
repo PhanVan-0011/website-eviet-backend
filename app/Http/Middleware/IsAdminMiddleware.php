@@ -20,19 +20,8 @@ class IsAdminMiddleware
         // Điều này đảm bảo việc kiểm tra quyền sẽ khớp với cách người dùng đăng nhập.
         config(['auth.defaults.guard' => 'api']);
 
-        // Danh sách các vai trò được xem là vai trò quản trị
-        $adminRoles = [
-            'super-admin', 
-            'sales-manager', 
-            'product-manager', 
-            'content-editor', 
-            'support-staff'
-        ];
-
-        // Kiểm tra xem người dùng có bất kỳ vai trò nào trong danh sách quản trị không.
-        // Dùng hasAnyRole() là cách làm đúng chuẩn của Spatie.
-        if ($request->user()->hasAnyRole($adminRoles)) {
-            // Nếu có, cho phép request đi tiếp vào lớp bảo vệ tiếp theo (permission middleware)
+        // Nếu user có ít nhất 1 role bất kỳ thì cho qua
+        if ($request->user()->roles()->exists()) {
             return $next($request);
         }
 

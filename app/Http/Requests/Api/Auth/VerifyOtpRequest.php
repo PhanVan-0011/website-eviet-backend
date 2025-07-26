@@ -24,6 +24,16 @@ class VerifyOtpRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'phone' => ['required', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/'],
+            'otp' => 'required|string|digits:6',
+        ];
+    }
+     /**
+     * Lấy các thông báo lỗi tùy chỉnh cho validator.
+     */
+    public function messages(): array
+    {
+        return [
             'phone.required' => 'Vui lòng nhập số điện thoại.',
             'phone.regex' => 'Số điện thoại không đúng định dạng.',
             'otp.required' => 'Vui lòng nhập mã OTP.',

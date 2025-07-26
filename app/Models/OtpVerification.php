@@ -9,7 +9,7 @@ class OtpVerification extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'phone_number',
+        'phone',
         'otp_code',
         'used',
         'expire_at',
