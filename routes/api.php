@@ -24,8 +24,47 @@ use App\Http\Controllers\Api\AdminUserController;
 Route::post('/auth/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:3,1');
 Route::post('/auth/otp/verify', [AuthController::class, 'verifyOtpAndLogin']);
 
+// // --- Public Content Browsing ---
+// // Các API này cho phép bất kỳ ai cũng có thể xem nội dung cửa hàng
+// Route::prefix('public')->group(function () {
+//     Route::get('/products', [ClientProductController::class, 'index']);
+//     Route::get('/products/{id}', [ClientProductController::class, 'show']);
+//     Route::get('/categories', [ClientCategoryController::class, 'index']);
+//     Route::get('/posts', [ClientPostController::class, 'index']);
+//     Route::get('/posts/{id}', [ClientPostController::class, 'show']);
+//     // Thêm các route public khác nếu cần (vd: combos, sliders...)
+// });
 
+// // == 2. CLIENT-FACING AUTHENTICATED ROUTES
+// // =========================================================================
+// // Các API này yêu cầu người dùng phải đăng nhập (khách hàng)
+// Route::middleware('auth:sanctum')->group(function () {
+//     Route::post('/logout', [AuthController::class, 'logout']);
 
+//     // Profile & Account Management
+//     Route::prefix('me')->group(function () {
+//         Route::get('/', [ClientProfileController::class, 'show']);
+//         Route::post('/update', [ClientProfileController::class, 'update']); // Dùng POST để gửi file ảnh
+//         Route::put('/change-password', [ClientProfileController::class, 'changePassword']);
+//     });
+
+//     // Shopping Cart
+//     Route::prefix('cart')->group(function () {
+//         Route::get('/', [ClientCartController::class, 'index']);
+//         Route::post('/items', [ClientCartController::class, 'addItem']);
+//         Route::put('/items/{itemId}', [ClientCartController::class, 'updateItem']);
+//         Route::delete('/items/{itemId}', [ClientCartController::class, 'removeItem']);
+//         Route::delete('/', [ClientCartController::class, 'clearCart']);
+//     });
+
+//     // Checkout & Order History
+//     Route::post('/checkout', [ClientOrderController::class, 'store']);
+//     Route::prefix('my-orders')->group(function () {
+//         Route::get('/', [ClientOrderController::class, 'index']);
+//         Route::get('/{order}', [ClientOrderController::class, 'show']);
+//         Route::post('/{order}/cancel', [ClientOrderController::class, 'cancel']);
+//     });
+// });
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
@@ -57,7 +96,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Combo---
-    Route::prefix('combos')->middleware('check.permission:combos.view,orders.create,orders.update,promotions.create,promotions.update')->group(function () {
+    Route::prefix('combos')->middleware('check.permission:combos.manage,orders.create,orders.update,promotions.create,promotions.update,sliders.manage')->group(function () {
         Route::get('/', [ComboController::class, 'index']);
         Route::get('/{id}', [ComboController::class, 'show']);
         Route::post('/', [ComboController::class, 'store'])->middleware('check.permission:combos.manage');
@@ -77,7 +116,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Product---
-    Route::prefix('products')->middleware('check.permission:products.view, orders.create,orders.update, promotions.create, promotions.update')->group(function () {
+    Route::prefix('products')->middleware('check.permission:products.view, orders.create,orders.update, promotions.create, promotions.update,sliders.manage')->group(function () {
         Route::get('/', [ProductController::class, 'index']);
         Route::get('/{id}', [ProductController::class, 'show']);
         Route::post('/', [ProductController::class, 'store'])->middleware('check.permission:products.create');
@@ -97,7 +136,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Promotion---
-    Route::prefix('promotions')->middleware('check.permission:promotions.view')->group(function () {
+    Route::prefix('promotions')->middleware('check.permission:promotions.view,sliders.manage')->group(function () {
         Route::get('/', [PromotionController::class, 'index']);
         Route::get('/{promotion}', [PromotionController::class, 'show']);
         Route::post('/', [PromotionController::class, 'store'])->middleware('check.permission:promotions.create');
