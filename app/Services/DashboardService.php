@@ -54,7 +54,8 @@ class DashboardService
      * Lấy các chỉ số KPI chính.
      */
     private function getKpis(): array
-    { $now = Carbon::now();
+    {
+        $now = Carbon::now();
         $dayOfMonth = $now->day;
 
         // Kỳ hiện tại: Từ đầu tháng này đến hôm nay
@@ -115,19 +116,27 @@ class DashboardService
             ],
         ];
     }
-        /**
-         * Hàm trợ giúp để tính toán phần trăm thay đổi.
-         */
-        private function calculatePercentageChange($current, $previous): float
-        {
-            if ($previous == 0) {
-                return $current > 0 ? 100.0 : 0.0;
-            }
-            $change = (($current - $previous) / $previous) * 100;
-            return round($change, 1);
+    /**
+     * Hàm trợ giúp để tính toán phần trăm thay đổi.
+     */
+    private function calculatePercentageChange($current, $previous): float
+    {
+        if ($previous == 0) {
+            return $current > 0 ? 100.0 : 0.0;
         }
 
+        $change = (($current - $previous) / abs($previous)) * 100;
+        $change = round($change, 1);
 
+        // Nếu vượt quá ±100 thì giới hạn lại
+        if ($change > 100) {
+            return 100.0;
+        } elseif ($change < -100) {
+            return -100.0;
+        }
+
+        return $change;
+    }
 
 
 
@@ -255,7 +264,7 @@ class DashboardService
     private function getRecentPendingOrders(int $limit): \Illuminate\Support\Collection
     {
         return Order::where('status', 'pending')
-            ->select('id as order_id', 'order_code', 'client_name', 'status','grand_total', 'created_at')
+            ->select('id as order_id', 'order_code', 'client_name', 'status', 'grand_total', 'created_at')
             ->latest('created_at')
             ->limit($limit)
             ->get();
