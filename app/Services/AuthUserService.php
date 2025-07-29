@@ -71,21 +71,40 @@ class AuthUserService
     /**
      * Tìm hoặc tạo người dùng bằng SĐT sau khi xác thực OTP thành công.
      */
-    public function findOrCreateUserAfterOtp(string $phone)
+        public function findOrCreateUserAfterOtp(string $phone): User
     {
-        $user = \App\Models\User::firstOrCreate(
-            ['phone' => $phone],
-            [
+
+       // 1. Tìm người dùng, bao gồm cả những người đã bị xóa mềm.
+        $user = User::withTrashed()->where('phone', $phone)->first();
+
+        if ($user) {
+            // 2. Nếu tìm thấy người dùng...
+            if ($user->trashed()) {
+                // 2a. Nếu họ đã bị xóa, đây có thể là số điện thoại tái sử dụng.
+                // Để bảo vệ dữ liệu người dùng cũ, chúng ta sẽ "gỡ liên kết" SĐT khỏi tài khoản cũ.
+                $user->phone = null;
+                $user->save();
+                
+                // Sau khi gỡ liên kết, coi như không tìm thấy người dùng và để logic tiếp tục tạo tài khoản mới.
+                $user = null; 
+            }
+        }
+
+        // 3. Nếu không có người dùng nào (hoặc đã được gỡ liên kết), tạo một người dùng hoàn toàn mới.
+        if (!$user) {
+            $user = User::create([
+                'phone' => $phone,
                 'name' => 'Người dùng ' . substr($phone, -4),
                 'email' => null,
-                'password' => \Illuminate\Support\Facades\Hash::make(uniqid()),
+                'password' => Hash::make(uniqid()),
                 'is_active' => true,
                 'is_verified' => true,
                 'phone_verified_at' => now(),
-            ]
-        );
+            ]);
+        }
 
-        if (!$user->wasRecentlyCreated && !$user->is_active) {
+        // 4. Kiểm tra trạng thái và cập nhật lần đăng nhập cuối.
+        if (!$user->is_active) {
             throw new \Exception('Tài khoản của bạn đã bị khóa.');
         }
 
@@ -94,6 +113,7 @@ class AuthUserService
 
         return $user;
     }
+    
     public function updateProfile(User $user, array $data): User
     {
         $imageFile = Arr::pull($data, 'image_url');

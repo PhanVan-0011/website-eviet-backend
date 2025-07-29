@@ -39,6 +39,7 @@ class CompleteProfileRequest extends FormRequest
             'date_of_birth.required' => 'Vui lòng nhập ngày sinh.',
             'date_of_birth.before' => 'Ngày sinh phải là một ngày trong quá khứ.',
             'password.required' => 'Vui lòng nhập mật khẩu.',
+            'password.required' => 'Vui lòng nhập mật khẩu.',
             'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
             'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
         ];
