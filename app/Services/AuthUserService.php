@@ -6,9 +6,16 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Arr;
 
 class AuthUserService
 {
+     protected ImageService $imageService;
+
+    public function __construct(ImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
     /**
      * Đăng ký người dùng mới.
      */
@@ -51,7 +58,6 @@ class AuthUserService
 
     /**
      * Đăng xuất người dùng.
-
      */
     public function logout(Request $request): bool
     {
@@ -69,7 +75,7 @@ class AuthUserService
         $user = \App\Models\User::firstOrCreate(
             ['phone' => $phone],
             [
-                'name' => 'Người dùng ' . substr($phone, -4),
+                'name' => 'Người dùng tạm' . substr($phone, -4),
                 'email' => null, 
                 'password' => \Illuminate\Support\Facades\Hash::make(uniqid()),
                 'is_active' => true,
@@ -86,5 +92,34 @@ class AuthUserService
         $user->save();
 
         return $user;
+    }
+    public function updateProfile(User $user, array $data): User
+    {
+        $imageFile = Arr::pull($data, 'image_url');
+        if (isset($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        }
+        if ($imageFile) {
+            if ($oldImage = $user->image) {
+                $this->imageService->delete($oldImage->image_url, 'users');
+            }
+            $basePath = $this->imageService->store($imageFile, 'users', $data['name'] ?? $user->name);
+            if ($basePath) {
+                $user->image()->updateOrCreate(
+                    ['imageable_id' => $user->id, 'imageable_type' => User::class],
+                    ['image_url' => $basePath, 'is_featured' => true]
+                );
+            }
+        }
+        //Log::info('Dữ liệu request:', $data);
+        $user->update($data);
+
+        return $user->fresh('image');
+    }
+
+    public function changePassword(User $user, array $data): bool
+    {
+        $user->password = Hash::make($data['password']);
+        return $user->save();
     }
 }

@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AdminUserController;
+use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 
 
 
@@ -68,18 +69,29 @@ Route::post('/auth/otp/verify', [AuthController::class, 'verifyOtpAndLogin']);
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/reset-password-by-phone', [AuthController::class, 'resetPasswordByPhone']);
+
+// --- Public Utilities ---
 Route::get('images/{path}', [ImageController::class, 'show'])->where('path', '.*');
 Route::post('upload-image', [ImageController::class, 'uploadGeneric']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    //User Register and Login by otp
+    Route::prefix('me')->group(function () {
+        Route::get('/', [ClientProfileController::class, 'show']);
+        //Complete Register
+        Route::post('/complete-profile', [ClientProfileController::class, 'completeProfile']);
+        //Update profile
+        Route::post('/update', [ClientProfileController::class, 'update']);
+        //Change password
+        Route::put('/change-password', [ClientProfileController::class, 'changePassword']);
+    });
+
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/profile/update', [AuthController::class, 'update_profile']);
-
     Route::get('/payment-methods', [PaymentMethodController::class, 'index'])->middleware('check.permission:orders.view,orders.update,payment_methods.view');
 });
-
 
 
 //Admin
