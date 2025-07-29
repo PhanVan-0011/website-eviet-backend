@@ -27,7 +27,7 @@ class AuthUserService
     {
         try {
             $isEmail = filter_var($login, FILTER_VALIDATE_EMAIL);
-            $query = User::with(['roles', 'permissions']);
+            $query = User::with(['roles', 'permissions', 'image']);
             $user = $isEmail
                 ? $query->where('email', $login)->first()
                 : $query->where('phone', $login)->first();
@@ -65,12 +65,13 @@ class AuthUserService
     /**
      * Tìm hoặc tạo người dùng bằng SĐT sau khi xác thực OTP thành công.
      */
-    public function findOrCreateUserAfterOtp(string $phone){
+    public function findOrCreateUserAfterOtp(string $phone)
+    {
         $user = \App\Models\User::firstOrCreate(
             ['phone' => $phone],
             [
                 'name' => 'Người dùng ' . substr($phone, -4),
-                'email' => null, 
+                'email' => null,
                 'password' => \Illuminate\Support\Facades\Hash::make(uniqid()),
                 'is_active' => true,
                 'is_verified' => true,
