@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Api\Auth;
+namespace App\Http\Requests\Api\Auth\Register;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class VerifyOtpRequest extends FormRequest
+class CompleteRegistrationRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,20 +24,27 @@ class VerifyOtpRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => ['required', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/'],
-            'otp' => 'required|string|digits:6',
+            'name' => 'required|string|max:255',
+            'gender' => 'required|string|in:male,female,other',
+            'date_of_birth' => 'required|date_format:Y-m-d|before:today',
+            'password' => 'required|string|min:6|confirmed',
         ];
     }
-     /**
-     * Lấy các thông báo lỗi tùy chỉnh cho validator.
-     */
     public function messages(): array
     {
         return [
             'phone.required' => 'Vui lòng nhập số điện thoại.',
             'phone.regex' => 'Số điện thoại không đúng định dạng.',
+            'phone.unique' => 'Số điện thoại này đã được đăng ký.',
             'otp.required' => 'Vui lòng nhập mã OTP.',
             'otp.digits' => 'Mã OTP phải bao gồm 6 chữ số.',
+            'name.required' => 'Vui lòng nhập họ và tên.',
+            'gender.required' => 'Vui lòng chọn giới tính.',
+            'date_of_birth.required' => 'Vui lòng nhập ngày sinh.',
+            'date_of_birth.before' => 'Ngày sinh phải là một ngày trong quá khứ.',
+            'password.required' => 'Vui lòng nhập mật khẩu.',
+            'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
+            'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
         ];
     }
     protected function failedValidation(Validator $validator)

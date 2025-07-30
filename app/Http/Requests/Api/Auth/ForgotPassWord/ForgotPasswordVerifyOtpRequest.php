@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Api\Auth;
+namespace App\Http\Requests\Api\Auth\ForgotPassWord;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class SendOtpRequest extends FormRequest
+class ForgotPasswordVerifyOtpRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,21 +24,17 @@ class SendOtpRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => [
-                'required',
-                'string',
-                'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/'
-            ]
+            'otp' => 'required|string|digits:6',
         ];
     }
-
     public function messages(): array
     {
         return [
-            'phone.required' => 'Vui lòng nhập số điện thoại.',
-            'phone.regex' => 'Số điện thoại không đúng định dạng.',
+            'otp.required' => 'Vui lòng nhập mã OTP.',
+            'otp.digits' => 'Mã OTP phải bao gồm 6 chữ số.',
         ];
     }
+
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(response()->json([

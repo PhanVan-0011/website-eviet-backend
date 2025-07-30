@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Api\Client;
+namespace App\Http\Requests\Api\Auth\ForgotPassWord;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class ChangePasswordRequest extends FormRequest
+class ForgotPasswordInitiateRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,20 +24,15 @@ class ChangePasswordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'password' => 'required|string|min:6|confirmed',
+            // Yêu cầu SĐT phải tồn tại và không bị xóa mềm
+             'phone' => ['required', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/', 'exists:users,phone,deleted_at,NULL']
         ];
     }
-     /**
-     * Lấy các thông báo lỗi tùy chỉnh cho validator.
-     *
-     * @return array
-     */
     public function messages(): array
     {
         return [
-            'password.required'  => 'Vui lòng nhập mật khẩu mới.',
-            'password.min'       => 'Mật khẩu phải có ít nhất 6 ký tự.',
-            'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
+           'phone.required' => 'Vui lòng nhập số điện thoại.',
+           'phone.exists' => 'Số điện thoại này chưa được đăng ký.',
         ];
     }
     protected function failedValidation(Validator $validator)

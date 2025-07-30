@@ -5,16 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Auth\LoginRequest;
 use App\Http\Requests\Api\Auth\LogoutRequest;
-use App\Http\Requests\Api\Auth\RegisterRequest;
-use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\Log;
 use App\Services\AuthUserService;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-
 use App\Services\OtpService;
-use App\Http\Requests\Api\Auth\SendOtpRequest;
-use App\Http\Requests\Api\Auth\VerifyOtpRequest;
+use App\Http\Requests\Api\Auth\LoginApp\LoginAppRequest;
+
+
+
 
 class AuthController extends Controller
 {
@@ -26,41 +24,9 @@ class AuthController extends Controller
         $this->authUserService = $authUserService;
         $this->otpService = $otpService;
     }
+    
     /**
-     * Đăng ký người dùng.
-     *
-     * @param \App\Http\Requests\Api\Auth\RegisterRequest $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function register(RegisterRequest $request)
-    {
-        try {
-            $user = $this->authUserService->register($request->validated());
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Đăng ký thành công',
-                'data' => [
-                    'user' => new UserResource($user),
-                    'access_token' => $token,
-                    'token_type' => 'Bearer',
-                ],
-            ], 201);
-        } catch (QueryException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Email hoặc số điện thoại đã tồn tại',
-            ], 409);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Đã xảy ra lỗi không mong muốn.',
-            ], 500);
-        }
-    }
-    /**
-     * Đăng nhập người dùng.
+     * Đăng nhập người dùng admin.
      *
      * @param \App\Http\Requests\Api\Auth\LoginRequest $request
      * @return \Illuminate\Http\JsonResponse
@@ -127,47 +93,34 @@ class AuthController extends Controller
             ], 500);
         }
     }
-    /**
-     * Gửi mã OTP đến số điện thoại để đăng nhập/đăng ký.
-     */
-    public function sendOtp(SendOtpRequest $request)
-    {
-        try {
-            $this->otpService->generateAndSendOtp($request->validated()['phone'], 'login');
-            return response()->json(['success' => true, 'message' => 'Mã OTP đã được gửi đến số điện thoại của bạn.']);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Send OTP Error: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Không thể gửi mã OTP vào lúc này.'], 500);
-        }
-    }
+    
 
     /**
-     * Xác thực OTP và tiến hành đăng nhập hoặc đăng ký.
+     * Đăng nhập bằng SĐT và Mật khẩu.
+     * URL: POST /api/auth/login
      */
-    public function verifyOtpAndLogin(VerifyOtpRequest $request)
+     public function loginApp(LoginAppRequest $request)
     {
-        $validated = $request->validated();
-        $isValid = $this->otpService->verifyOtp($validated['phone'], $validated['otp'], 'login');
+        $user = $this->authUserService->login($request->validated()['phone'], $request->validated()['password']);
 
-        if (!$isValid) {
-            return response()->json(['success' => false, 'message' => 'Mã OTP không hợp lệ hoặc đã hết hạn.'], 422);
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Số điện thoại hoặc mật khẩu không chính xác.'], 401);
+        }
+        
+        if ($user === 'locked') {
+             return response()->json(['success' => false, 'message' => 'Tài khoản của bạn đã bị khóa.'], 403);
         }
 
-        try {
-            $user = $this->authUserService->findOrCreateUserAfterOtp($validated['phone']);
-            $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Xác thực thành công!',
-                'data' => [
-                    'user' => new \App\Http\Resources\UserResource($user),
-                    'access_token' => $token,
-                    'token_type' => 'Bearer',
-                ],
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 403);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'Đăng nhập thành công!',
+            'data' => [
+                'user' => new UserResource($user),
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+            ],
+        ]);
     }
 }

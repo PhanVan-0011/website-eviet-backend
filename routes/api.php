@@ -17,13 +17,12 @@ use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
+use App\Http\Controllers\Api\Client\RegistrationController;
+use App\Http\Controllers\Api\Client\ForgotPasswordController;
 
 
 
 // ===  ROUTE PUBLIC ===
-// --- Client Authentication (OTP Flow) ---
-Route::post('/auth/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:3,1');
-Route::post('/auth/otp/verify', [AuthController::class, 'verifyOtpAndLogin']);
 
 // // --- Public Content Browsing ---
 // // Các API này cho phép bất kỳ ai cũng có thể xem nội dung cửa hàng
@@ -66,26 +65,34 @@ Route::post('/auth/otp/verify', [AuthController::class, 'verifyOtpAndLogin']);
 //         Route::post('/{order}/cancel', [ClientOrderController::class, 'cancel']);
 //     });
 // });
+//Login Admin
 
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'register']);
 
 // --- Public Utilities ---
 Route::get('images/{path}', [ImageController::class, 'show'])->where('path', '.*');
 Route::post('upload-image', [ImageController::class, 'uploadGeneric']);
+// --- Client Authentication ---
+Route::prefix('auth')->group(function () {
+     // Luồng Đăng ký
+    Route::post('/register/initiate', [RegistrationController::class, 'initiate'])->middleware('throttle:3,1');
+    Route::post('/register/verify-otp', [RegistrationController::class, 'verifyOtp']);
+    Route::post('/register/complete', [RegistrationController::class, 'complete']);
+    // Luồng Đăng nhập
+    Route::post('/loginApp', [AuthController::class, 'loginApp']);
+});
+//ForgotPassWord
+Route::prefix('password/forgot')->group(function () {
+    Route::post('/initiate', [ForgotPasswordController::class, 'initiate'])->middleware('throttle:3,1');
+    Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
+    Route::post('/complete', [ForgotPasswordController::class, 'complete']);
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-
+    Route::post('/login', [AuthController::class, 'login']);
     //User Register and Login by otp
     Route::prefix('me')->group(function () {
         Route::get('/', [ClientProfileController::class, 'show']);
-        //Complete Register
-        Route::post('/complete-profile', [ClientProfileController::class, 'completeProfile']);
-        //Update profile
-        Route::post('/update', [ClientProfileController::class, 'update']);
-        //Change password
-        Route::put('/change-password', [ClientProfileController::class, 'changePassword']);
     });
 
     Route::get('/me', [AuthController::class, 'me']);

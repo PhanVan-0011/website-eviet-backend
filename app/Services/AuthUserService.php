@@ -68,44 +68,37 @@ class AuthUserService
         }
         return false;
     }
-    /**
-     * Tìm hoặc tạo người dùng bằng SĐT sau khi xác thực OTP thành công.
+     /**
+     * Tạo người dùng mới sau khi hoàn tất đăng ký.
      */
-        public function findOrCreateUserAfterOtp(string $phone): User
+    public function createUser(array $data): User
     {
+        return User::create([
+            'phone' => $data['phone'],
+            'name' => $data['name'],
+            'gender' => $data['gender'],
+            'date_of_birth' => $data['date_of_birth'],
+            'password' => Hash::make($data['password']),
+            'email' => null, // Mặc định email là null
+            'is_active' => true,
+            'is_verified' => true,
+            'phone_verified_at' => now(),
+        ]);
+    }
 
-       // 1. Tìm người dùng, bao gồm cả những người đã bị xóa mềm.
-        $user = User::withTrashed()->where('phone', $phone)->first();
+    /**
+     * Đăng nhập người dùng bằng SĐT và mật khẩu.
+     */
+    public function loginApp(string $phone, string $password)
+    {
+        $user = User::where('phone', $phone)->first();
 
-        if ($user) {
-            // 2. Nếu tìm thấy người dùng...
-            if ($user->trashed()) {
-                // 2a. Nếu họ đã bị xóa, đây có thể là số điện thoại tái sử dụng.
-                // Để bảo vệ dữ liệu người dùng cũ, chúng ta sẽ "gỡ liên kết" SĐT khỏi tài khoản cũ.
-                $user->phone = null;
-                $user->save();
-                
-                // Sau khi gỡ liên kết, coi như không tìm thấy người dùng và để logic tiếp tục tạo tài khoản mới.
-                $user = null; 
-            }
+        if (!$user || !Hash::check($password, $user->password)) {
+            return null; // Trả về null nếu sai thông tin
         }
 
-        // 3. Nếu không có người dùng nào (hoặc đã được gỡ liên kết), tạo một người dùng hoàn toàn mới.
-        if (!$user) {
-            $user = User::create([
-                'phone' => $phone,
-                'name' => 'Người dùng ' . substr($phone, -4),
-                'email' => null,
-                'password' => Hash::make(uniqid()),
-                'is_active' => true,
-                'is_verified' => true,
-                'phone_verified_at' => now(),
-            ]);
-        }
-
-        // 4. Kiểm tra trạng thái và cập nhật lần đăng nhập cuối.
         if (!$user->is_active) {
-            throw new \Exception('Tài khoản của bạn đã bị khóa.');
+            return 'locked'; // Trả về 'locked' nếu tài khoản bị khóa
         }
 
         $user->last_login_at = now();
@@ -114,12 +107,22 @@ class AuthUserService
         return $user;
     }
     
+    /**
+     * Đặt lại mật khẩu cho người dùng.
+     */
+    public function resetPassword(array $data): bool
+    {
+        $user = User::where('phone', $data['phone'])->firstOrFail();
+        $user->password = Hash::make($data['password']);
+        return $user->save();
+    }
+    /**
+     * (MỚI) Cập nhật hồ sơ cho người dùng.
+     */
     public function updateProfile(User $user, array $data): User
     {
         $imageFile = Arr::pull($data, 'image_url');
-        if (isset($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
-        }
+
         if ($imageFile) {
             if ($oldImage = $user->image) {
                 $this->imageService->delete($oldImage->image_url, 'users');
@@ -132,15 +135,8 @@ class AuthUserService
                 );
             }
         }
-        //Log::info('Dữ liệu request:', $data);
+
         $user->update($data);
-
         return $user->fresh('image');
-    }
-
-    public function changePassword(User $user, array $data): bool
-    {
-        $user->password = Hash::make($data['password']);
-        return $user->save();
     }
 }
