@@ -66,7 +66,7 @@ use App\Http\Controllers\Api\Client\ForgotPasswordController;
 //     });
 // });
 //Login Admin
-
+Route::post('/login', [AuthController::class, 'login']);
 
 // --- Public Utilities ---
 Route::get('images/{path}', [ImageController::class, 'show'])->where('path', '.*');
@@ -89,7 +89,7 @@ Route::prefix('password/forgot')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::post('/login', [AuthController::class, 'login']);
+    
     //User Register and Login by otp
     Route::prefix('me')->group(function () {
         Route::get('/', [ClientProfileController::class, 'show']);
