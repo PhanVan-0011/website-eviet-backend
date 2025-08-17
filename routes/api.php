@@ -19,52 +19,15 @@ use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 use App\Http\Controllers\Api\Client\RegistrationController;
 use App\Http\Controllers\Api\Client\ForgotPasswordController;
-
+use App\Http\Controllers\Api\Client\ClientSliderController;
 
 
 // ===  ROUTE PUBLIC ===
+Route::prefix('public')->group(function () {
+    Route::get('/sliders', [ClientSliderController::class, 'index']);
+    // 
+});
 
-// // --- Public Content Browsing ---
-// // Các API này cho phép bất kỳ ai cũng có thể xem nội dung cửa hàng
-// Route::prefix('public')->group(function () {
-//     Route::get('/products', [ClientProductController::class, 'index']);
-//     Route::get('/products/{id}', [ClientProductController::class, 'show']);
-//     Route::get('/categories', [ClientCategoryController::class, 'index']);
-//     Route::get('/posts', [ClientPostController::class, 'index']);
-//     Route::get('/posts/{id}', [ClientPostController::class, 'show']);
-//     // Thêm các route public khác nếu cần (vd: combos, sliders...)
-// });
-
-// // == 2. CLIENT-FACING AUTHENTICATED ROUTES
-// // =========================================================================
-// // Các API này yêu cầu người dùng phải đăng nhập (khách hàng)
-// Route::middleware('auth:sanctum')->group(function () {
-//     Route::post('/logout', [AuthController::class, 'logout']);
-
-//     // Profile & Account Management
-//     Route::prefix('me')->group(function () {
-//         Route::get('/', [ClientProfileController::class, 'show']);
-//         Route::post('/update', [ClientProfileController::class, 'update']); // Dùng POST để gửi file ảnh
-//         Route::put('/change-password', [ClientProfileController::class, 'changePassword']);
-//     });
-
-//     // Shopping Cart
-//     Route::prefix('cart')->group(function () {
-//         Route::get('/', [ClientCartController::class, 'index']);
-//         Route::post('/items', [ClientCartController::class, 'addItem']);
-//         Route::put('/items/{itemId}', [ClientCartController::class, 'updateItem']);
-//         Route::delete('/items/{itemId}', [ClientCartController::class, 'removeItem']);
-//         Route::delete('/', [ClientCartController::class, 'clearCart']);
-//     });
-
-//     // Checkout & Order History
-//     Route::post('/checkout', [ClientOrderController::class, 'store']);
-//     Route::prefix('my-orders')->group(function () {
-//         Route::get('/', [ClientOrderController::class, 'index']);
-//         Route::get('/{order}', [ClientOrderController::class, 'show']);
-//         Route::post('/{order}/cancel', [ClientOrderController::class, 'cancel']);
-//     });
-// });
 //Login Admin
 Route::post('/login', [AuthController::class, 'login']);
 
