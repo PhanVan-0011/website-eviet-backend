@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Throwable;
 
 
@@ -42,6 +43,16 @@ class Handler extends ExceptionHandler
      */
     public function register(): void
     {
+        
+        $this->renderable(function (ThrottleRequestsException $e, $request) {
+            if ($request->expectsJson()) {
+                $retryAfter = $e->getHeaders()['Retry-After'] ?? 60;
+                return response()->json([
+                    'success' => false,
+                    'message' => "Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau {$retryAfter} giây."
+                ], 429);
+            }
+        });
         $this->reportable(function (Throwable $e) {
             //
         });

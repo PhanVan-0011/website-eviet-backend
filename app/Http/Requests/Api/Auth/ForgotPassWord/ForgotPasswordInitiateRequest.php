@@ -33,6 +33,8 @@ class ForgotPasswordInitiateRequest extends FormRequest
         return [
            'phone.required' => 'Vui lòng nhập số điện thoại.',
            'phone.exists' => 'Số điện thoại này chưa được đăng ký.',
+           'phone.string' => 'Số điện thoại phải là một chuỗi ký tự.',
+           'phone.regex' => 'Số điện thoại không đúng định dạng. Vui lòng kiểm tra lại.',
         ];
     }
     protected function failedValidation(Validator $validator)

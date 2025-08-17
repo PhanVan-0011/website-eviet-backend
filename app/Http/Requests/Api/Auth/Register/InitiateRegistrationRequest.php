@@ -27,6 +27,19 @@ class InitiateRegistrationRequest extends FormRequest
             'phone' => ['required', 'string', 'regex:/^(0[3|5|7|8|9])+([0-9]{8})$/']
         ];
     }
+    /**
+     * Get the error messages for the defined validation rules.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'phone.required' => 'Vui lòng nhập số điện thoại.',
+            'phone.string' => 'Số điện thoại phải là một chuỗi ký tự.',
+            'phone.regex' => 'Số điện thoại không đúng định dạng. Vui lòng kiểm tra lại.',
+        ];
+    }
      public function passedValidation()
     {
         $user = User::withTrashed()->where('phone', $this->input('phone'))->first();
