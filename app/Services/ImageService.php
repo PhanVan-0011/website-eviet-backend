@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 use Intervention\Image\ImageManager;
+
 class ImageService
 {
     /**
@@ -28,15 +29,15 @@ class ImageService
             'thumb' => [200, 200]
         ],
         'sliders' => [
-            'main' => [1600, 900], 
+            'main' => [1600, 900],
             'thumb' => [400, 225],
         ],
         'users' => [
-            'main' => [200, 200], 
-            'thumb' => [50, 50]     
+            'main' => [200, 200],
+            'thumb' => [50, 50]
         ],
     ];
-     /**
+    /**
      * @var ImageManager
      */
     protected ImageManager $imageManager;
@@ -54,7 +55,7 @@ class ImageService
         try {
             $year = now()->format('Y');
             $month = now()->format('m');
-            
+
             $fileName = Str::slug($slug) . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
             $basePath = "{$folder}/{$year}/{$month}/{$fileName}";
             $imageSizes = $this->sizes[$folder] ?? [];
@@ -65,24 +66,24 @@ class ImageService
             }
 
             //Sử dụng đối tượng đã được tiêm vào
-           $image = $this->imageManager->read($file->getRealPath());
+            $image = $this->imageManager->read($file->getRealPath());
 
             foreach ($imageSizes as $sizeName => $dimensions) {
                 $fullPath = "{$folder}/{$year}/{$month}/{$sizeName}/{$fileName}";
-                
+
                 $resizedImage = $image->scale($dimensions[0], $dimensions[1])->encode();
 
                 Storage::disk('public')->put($fullPath, $resizedImage);
             }
 
             return $basePath;
-
         } catch (\Exception $e) {
             Log::error("Lỗi khi xử lý ảnh: " . $e->getMessage());
             return null;
         }
     }
-    
+
+
     /**
      * Xóa tất cả các phiên bản của một ảnh.
      */
@@ -96,7 +97,7 @@ class ImageService
             $imageSizes = $this->sizes[$folder] ?? [];
 
             if (empty($imageSizes)) {
-                 if (Storage::disk('public')->exists($basePath)) {
+                if (Storage::disk('public')->exists($basePath)) {
                     Storage::disk('public')->delete($basePath);
                 }
                 return;
@@ -106,7 +107,7 @@ class ImageService
                 // Tách đường dẫn để lấy tên file và thư mục cha
                 $directory = dirname($basePath);
                 $fileName = basename($basePath);
-                
+
                 $fullPath = "{$directory}/{$sizeName}/{$fileName}";
 
                 if (Storage::disk('public')->exists($fullPath)) {

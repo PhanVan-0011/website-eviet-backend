@@ -53,22 +53,82 @@ class ImageController extends Controller
             $folder = $request->input('folder', 'posts'); // mặc định là posts
             $slug = $request->input('slug', pathinfo($request->file('image')->getClientOriginalName(), PATHINFO_FILENAME));
 
-            // kiểm tra folder hợp lệ 
+            // kiểm tra folder có main 
             $allowedFolders = ['posts', 'products', 'users', 'sliders', 'combos'];
-            if (!in_array($folder, $allowedFolders)) {
-                return response()->json(['success' => false, 'message' => 'Thư mục không hợp lệ'], 400);
-            }
 
             $basePath = $this->imageService->store($request->file('image'), $folder, $slug);
             if (!$basePath) {
                 return response()->json(['success' => false, 'message' => 'Lưu ảnh thất bại'], 500);
             }
-            // Trả về đường dẫn main
-            $mainPath = preg_replace('/\/thumb\//', '/main/', $basePath);
-            $mainPath = preg_replace('/^(.*?\/)\/?([^\/]+)$/', '$1main/$2', $basePath); // Đảm bảo đúng định dạng
-            return response()->json(['success' => true, 'url' => $mainPath], 200);
+
+            if (in_array($folder, $allowedFolders, true)) {
+
+                // Hoặc dùng regex đảm bảo format chính xác
+                $mainPath = preg_replace('/^(.*?\/)\/?([^\/]+)$/', '$1main/$2', $basePath);
+
+                return response()->json([
+                    'success' => true,
+                    'url' => $mainPath,
+                ], 200);
+            }
+
+            // Nếu không nằm trong allowedFolders: trả về đường dẫn gốc
+            return response()->json([
+                'success' => true,
+                'url' => $basePath,
+            ], 200);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Xóa ảnh từ storage
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteImage(Request $request)
+    {
+        try {
+            $imagePath = $request->input('image_path');
+            $folder = $request->input('folder');
+
+            // Kiểm tra dữ liệu đầu vào
+            if (!$imagePath || !$folder) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Thiếu thông tin đường dẫn ảnh hoặc thư mục'
+                ], 400);
+            }
+
+            // Kiểm tra thư mục có được phép xóa không
+            $allowedFolders = ['posts', 'products', 'users', 'sliders', 'combos', 'promotions'];
+            if (!in_array($folder, $allowedFolders)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Thư mục không được phép xóa'
+                ], 403);
+            }
+
+            // Xử lý đường dẫn ảnh nếu có chứa '/main/'
+            $basePath = $imagePath;
+            if (strpos($imagePath, '/main/') !== false) {
+                $basePath = preg_replace('/\/main\//', '/', $imagePath);
+            }
+
+            // Gọi service để xóa ảnh
+            $this->imageService->delete($basePath, $folder);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa ảnh thành công'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi xóa ảnh: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

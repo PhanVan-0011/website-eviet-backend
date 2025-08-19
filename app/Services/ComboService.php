@@ -143,32 +143,17 @@ class ComboService
 
         try {
             return DB::transaction(function () use ($combo, $data) {
-                $imageFiles = Arr::pull($data, 'image_url');
+                // Lưu thông tin về việc có gửi image_url hay không trước khi pull
+                $hasImageUrl = array_key_exists('image_url', $data);
+                $imageFile = Arr::pull($data, 'image_url');
                 $items = Arr::pull($data, 'items');
 
                 $combo->update($data);
 
-                if (is_array($imageFiles) && !empty($imageFiles)) {
-                    $imageFile = current($imageFiles);
+                // Xử lý cập nhật ảnh
+                $this->handleImageUpdate($combo, $imageFile, $hasImageUrl);
 
-                    if ($imageFile instanceof UploadedFile) {
-                        // Xóa ảnh cũ nếu có
-                        if ($combo->image) {
-                            $this->imageService->delete($combo->image->image_url, 'combos');
-                            $combo->image->delete();
-                        }
-
-                        // Upload và tạo ảnh mới
-                        $imageSlug = $data['slug'] ?? $combo->slug;
-                        $pathData = $this->imageService->store($imageFile, 'combos', $imageSlug);
-                        if ($pathData) {
-                            $combo->image()->create([
-                                'image_url' => $pathData,
-                                'is_featured' => true
-                            ]);
-                        }
-                    }
-                }
+                // Xử lý cập nhật items
                 if (!is_null($items)) {
                     $combo->items()->delete();
                     if (!empty($items)) {
@@ -183,6 +168,43 @@ class ComboService
             Log::error("Lỗi khi cập nhật combo ID {$id}: " . $e->getMessage(), ['data' => Arr::except($data, 'image_url')]);
             throw new Exception("Không thể cập nhật combo. Vui lòng thử lại.");
         }
+    }
+
+    /**
+     * Xử lý cập nhật ảnh cho combo
+     */
+    private function handleImageUpdate(Combo $combo, $imageFile, bool $hasImageUrl): void
+    {
+        // Trường hợp 1: Có file ảnh mới được upload
+        if ($imageFile instanceof UploadedFile) {
+            $imageSlug = $combo->slug;
+
+            // Upload ảnh mới trước
+            $pathData = $this->imageService->store($imageFile, 'combos', $imageSlug);
+            if (!$pathData) {
+                throw new Exception("Không thể upload ảnh mới. Vui lòng thử lại.");
+            }
+
+            // Xóa ảnh cũ sau khi upload thành công
+            if ($combo->image) {
+                $this->imageService->delete($combo->image->image_url, 'combos');
+                $combo->image->delete();
+            }
+
+            // Tạo record ảnh mới
+            $combo->image()->create([
+                'image_url' => $pathData,
+                'is_featured' => true
+            ]);
+        }
+        // Trường hợp 2: Yêu cầu xóa ảnh hiện tại (gửi null hoặc empty string)
+        elseif ($hasImageUrl && (is_null($imageFile) || $imageFile === '')) {
+            if ($combo->image) {
+                $this->imageService->delete($combo->image->image_url, 'combos');
+                $combo->image->delete();
+            }
+        }
+        // Trường hợp 3: Không có thay đổi ảnh (không gửi image_url) - không làm gì
     }
     /**
      * Xóa một combo dựa trên một chuỗi các ID.
