@@ -19,6 +19,8 @@ class UpdateComboRequest extends FormRequest
         return true;
     }
 
+
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -34,7 +36,34 @@ class UpdateComboRequest extends FormRequest
             'description'           => 'sometimes|nullable|string|max:255',
             'price'                 => 'sometimes|required|numeric|min:0',
 
-            'image_url'             => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image_url'             => [
+                'sometimes',
+                function ($attribute, $value, $fail) {
+                    // Cho phép null hoặc empty để xóa ảnh
+                    if (is_null($value) || $value === '') {
+                        return;
+                    }
+
+                    // Kiểm tra là UploadedFile và upload thành công
+                    if (!($value instanceof \Illuminate\Http\UploadedFile) || !$value->isValid()) {
+                        $fail('File tải lên không hợp lệ.');
+                        return;
+                    }
+
+                    // Kiểm tra kích thước (2MB)
+                    if ($value->getSize() > 2048 * 1024) {
+                        $fail('Kích thước ảnh không được vượt quá 2MB.');
+                        return;
+                    }
+
+                    // Kiểm tra có phải ảnh hợp lệ (JPEG, PNG, GIF)
+                    $imageInfo = @getimagesize($value->getPathname());
+                    if (!$imageInfo || !in_array($imageInfo[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF])) {
+                        $fail('File phải là ảnh định dạng JPEG, PNG hoặc GIF.');
+                        return;
+                    }
+                }
+            ],
             'start_date'            => 'sometimes|nullable|date',
             'end_date'              => 'sometimes|nullable|date|after_or_equal:start_date',
             'is_active'             => 'sometimes|boolean',
@@ -61,9 +90,7 @@ class UpdateComboRequest extends FormRequest
             'slug.string' => 'Slug phải là chuỗi.',
             'slug.unique' => 'Slug này đã tồn tại.',
 
-            'image_url.image' => 'File tải lên phải là hình ảnh.',
-            'image_url.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
-            'image_url.max' => 'Kích thước ảnh không được vượt quá 2MB.',
+            // Các message cho image_url đã được xử lý trong custom validation
 
             'start_date.date' => 'Ngày bắt đầu phải đúng định dạng ngày.',
             'end_date.date' => 'Ngày kết thúc phải đúng định dạng ngày.',

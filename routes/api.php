@@ -43,9 +43,11 @@ Route::post('/login', [AuthController::class, 'login']);
 // --- Public Utilities ---
 Route::get('images/{path}', [ImageController::class, 'show'])->where('path', '.*');
 Route::post('upload-image', [ImageController::class, 'uploadGeneric']);
+Route::delete('delete-image', [ImageController::class, 'deleteImage']);
+
 // --- Client Authentication ---
 Route::prefix('auth')->group(function () {
-     // Luồng Đăng ký
+    // Luồng Đăng ký
     Route::post('/register/initiate', [RegistrationController::class, 'initiate'])->middleware('throttle:3,1');
     Route::post('/register/verify-otp', [RegistrationController::class, 'verifyOtp']);
     Route::post('/register/complete', [RegistrationController::class, 'complete']);
@@ -61,7 +63,7 @@ Route::prefix('password/forgot')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    
+
     //User Register and Login by otp
     Route::prefix('me')->group(function () {
         Route::get('/', [ClientProfileController::class, 'show']);
