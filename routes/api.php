@@ -22,7 +22,8 @@ use App\Http\Controllers\Api\Client\ForgotPasswordController;
 use App\Http\Controllers\Api\Client\ClientSliderController;
 use App\Http\Controllers\Api\Client\ProductController as ClientProductController;
 use App\Http\Controllers\Api\Client\PromotionController as ClientPromotionController;
-
+use App\Http\Controllers\Api\Client\ComboController as ClientComboController; 
+use App\Http\Controllers\Api\Client\PostController as ClientPostController;
 
 // ===  ROUTE PUBLIC ===
 Route::prefix('public')->group(function () {
@@ -34,7 +35,14 @@ Route::prefix('public')->group(function () {
         Route::get('/{id}', [ClientProductController::class, 'show']);
     });
     Route::get('/promotions', [ClientPromotionController::class, 'index']);
-    // 
+    Route::prefix('combos')->group(function () {
+        Route::get('/', [ClientComboController::class, 'index']);
+        Route::get('/{id}', [ClientComboController::class, 'show']);
+    });
+    Route::prefix('posts')->group(function () {
+        Route::get('/', [ClientPostController::class, 'index']);
+        Route::get('/{slug}', [ClientPostController::class, 'show']);
+    });
 });
 
 //Login Admin

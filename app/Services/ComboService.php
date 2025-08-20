@@ -215,7 +215,7 @@ class ComboService
             $combo = $this->getComboById($id);
 
             if ($combo->orderDetails()->exists()) {
-                throw new Exception("Không thể xóa combo {$combo->id} vì đã phát sinh đơn hàng.");
+                throw new Exception("Không thể xóa combo {$combo->name} vì đã phát sinh đơn hàng.");
             }
 
             return DB::transaction(function () use ($combo) {
