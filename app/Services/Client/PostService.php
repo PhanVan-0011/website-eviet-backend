@@ -53,7 +53,6 @@ class PostService
      */
        public function findPublicPostBySlug(string $slug): Post
     {
-        // Tìm tin tức theo slug và phải có status = 1
         return Post::where('status', 1)
             ->where('slug', $slug)
             ->with(['categories', 'images']) // Lấy tất cả hình ảnh cho trang chi tiết
