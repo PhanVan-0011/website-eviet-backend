@@ -20,11 +20,20 @@ use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController
 use App\Http\Controllers\Api\Client\RegistrationController;
 use App\Http\Controllers\Api\Client\ForgotPasswordController;
 use App\Http\Controllers\Api\Client\ClientSliderController;
+use App\Http\Controllers\Api\Client\ProductController as ClientProductController;
+use App\Http\Controllers\Api\Client\PromotionController as ClientPromotionController;
 
 
 // ===  ROUTE PUBLIC ===
 Route::prefix('public')->group(function () {
     Route::get('/sliders', [ClientSliderController::class, 'index']);
+    Route::prefix('products')->group(function () {
+        Route::get('/', [ClientProductController::class, 'index']);
+        Route::get('/best-sellers', [ClientProductController::class, 'bestSellers']);
+        Route::get('/recommendations', [ClientProductController::class, 'recommendations']);
+        Route::get('/{id}', [ClientProductController::class, 'show']);
+    });
+    Route::get('/promotions', [ClientPromotionController::class, 'index']);
     // 
 });
 
