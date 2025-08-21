@@ -144,9 +144,9 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // ---Promotion---
     Route::prefix('promotions')->middleware('check.permission:promotions.view,sliders.manage')->group(function () {
         Route::get('/', [PromotionController::class, 'index']);
-        Route::get('/{promotion}', [PromotionController::class, 'show']);
         Route::post('/', [PromotionController::class, 'store'])->middleware('check.permission:promotions.create');
-        Route::put('/{promotion}', [PromotionController::class, 'update'])->middleware('check.permission:promotions.update');
+        Route::post('/{promotion}', [PromotionController::class, 'update'])->middleware('check.permission:promotions.update');
+        Route::get('/{promotion}', [PromotionController::class, 'show']);
         Route::delete('/multi-delete', [PromotionController::class, 'multiDelete'])->middleware('check.permission:promotions.delete');
         Route::delete('/{promotion}', [PromotionController::class, 'destroy'])->middleware('check.permission:promotions.delete');
     });

@@ -36,6 +36,10 @@ class ImageService
             'main' => [200, 200],
             'thumb' => [50, 50]
         ],
+        'promotions' => [
+            'main' => [800, 400], 
+            'thumb' => [400, 200]   
+        ],
     ];
     /**
      * @var ImageManager

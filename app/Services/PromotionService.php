@@ -7,20 +7,25 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Requests\Api\Promotion\GetPromotionsRequest;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
+use Exception;
 class PromotionService
 {
+    protected ImageService $imageService;
+
+    public function __construct(ImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
     public function getAllPromotions(GetPromotionsRequest $request): array
     {
         try {
-            // 1. Lấy các tham số đầu vào
             $perPage = max(1, min(100, (int) $request->input('limit', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
 
-            // 2. Tạo câu truy vấn cơ bản
-            $query = Promotion::query();
+            $query = Promotion::with('image');
 
-            // 3. Áp dụng các bộ lọc và tìm kiếm
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
                 $query->where(function ($q) use ($keyword) {
@@ -84,7 +89,7 @@ class PromotionService
     public function getPromotionById(int $id): Promotion
     {
         try {
-            return Promotion::findOrFail($id);
+            return Promotion::with('image')->findOrFail($id);
         } catch (ModelNotFoundException $e) {
             Log::warning("Khuyến mãi không tồn tại, ID: {$id}");
             throw $e;
@@ -94,7 +99,19 @@ class PromotionService
     {
         try {
             return DB::transaction(function () use ($data) {
+
+                $imageFile = Arr::pull($data, 'image_url');
+
                 $promotion = Promotion::create($data);
+
+                // Xử lý lưu ảnh
+                if ($imageFile instanceof UploadedFile) {
+                   
+                    $basePath = $this->imageService->store($imageFile, 'promotions', $promotion->name);
+                    if ($basePath) {
+                        $promotion->image()->create(['image_url' => $basePath]);
+                    }
+                }
 
                 if ($promotion->application_type === 'products' && !empty($data['product_ids'])) {
                     $promotion->products()->attach($data['product_ids']);
@@ -106,7 +123,7 @@ class PromotionService
                     $promotion->combos()->attach($data['combo_ids']);
                 }
 
-                return $promotion;
+                return $promotion->load('image');
             });
         } catch (\Exception $e) {
             Log::error('Lỗi khi tạo khuyến mãi: ' . $e->getMessage());
@@ -122,6 +139,22 @@ class PromotionService
         try {
             return DB::transaction(function () use ($promotion, $data) {
 
+                $imageFile = Arr::pull($data, 'image_url');
+                if ($imageFile instanceof UploadedFile) {
+                    // Xóa ảnh cũ nếu tồn tại
+                    if ($oldImage = $promotion->image) {
+                        $this->imageService->delete($oldImage->image_url, 'promotions');
+                        $oldImage->delete();
+                    }
+                    // Lưu ảnh mới
+                    $basePath = $this->imageService->store($imageFile, 'promotions', $data['name'] ?? $promotion->name);
+                    if ($basePath) {
+                        $promotion->image()->create([
+                            'image_url'   => $basePath,
+                        ]);
+                    }
+                }
+                
                 $promotion->update($data);
                 $newApplicationType = $promotion->application_type;
 
@@ -130,8 +163,8 @@ class PromotionService
                 $promotion->categories()->sync($newApplicationType === 'categories' ? ($data['category_ids'] ?? []) : []);
                 $promotion->combos()->sync($newApplicationType === 'combos' ? ($data['combo_ids'] ?? []) : []);
 
-                // 4. Trả về đối tượng Promotion đã được làm mới với các quan hệ mới nhất
-                return $promotion->fresh(['products', 'categories', 'combos']);
+                //Trả về đối tượng Promotion đã được làm mới với các quan hệ mới nhất
+                return $promotion->fresh(['products', 'categories', 'combos',"image"]);
             });
         } catch (\Exception $e) {
             Log::error('Lỗi khi tạo khuyến mãi: ' . $e->getMessage());
@@ -154,8 +187,22 @@ class PromotionService
                 return false;
             }
 
-            // Nếu khuyến mãi chưa từng được sử dụng xóa vĩnh viễn.
-            return $promotion->delete();
+            return DB::transaction(function () use ($promotion) {
+                // Xóa ảnh liên quan
+                if ($image = $promotion->image) {
+                    $this->imageService->delete($image->image_url, 'promotions');
+                    $image->delete();
+                }
+
+                // Xóa các liên kết trong bảng pivot
+                $promotion->products()->detach();
+                $promotion->categories()->detach();
+                $promotion->combos()->detach();
+
+                $promotion->delete();
+                Log::warning("Khuyến mãi ID {$promotion->id} đã được xóa vĩnh viễn.");
+                return true; // Báo hiệu là đã xóa vĩnh viễn (hard delete)
+            });
         } catch (\Exception $e) {
             Log::error('Lỗi khi tạo khuyến mãi: ' . $e->getMessage());
             throw $e;
@@ -163,39 +210,22 @@ class PromotionService
     }
     public function deleteMultiplePromotions(array $promotionIds): array
     {
-        // Khởi tạo các biến đếm và mảng chứa lỗi
         $hardDeletedCount = 0;
         $softDeletedCount = 0;
         $failedPromotions = [];
 
-        $promotions = Promotion::withCount('appliedOrders')->whereIn('id', $promotionIds)->get();
+        $promotions = Promotion::with('image')->whereIn('id', $promotionIds)->get();
 
-        // Duyệt qua từng khuyến mãi để xử lý riêng lẻ
         foreach ($promotions as $promotion) {
-            DB::beginTransaction();
             try {
-                // Kiểm tra xem khuyến mãi đã từng được sử dụng chưa
-                if ($promotion->applied_orders_count > 0) {
-                    // Nếu đã được dùng, không xóa vĩnh viễn
-                    $promotion->is_active = false;
-                    $promotion->save();
-                    $softDeletedCount++;
-                } else {
-                    // Nếu chưa được dùng, có thể xóa vĩnh viễn
-                    $promotion->delete();
+                $isHardDeleted = $this->deletePromotion($promotion);
+                if ($isHardDeleted) {
                     $hardDeletedCount++;
+                } else {
+                    $softDeletedCount++;
                 }
-
-                // Nếu tất cả các hành động trên đều thành công, lưu lại thay đổi vào CSDL.
-                DB::commit();
-            } catch (\Exception $e) {
-                DB::rollBack();
-                Log::error("Lỗi khi xử lý xóa khuyến mãi ID {$promotion->id}", [
-                    'message' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-
-                // Ghi nhận khuyến mãi bị lỗi vào danh sách để báo cáo lại cho người dùng.
+            } catch (Exception $e) {
+                Log::error("Lỗi khi xử lý xóa khuyến mãi ID {$promotion->id}: " . $e->getMessage());
                 $failedPromotions[] = [
                     'id' => $promotion->id,
                     'code' => $promotion->code,
@@ -210,7 +240,6 @@ class PromotionService
             'failed_promotions' => $failedPromotions,
         ];
     }
-
     /**
      * Hàm hỗ trợ để tách các mảng ID ra khỏi dữ liệu chính.
      */

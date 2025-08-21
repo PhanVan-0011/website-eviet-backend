@@ -45,10 +45,10 @@ class StorePromotionRequest extends FormRequest
 
             'product_ids' => ['required_if:application_type,products', 'prohibited_unless:application_type,products', 'nullable', 'array'],
             'product_ids.*' => ['integer', 'exists:products,id'],
-            
+
             'category_ids' => ['required_if:application_type,categories', 'prohibited_unless:application_type,categories', 'nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
-            
+
             'combo_ids' => ['required_if:application_type,combos', 'prohibited_unless:application_type,combos', 'nullable', 'array'],
             'combo_ids.*' => ['integer', 'exists:combos,id'],
         ];
@@ -56,7 +56,6 @@ class StorePromotionRequest extends FormRequest
     public function messages(): array
     {
         return [
-          
             'name.required' => 'Tên chương trình khuyến mãi không được để trống.',
             'code.required' => 'Mã khuyến mãi không được để trống.',
             'application_type.required' => 'Vui lòng chọn phạm vi áp dụng.',
@@ -66,6 +65,7 @@ class StorePromotionRequest extends FormRequest
             'image_url.image' => 'File tải lên phải là hình ảnh.',
             'image_url.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
             'image_url.max' => 'Kích thước ảnh không được vượt quá 2MB.',
+            'image_url.uploaded' => 'Chỉ được chọn một ảnh duy nhất.',
 
             'start_date.required' => 'Ngày bắt đầu là bắt buộc.',
 
@@ -73,19 +73,27 @@ class StorePromotionRequest extends FormRequest
             'application_type.in' => 'Phạm vi áp dụng đã chọn không hợp lệ.',
             'type.in' => 'Loại khuyến mãi đã chọn không hợp lệ.',
             'value.numeric' => 'Giá trị khuyến mãi phải là một số.',
-            'value.min' => 'Giá trị khuyến mãi phải lớn hơn hoặc bằng 0.', 
+            'value.min' => 'Giá trị khuyến mãi phải lớn hơn hoặc bằng 0.',
             'start_date.date' => 'Định dạng ngày bắt đầu không hợp lệ.',
             'end_date.date' => 'Định dạng ngày kết thúc không hợp lệ.',
             'end_date.after_or_equal' => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.',
 
+            'is_combinable.required' => 'Vui lòng chọn chế độ kết hợp khuyến mãi.',
+            'is_combinable.boolean' => 'Trường kết hợp khuyến mãi chỉ được chọn Có hoặc Không.',
+
+            'is_active.required' => 'Vui lòng chọn trạng thái khuyến mãi.',
+            'is_active.boolean' => 'Trạng thái khuyến mãi chỉ được chọn Bật hoặc Tắt.',
 
             'product_ids.required_if' => 'Vui lòng chọn ít nhất một sản phẩm.',
-            'category_ids.required_if' => 'Vui lòng chọn ít nhất một danh mục.',
-            'combo_ids.required_if' => 'Vui lòng chọn ít nhất một combo.',
-
-
+            'product_ids.array' => 'Danh sách sản phẩm phải ở dạng mảng.',
             'product_ids.*.exists' => 'Một hoặc nhiều ID sản phẩm không tồn tại.',
+
+            'category_ids.required_if' => 'Vui lòng chọn ít nhất một danh mục.',
+            'category_ids.array' => 'Danh sách danh mục phải ở dạng mảng.',
             'category_ids.*.exists' => 'Một hoặc nhiều ID danh mục không tồn tại.',
+
+            'combo_ids.required_if' => 'Vui lòng chọn ít nhất một combo.',
+            'combo_ids.array' => 'Danh sách combo phải ở dạng mảng.',
             'combo_ids.*.exists' => 'Một hoặc nhiều ID combo không tồn tại.',
 
             'product_ids.prohibited_unless' => 'Không được chọn sản phẩm vì loại áp dụng không phải là products.',
