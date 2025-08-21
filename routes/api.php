@@ -22,19 +22,27 @@ use App\Http\Controllers\Api\Client\ForgotPasswordController;
 use App\Http\Controllers\Api\Client\ClientSliderController;
 use App\Http\Controllers\Api\Client\ProductController as ClientProductController;
 use App\Http\Controllers\Api\Client\PromotionController as ClientPromotionController;
-use App\Http\Controllers\Api\Client\ComboController as ClientComboController; 
+use App\Http\Controllers\Api\Client\ComboController as ClientComboController;
 use App\Http\Controllers\Api\Client\PostController as ClientPostController;
+use App\Http\Controllers\Api\Client\SearchController as ClientSearchController;
+use App\Http\Controllers\Api\Client\CategoryController as ClientCategoryController; 
 
 // ===  ROUTE PUBLIC ===
 Route::prefix('public')->group(function () {
+    Route::get('/search', [ClientSearchController::class, 'search']);
     Route::get('/sliders', [ClientSliderController::class, 'index']);
+    Route::get('/categories', [ClientCategoryController::class, 'index']);
+
     Route::prefix('products')->group(function () {
         Route::get('/', [ClientProductController::class, 'index']);
         Route::get('/best-sellers', [ClientProductController::class, 'bestSellers']);
         Route::get('/recommendations', [ClientProductController::class, 'recommendations']);
         Route::get('/{id}', [ClientProductController::class, 'show']);
     });
-    Route::get('/promotions', [ClientPromotionController::class, 'index']);
+    Route::prefix('promotions')->group(function () {
+        Route::get('/', [ClientPromotionController::class, 'index']);
+        Route::get('/{id}', [ClientPromotionController::class, 'show']);
+    });
     Route::prefix('combos')->group(function () {
         Route::get('/', [ClientComboController::class, 'index']);
         Route::get('/{id}', [ClientComboController::class, 'show']);
@@ -44,22 +52,12 @@ Route::prefix('public')->group(function () {
         Route::get('/{slug}', [ClientPostController::class, 'show']);
     });
 });
-
-//Login Admin
-Route::post('/login', [AuthController::class, 'login']);
-
-// --- Public Utilities ---
-Route::get('images/{path}', [ImageController::class, 'show'])->where('path', '.*');
-Route::post('upload-image', [ImageController::class, 'uploadGeneric']);
-Route::delete('delete-image', [ImageController::class, 'deleteImage']);
-
 // --- Client Authentication ---
 Route::prefix('auth')->group(function () {
-    // Luồng Đăng ký
     Route::post('/register/initiate', [RegistrationController::class, 'initiate'])->middleware('throttle:3,1');
     Route::post('/register/verify-otp', [RegistrationController::class, 'verifyOtp']);
     Route::post('/register/complete', [RegistrationController::class, 'complete']);
-    // Luồng Đăng nhập
+    //LOGIN
     Route::post('/loginApp', [AuthController::class, 'loginApp']);
 });
 //ForgotPassWord
@@ -68,6 +66,13 @@ Route::prefix('password/forgot')->group(function () {
     Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
     Route::post('/complete', [ForgotPasswordController::class, 'complete']);
 });
+//LOGIN ADMIN
+Route::post('/login', [AuthController::class, 'login']);
+
+// --- Public Utilities ---
+Route::get('images/{path}', [ImageController::class, 'show'])->where('path', '.*');
+Route::post('upload-image', [ImageController::class, 'uploadGeneric']);
+Route::delete('delete-image', [ImageController::class, 'deleteImage']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

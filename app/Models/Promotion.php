@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 class Promotion extends Model
 {
     use HasFactory;
@@ -33,6 +33,14 @@ class Promotion extends Model
         'end_date' => 'datetime',
         'is_active' => 'boolean',
     ];
+    /**
+     * Một khuyến mãi có thể có một ảnh.
+     */
+    public function image(): MorphOne
+    {
+        return $this->morphOne(Image::class, 'imageable');
+    }
+
     /**
      * Lấy các sản phẩm được áp dụng khuyến mãi này.
      */

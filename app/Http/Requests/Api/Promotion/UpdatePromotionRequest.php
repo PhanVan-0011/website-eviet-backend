@@ -33,6 +33,9 @@ class UpdatePromotionRequest extends FormRequest
             'application_type' => ['sometimes', 'required', 'string', Rule::in(['orders', 'products', 'categories', 'combos'])],
             'type' => ['sometimes', 'required', 'string', Rule::in(['percentage', 'fixed_amount', 'free_shipping'])],
             'value' => ['sometimes', 'required', 'numeric', 'min:0'],
+            
+            'image_url' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
+
             'min_order_value' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'max_discount_amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'max_usage' => ['sometimes', 'nullable', 'integer', 'min:1'],

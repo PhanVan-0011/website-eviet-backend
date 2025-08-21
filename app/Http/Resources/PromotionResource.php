@@ -38,6 +38,10 @@ class PromotionResource extends JsonResource
             'application_type' => $this->application_type,
             'type' => $this->type,
             'value' => floatval($this->value),
+             // Lấy ảnh trực tiếp từ mối quan hệ 'image'
+            'image' => $this->whenLoaded('image', function () {
+                return $this->image ? new ImageResource($this->image) : null;
+            }),
             'conditions' => [
                 'min_order_value' => $this->whenNotNull(floatval($this->min_order_value)),
                 'max_discount_amount' => $this->whenNotNull(floatval($this->max_discount_amount)),

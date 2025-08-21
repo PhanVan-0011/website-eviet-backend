@@ -20,9 +20,7 @@ class PromotionService
         $limit = $request->input('limit', 3);
 
         return Promotion::where('is_active', true)
-            // Bắt đầu trước hoặc bằng thời điểm hiện tại
             ->where('start_date', '<=', $now)
-            // Kết thúc sau hoặc bằng thời điểm hiện tại (hoặc không có ngày kết thúc)
             ->where(function ($query) use ($now) {
                 $query->where('end_date', '>=', $now)
                       ->orWhereNull('end_date');
@@ -30,5 +28,26 @@ class PromotionService
             ->latest()
             ->take($limit)
             ->get();
+    }
+    /**
+     *Tìm một khuyến mãi công khai theo ID.
+     *
+     * @param int $id
+     * @return \App\Models\Promotion
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     */
+    public function findPublicPromotionById(int $id): Promotion
+    {
+        $now = Carbon::now();
+
+        // Tìm khuyến mãi theo ID và phải đang hoạt động, trong thời gian áp dụng
+        return Promotion::where('is_active', true)
+            ->where('start_date', '<=', $now)
+            ->where(function ($query) use ($now) {
+                $query->where('end_date', '>=', $now)
+                      ->orWhereNull('end_date');
+            })
+            ->with(['products', 'categories', 'combos'])
+            ->findOrFail($id);
     }
 }

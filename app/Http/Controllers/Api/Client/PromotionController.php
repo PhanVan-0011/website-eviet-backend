@@ -6,9 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Http\Resources\PromotionResource;
 use App\Services\Client\PromotionService;
-use App\Models\Promotion;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class PromotionController extends Controller
 {
@@ -42,6 +41,31 @@ class PromotionController extends Controller
                 'success' => false,
                 'message' => 'Không thể lấy danh sách khuyến mãi.'
             ], 500);
+        }
+    }
+    /**
+     *Lấy thông tin chi tiết một chương trình khuyến mãi.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show(int $id)
+    {
+        try {
+            $promotion = $this->promotionService->findPublicPromotionById($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => new PromotionResource($promotion)
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy khuyến mãi hoặc khuyến mãi đã hết hạn.'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi lấy chi tiết khuyến mãi công khai #{$id}: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Đã có lỗi xảy ra.'], 500);
         }
     }
 }

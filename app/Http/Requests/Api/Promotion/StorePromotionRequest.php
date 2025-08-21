@@ -31,6 +31,9 @@ class StorePromotionRequest extends FormRequest
             'application_type' => ['required', 'string', Rule::in(['orders', 'products', 'categories', 'combos'])],
             'type' => ['required', 'string', Rule::in(['percentage', 'fixed_amount', 'free_shipping'])],
             'value' => ['required', 'numeric', 'min:0'],
+
+            'image_url' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+
             'min_order_value' => ['nullable', 'numeric', 'min:0'],
             'max_discount_amount' => ['nullable', 'numeric', 'min:0'],
             'max_usage' => ['nullable', 'integer', 'min:1'],
@@ -59,6 +62,11 @@ class StorePromotionRequest extends FormRequest
             'application_type.required' => 'Vui lòng chọn phạm vi áp dụng.',
             'type.required' => 'Vui lòng chọn loại khuyến mãi.',
             'value.required' => 'Giá trị khuyến mãi không được để trống.',
+
+            'image_url.image' => 'File tải lên phải là hình ảnh.',
+            'image_url.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.max' => 'Kích thước ảnh không được vượt quá 2MB.',
+
             'start_date.required' => 'Ngày bắt đầu là bắt buộc.',
 
             'code.unique' => 'Mã khuyến mãi này đã tồn tại.',

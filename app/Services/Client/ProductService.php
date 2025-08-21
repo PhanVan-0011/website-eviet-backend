@@ -7,7 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ProductService
-{  /**
+{
+    /**
      * Lấy danh sách sản phẩm công khai với phân trang.
      *
      * @param \Illuminate\Http\Request $request
@@ -20,6 +21,16 @@ class ProductService
 
         $query = Product::where('status', 1)->with(['categories', 'featuredImage']);
 
+        if ($request->filled('keyword')) {
+            $keyword = $request->input('keyword');
+            $query->where('name', 'like', "%{$keyword}%");
+        }
+
+        // Lọc theo danh mục
+        if ($request->filled('category_id')) {
+            $categoryId = $request->input('category_id');
+            $query->whereHas('categories', fn($q) => $q->where('categories.id', $categoryId));
+        }
         // Sắp xếp theo sản phẩm mới nhất
         $query->orderBy('created_at', 'desc');
 
@@ -53,7 +64,7 @@ class ProductService
             ->with(['categories', 'images', 'featuredImage'])
             ->findOrFail($id);
     }
-     /**
+    /**
      * Lấy danh sách sản phẩm bán chạy nhất.
      *
      * @param int $limit
@@ -87,5 +98,4 @@ class ProductService
             ->with(['featuredImage'])
             ->get();
     }
-    
 }
