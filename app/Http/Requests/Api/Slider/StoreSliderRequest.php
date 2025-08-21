@@ -59,7 +59,6 @@ class StoreSliderRequest extends FormRequest
             'title.max' => 'Tiêu đề không được vượt quá 200 ký tự.',
             'description.max' => 'Mô tả không được vượt quá 255 ký tự.',
 
-             
             'image_url.image' => 'File tải lên phải là hình ảnh.',
             'image_url.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
             'image_url.max' => 'Kích thước ảnh không được vượt quá 2MB.',
