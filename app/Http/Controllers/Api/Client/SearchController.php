@@ -8,6 +8,7 @@ use App\Services\Client\SearchService;
 use App\Http\Resources\ProductResource;
 use App\Http\Resources\ComboResource;
 use App\Http\Resources\PostResource;
+use App\Http\Resources\PromotionResource; 
 use Illuminate\Support\Facades\Log;
 
 class SearchController extends Controller
@@ -34,6 +35,7 @@ class SearchController extends Controller
                     'products' => ProductResource::collection($results['products']),
                     'combos' => ComboResource::collection($results['combos']),
                     'posts' => PostResource::collection($results['posts']),
+                    'promotions' => PromotionResource::collection($results['promotions']),
                 ]
             ]);
         } catch (\Exception $e) {

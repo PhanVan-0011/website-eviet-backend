@@ -19,14 +19,10 @@ class PromotionController extends Controller
     }
     /**
      * Lấy danh sách các chương trình khuyến mãi đang hoạt động cho client.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
     {
         try {
-            
             $promotions = $this->promotionService->getActivePromotions($request);
 
             return response()->json([
@@ -37,17 +33,12 @@ class PromotionController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Lỗi khi lấy danh sách khuyến mãi công khai: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Không thể lấy danh sách khuyến mãi.'
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Không thể lấy danh sách khuyến mãi.'], 500);
         }
     }
+
     /**
-     *Lấy thông tin chi tiết một chương trình khuyến mãi.
-     *
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
+     * Lấy thông tin chi tiết một chương trình khuyến mãi.
      */
     public function show(int $id)
     {

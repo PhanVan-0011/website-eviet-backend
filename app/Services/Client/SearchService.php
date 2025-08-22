@@ -5,7 +5,7 @@ use App\Models\Product;
 use App\Models\Combo;
 use App\Models\Post;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
+use App\Models\Promotion;
 use Carbon\Carbon;
 
 class SearchService
@@ -26,6 +26,7 @@ class SearchService
                 'products' => collect(),
                 'combos' => collect(),
                 'posts' => collect(),
+                'promotions' => collect(),
             ];
         }
         // Tìm kiếm sản phẩm
@@ -56,11 +57,28 @@ class SearchService
             ->with('featuredImage')
             ->take($limit)
             ->get();
-
+        // Tìm kiếm khuyến mãi
+        $promotions = Promotion::where('is_active', true)
+            ->where(function ($q) use ($now) {
+                $q->where('start_date', '<=', $now)
+                    ->orWhereNull('start_date');
+            })
+            ->where(function ($q) use ($now) {
+                $q->where('end_date', '>=', $now)
+                    ->orWhereNull('end_date');
+            })
+            ->where(function ($q) use ($keyword) {
+                $q->where('name', 'like', "%{$keyword}%")
+                    ->orWhere('code', 'like', "%{$keyword}%");
+            })
+            ->with('image')
+            ->take($limit)
+            ->get();
         return [
             'products' => $products,
             'combos' => $combos,
             'posts' => $posts,
+            'promotions' => $promotions,
         ];
     }
 }
