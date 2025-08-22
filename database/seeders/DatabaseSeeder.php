@@ -52,6 +52,7 @@ class DatabaseSeeder extends Seeder
 
             DashboardDemoSeeder::class,
             OtpVerificationSeeder::class,
+             CartSeeder::class,
         ]);
 
         // Cập nhật total_amount cho mỗi đơn hàng
