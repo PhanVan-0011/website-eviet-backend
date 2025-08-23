@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Exception;
+
 class PromotionService
 {
     protected ImageService $imageService;
@@ -106,7 +107,7 @@ class PromotionService
 
                 // Xử lý lưu ảnh
                 if ($imageFile instanceof UploadedFile) {
-                   
+
                     $basePath = $this->imageService->store($imageFile, 'promotions', $promotion->name);
                     if ($basePath) {
                         $promotion->image()->create(['image_url' => $basePath]);
@@ -138,24 +139,15 @@ class PromotionService
     {
         try {
             return DB::transaction(function () use ($promotion, $data) {
-
+                // Lưu thông tin về việc có gửi image_url hay không trước khi pull
+                $hasImageUrl = array_key_exists('image_url', $data);
                 $imageFile = Arr::pull($data, 'image_url');
-                if ($imageFile instanceof UploadedFile) {
-                    // Xóa ảnh cũ nếu tồn tại
-                    if ($oldImage = $promotion->image) {
-                        $this->imageService->delete($oldImage->image_url, 'promotions');
-                        $oldImage->delete();
-                    }
-                    // Lưu ảnh mới
-                    $basePath = $this->imageService->store($imageFile, 'promotions', $data['name'] ?? $promotion->name);
-                    if ($basePath) {
-                        $promotion->image()->create([
-                            'image_url'   => $basePath,
-                        ]);
-                    }
-                }
-                
+
                 $promotion->update($data);
+
+                // Xử lý cập nhật ảnh
+                $this->handleImageUpdate($promotion, $imageFile, $hasImageUrl);
+
                 $newApplicationType = $promotion->application_type;
 
                 // Đồng bộ hóa các liên kết một cách cẩn thận
@@ -164,13 +156,51 @@ class PromotionService
                 $promotion->combos()->sync($newApplicationType === 'combos' ? ($data['combo_ids'] ?? []) : []);
 
                 //Trả về đối tượng Promotion đã được làm mới với các quan hệ mới nhất
-                return $promotion->fresh(['products', 'categories', 'combos',"image"]);
+                return $promotion->fresh(['products', 'categories', 'combos', "image"]);
             });
         } catch (\Exception $e) {
-            Log::error('Lỗi khi tạo khuyến mãi: ' . $e->getMessage());
+            Log::error('Lỗi khi cập nhật khuyến mãi: ' . $e->getMessage());
             throw $e;
         }
     }
+
+    /**
+     * Xử lý cập nhật ảnh cho promotion
+     */
+    private function handleImageUpdate(Promotion $promotion, $imageFile, bool $hasImageUrl): void
+    {
+        // Trường hợp 1: Có file ảnh mới được upload
+        if ($imageFile instanceof UploadedFile) {
+            $promotionName = $promotion->name;
+
+            // Upload ảnh mới trước
+            $basePath = $this->imageService->store($imageFile, 'promotions', $promotionName);
+            if (!$basePath) {
+                throw new Exception("Không thể upload ảnh mới. Vui lòng thử lại.");
+            }
+
+            // Xóa ảnh cũ sau khi upload thành công
+            if ($promotion->image) {
+                $this->imageService->delete($promotion->image->image_url, 'promotions');
+                $promotion->image->delete();
+            }
+
+            // Tạo record ảnh mới
+            $promotion->image()->create([
+                'image_url' => $basePath,
+                'is_featured' => true
+            ]);
+        }
+        // Trường hợp 2: Yêu cầu xóa ảnh hiện tại (gửi null hoặc empty string)
+        elseif ($hasImageUrl && (is_null($imageFile) || $imageFile === '')) {
+            if ($promotion->image) {
+                $this->imageService->delete($promotion->image->image_url, 'promotions');
+                $promotion->image->delete();
+            }
+        }
+        // Trường hợp 3: Không có thay đổi ảnh (không gửi image_url) - không làm gì
+    }
+
     /**
      * Xóa một chương trình khuyến mãi một cách an toàn.
      *

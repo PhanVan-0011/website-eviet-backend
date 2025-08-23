@@ -177,7 +177,7 @@ class ComboService
     {
         // Trường hợp 1: Có file ảnh mới được upload
         if ($imageFile instanceof UploadedFile) {
-            $imageSlug = $combo->slug;
+            $imageSlug = $combo->name;
 
             // Upload ảnh mới trước
             $pathData = $this->imageService->store($imageFile, 'combos', $imageSlug);

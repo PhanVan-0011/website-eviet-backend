@@ -32,7 +32,7 @@ class StorePromotionRequest extends FormRequest
             'type' => ['required', 'string', Rule::in(['percentage', 'fixed_amount', 'free_shipping'])],
             'value' => ['required', 'numeric', 'min:0'],
 
-            'image_url' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image_url' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
 
             'min_order_value' => ['nullable', 'numeric', 'min:0'],
             'max_discount_amount' => ['nullable', 'numeric', 'min:0'],

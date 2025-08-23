@@ -33,8 +33,8 @@ class UpdatePromotionRequest extends FormRequest
             'application_type' => ['sometimes', 'required', 'string', Rule::in(['orders', 'products', 'categories', 'combos'])],
             'type' => ['sometimes', 'required', 'string', Rule::in(['percentage', 'fixed_amount', 'free_shipping'])],
             'value' => ['sometimes', 'required', 'numeric', 'min:0'],
-            
-            'image_url' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
+
+            'image_url' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
 
             'min_order_value' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'max_discount_amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
@@ -71,7 +71,7 @@ class UpdatePromotionRequest extends FormRequest
             'start_date.date' => 'Định dạng ngày bắt đầu không hợp lệ.',
             'end_date.date' => 'Định dạng ngày kết thúc không hợp lệ.',
             'end_date.after_or_equal' => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.',
-            
+
             'product_ids.*.exists' => 'Một hoặc nhiều ID sản phẩm được chọn không tồn tại.',
             'category_ids.*.exists' => 'Một hoặc nhiều ID danh mục được chọn không tồn tại.',
             'combo_ids.*.exists' => 'Một hoặc nhiều ID combo được chọn không tồn tại.',
@@ -111,9 +111,9 @@ class UpdatePromotionRequest extends FormRequest
             } elseif ($this->has('category_ids')) {
                 $validator->errors()->add('category_ids', 'Không được chọn danh mục vì loại áp dụng không phải là categories.');
             }
-             // Logic tương tự cho combos
+            // Logic tương tự cho combos
             if ($applicationType === 'combos') {
-                 if ($this->has('combo_ids') && empty($this->input('combo_ids'))) {
+                if ($this->has('combo_ids') && empty($this->input('combo_ids'))) {
                     $validator->errors()->add('combo_ids', 'Vui lòng chọn ít nhất một combo khi loại áp dụng là combos.');
                 }
             } elseif ($this->has('combo_ids')) {

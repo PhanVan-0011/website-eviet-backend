@@ -54,7 +54,7 @@ class ImageController extends Controller
             $slug = $request->input('slug', pathinfo($request->file('image')->getClientOriginalName(), PATHINFO_FILENAME));
 
             // kiểm tra folder có main 
-            $allowedFolders = ['posts', 'products', 'users', 'sliders', 'combos'];
+            $allowedFolders = ['posts', 'products', 'users', 'sliders', 'combos', 'promotions'];
 
             $basePath = $this->imageService->store($request->file('image'), $folder, $slug);
             if (!$basePath) {
