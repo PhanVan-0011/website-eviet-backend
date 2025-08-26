@@ -86,7 +86,7 @@ class OrderService
     {
         return Order::with([
             'orderDetails.combo:id,name',
-            'orderDetails.product',
+            'orderDetails.product.images',
             'payment.method',
             'user'
         ])->findOrFail($id);
