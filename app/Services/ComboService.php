@@ -91,7 +91,7 @@ class ComboService
     public function getComboById(int $id): Combo
     {
         try {
-            return Combo::with(['items.product', 'image'])->findOrFail($id);
+            return Combo::with(['items.product.images', 'image'])->findOrFail($id);
         } catch (ModelNotFoundException $e) {
             throw $e;
         } catch (Exception $e) {
