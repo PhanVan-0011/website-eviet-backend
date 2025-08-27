@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
             // Seeder cho danh mục và sản phẩm
             CategoriesSeeder::class,
             ProductSeeder::class,
-
+            ProductAttributeSeeder::class,  
             // Seeder cho combo
             ComboSeeder::class,
             ComboItemSeeder::class,
