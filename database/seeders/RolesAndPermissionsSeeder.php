@@ -50,6 +50,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'products.create', 'display_name' => 'Tạo mới Sản phẩm'],
             ['name' => 'products.update', 'display_name' => 'Cập nhật Sản phẩm'],
             ['name' => 'products.delete', 'display_name' => 'Xóa Sản phẩm'],
+            ['name' => 'product-attributes.manage', 'display_name' => 'Quản lý Thuộc tính Sản phẩm'],
 
             // Quản lý danh mục
             ['name' => 'categories.view', 'display_name' => 'Xem chi tiết Danh mục'],
@@ -111,7 +112,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'product-manager', 'guard_name' => $guardName],
             ['display_name' => 'Quản lý Sản phẩm']
         );
-        $productManagerRole->syncPermissions(['products.view', 'products.create', 'products.update', 'products.delete', 'categories.manage', 'combos.manage']);
+        $productManagerRole->syncPermissions(['products.view', 'products.create', 'products.update', 'products.delete','product-attributes.manage', 'categories.manage', 'combos.manage']);
 
         $salesManagerRole = Role::updateOrCreate(
             ['name' => 'sales-manager', 'guard_name' => $guardName],

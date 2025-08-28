@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ProductAttributeController; 
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ImageController;
@@ -25,7 +26,8 @@ use App\Http\Controllers\Api\Client\PromotionController as ClientPromotionContro
 use App\Http\Controllers\Api\Client\ComboController as ClientComboController;
 use App\Http\Controllers\Api\Client\PostController as ClientPostController;
 use App\Http\Controllers\Api\Client\SearchController as ClientSearchController;
-use App\Http\Controllers\Api\Client\CategoryController as ClientCategoryController; 
+use App\Http\Controllers\Api\Client\CategoryController as ClientCategoryController;
+ 
 
 // ===  ROUTE PUBLIC ===
 Route::prefix('public')->group(function () {
@@ -130,7 +132,15 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/multi-delete', [ProductController::class, 'multiDelete'])->middleware('check.permission:products.delete');
         Route::delete('/{id}', [ProductController::class, 'destroy'])->middleware('check.permission:products.delete');
     });
-
+    // ---Product attributes---
+    Route::prefix('product-attributes')->middleware('check.permission:products.manage')->group(function () {
+        Route::get('/', [ProductAttributeController::class, 'index']);
+        Route::get('/{id}', [ProductAttributeController::class, 'show']);
+        Route::post('/', [ProductAttributeController::class, 'store']);
+        Route::post('/{id}', [ProductAttributeController::class, 'update']);
+        Route::delete('/multi-delete', [ProductAttributeController::class, 'multiDelete']);
+        Route::delete('/{id}', [ProductAttributeController::class, 'destroy']);
+    });
     // ---Post---
     Route::prefix('posts')->middleware('check.permission:posts.manage')->group(function () {
         Route::get('/', [PostController::class, 'index']);
