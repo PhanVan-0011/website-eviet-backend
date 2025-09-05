@@ -141,6 +141,10 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/multi-delete', [ProductAttributeController::class, 'multiDelete']);
         Route::delete('/{id}', [ProductAttributeController::class, 'destroy']);
     });
+     // ---Attributes values---
+    Route::prefix('attribute-values')->middleware('check.permission:products.manage')->group(function () {
+        Route::delete('/{id}', [ProductAttributeController::class, 'deleteAttributeValue']);
+    });
     // ---Post---
     Route::prefix('posts')->middleware('check.permission:posts.manage')->group(function () {
         Route::get('/', [PostController::class, 'index']);
@@ -149,6 +153,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/{id}', [PostController::class, 'update'])->middleware('check.permission:posts.manage');
         Route::delete('/multi-delete', [PostController::class, 'multiDelete'])->middleware('check.permission:posts.manage');
         Route::delete('/{id}', [PostController::class, 'destroy'])->middleware('check.permission:posts.manage');
+        
     });
 
     // ---Promotion---
