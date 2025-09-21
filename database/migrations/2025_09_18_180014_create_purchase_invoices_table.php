@@ -27,7 +27,7 @@ return new class extends Migration
 
 
             $table->decimal('total_amount', 12, 2)->default(0);
-            $table->enum('status', ['pending', 'completed', 'cancelled'])->default('pending');
+            $table->enum('status', ['draft', 'received', 'cancelled'])->default('draft');
             $table->timestamps();
         });
     }

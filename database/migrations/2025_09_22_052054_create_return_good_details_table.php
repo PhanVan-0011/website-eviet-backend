@@ -11,18 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('sizes', function (Blueprint $table) {
+        Schema::create('return_good_details', function (Blueprint $table) {
             $table->id();
-            $table->string('name',255)->unique();
-            $table->string('type',255)->nullable(); 
             $table->timestamps();
         });
     }
+
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('sizes');
+        Schema::dropIfExists('return_good_details');
     }
 };

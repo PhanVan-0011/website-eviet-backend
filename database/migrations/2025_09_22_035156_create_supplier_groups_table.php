@@ -11,13 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('return_details', function (Blueprint $table) {
+        Schema::create('supplier_groups', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('return_id')->constrained('returns');
-            $table->foreignId('product_id')->constrained('products');
-            $table->integer('quantity');
-            $table->decimal('unit_price', 12, 2);
-            $table->decimal('subtotal', 12, 2);
             $table->timestamps();
         });
     }
@@ -27,6 +22,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('return_details');
+        Schema::dropIfExists('supplier_groups');
     }
 };
