@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('return_good_details', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('return_good_id')->constrained('return_goods');
+            $table->foreignId('product_id')->constrained('products');
+            $table->integer('quantity');
+            $table->decimal('unit_price', 12, 2);
+            $table->decimal('subtotal', 12, 2);
+            $table->string('reason', 255)->nullable();
             $table->timestamps();
         });
     }

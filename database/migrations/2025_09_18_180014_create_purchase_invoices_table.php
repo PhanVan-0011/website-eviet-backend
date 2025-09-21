@@ -14,10 +14,6 @@ return new class extends Migration
         Schema::create('purchase_invoices', function (Blueprint $table) {
             $table->id();
             $table->string('invoice_code', 50)->unique();
-            $table->foreignId('supplier_id')->constrained('suppliers');
-            $table->foreignId('branch_id')->constrained('branches');
-            $table->foreignId('user_id')->constrained('users');
-
             $table->timestamp('invoice_date'); 
             $table->integer('total_quantity'); // Tổng số lượng sản phẩm
             $table->integer('total_items'); // Tổng số mặt hàng
