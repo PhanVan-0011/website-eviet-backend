@@ -34,7 +34,7 @@ class UpdateComboRequest extends FormRequest
             'name'                  => ['sometimes', 'required', 'string', 'max:255', Rule::unique('combos', 'name')->ignore($comboId)],
             'slug'                  => ['sometimes', 'required', 'string', 'max:255', Rule::unique('combos', 'slug')->ignore($comboId)],
             'description'           => 'sometimes|nullable|string|max:255',
-            'price'                 => 'sometimes|required|numeric|min:0',
+            //'price'                 => 'sometimes|required|numeric|min:0',
 
             'image_url'             => [
                 'sometimes',
@@ -83,9 +83,9 @@ class UpdateComboRequest extends FormRequest
             'description.string' => 'Mô tả phải là chuỗi.',
             'description.max' => 'Tên combo không được vượt quá 255 ký tự.',
 
-            'price.required' => 'Giá combo là bắt buộc.',
-            'price.numeric' => 'Giá combo phải là số.',
-            'price.min' => 'Giá combo không được âm.',
+            // 'price.required' => 'Giá combo là bắt buộc.',
+            // 'price.numeric' => 'Giá combo phải là số.',
+            // 'price.min' => 'Giá combo không được âm.',
 
             'slug.string' => 'Slug phải là chuỗi.',
             'slug.unique' => 'Slug này đã tồn tại.',

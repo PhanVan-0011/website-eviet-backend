@@ -11,11 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('supplier_groups', function (Blueprint $table) {
-            $table->id();
-            $table->string('name', 255)->unique();
-            $table->text('description')->nullable();
-            $table->timestamps();
+        Schema::table('combos', function (Blueprint $table) {
+            if (Schema::hasColumn('combos', 'price')) {
+                $table->dropColumn('price');
+            }
         });
     }
 
@@ -24,6 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('supplier_groups');
+        Schema::table('combos', function (Blueprint $table) {
+            $table->decimal('price', 10, 2)->nullable();
+        });
     }
 };

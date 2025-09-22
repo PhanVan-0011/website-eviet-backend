@@ -9,8 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Product extends Model
 {
     use HasFactory;
-    protected $fillable = ['product_code','name', 'description', 'size', 'original_price',
-     'sale_price', 'stock_quantity', 'status'];
+    protected $fillable = ['product_code','name', 'description', 'status'];
     /**
      * Ghi đè phương thức boot của model để đăng ký event.
      */
@@ -48,8 +47,6 @@ class Product extends Model
         return $this->morphMany(Image::class, 'imageable')->where('is_featured', false);
     }
 
-
-
     public function categories() 
     {
         return $this->belongsToMany(Category::class, 'category_product')->withTimestamps();
@@ -76,5 +73,18 @@ class Product extends Model
      public function attributes(): HasMany
     {
         return $this->hasMany(ProductAttribute::class);
+    }
+     // Một sản phẩm có nhiều mức giá
+    public function prices()
+    {
+        return $this->hasMany(ProductPrice::class);
+    }
+
+    // Một sản phẩm có tồn kho ở nhiều chi nhánh
+    public function branches()
+    {
+        return $this->belongsToMany(Branch::class, 'branch_product_stocks')
+                    ->withPivot('quantity')
+                    ->withTimestamps();
     }
 }

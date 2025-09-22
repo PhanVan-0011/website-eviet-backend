@@ -11,18 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('return_goods', function (Blueprint $table) {
+       Schema::create('return_goods', function (Blueprint $table) {
             $table->id();
             $table->string('return_code', 50)->unique();
-            $table->decimal('total_amount', 12, 2);
-            $table->decimal('discount_amount', 12, 2)->default(0);
-            $table->text('reason')->nullable();
-            $table->enum('status', ['draft', 'completed', 'cancelled'])->default('draft');
             $table->foreignId('supplier_id')->nullable()->constrained('suppliers');
             $table->foreignId('order_id')->nullable()->constrained('orders');
             $table->foreignId('purchase_invoice_id')->nullable()->constrained('purchase_invoices');
             $table->foreignId('branch_id')->constrained('branches');
             $table->foreignId('user_id')->constrained('users');
+            $table->decimal('total_amount', 12, 2);
+            $table->decimal('discount_amount', 12, 2)->default(0);
+            $table->text('reason')->nullable();
+            $table->enum('status', ['draft', 'completed', 'cancelled'])->default('draft');
             $table->timestamps();
         });
     }

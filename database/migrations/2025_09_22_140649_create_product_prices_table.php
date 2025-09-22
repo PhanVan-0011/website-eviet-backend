@@ -11,18 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('combo_prices', function (Blueprint $table) {
+        Schema::create('product_prices', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('combo_id')->constrained('combos');
+            $table->foreignId('product_id')->constrained('products');
             $table->foreignId('branch_id')->constrained('branches');
-            $table->enum('price_type', ['store_price', 'app_price', 'promo_price'])->default('store_price');
+            $table->enum('price_type', ['store_price', 'app_price', 'wholesale_price'])->default('store_price');
+            $table->string('unit_of_measure', 50);
+            $table->integer('unit_multiplier')->default(1);
             $table->decimal('price', 12, 2);
             $table->timestamp('start_date')->nullable();
             $table->timestamp('end_date')->nullable();
             $table->timestamps();
-
-            // Đảm bảo không có hai loại giá giống nhau cho cùng một combo và chi nhánh tại một thời điểm
-            $table->unique(['combo_id', 'branch_id', 'price_type', 'start_date']);
         });
     }
 
@@ -31,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('combo_prices');
+        Schema::dropIfExists('product_prices');
     }
 };

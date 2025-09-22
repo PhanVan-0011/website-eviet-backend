@@ -47,9 +47,9 @@ class StoreComboRequest extends FormRequest
             'description.string' => 'Mô tả phải là chuỗi.',
             'description.max' => 'Mô tả không được vượt quá 255 ký tự.',
 
-            'price.required' => 'Giá combo là bắt buộc.',
-            'price.numeric' => 'Giá combo phải là số.',
-            'price.min' => 'Giá combo không được âm.',
+            // 'price.required' => 'Giá combo là bắt buộc.',
+            // 'price.numeric' => 'Giá combo phải là số.',
+            // 'price.min' => 'Giá combo không được âm.',
 
             'slug.string' => 'Slug phải là chuỗi.',
             'slug.unique' => 'Slug này đã tồn tại.',
