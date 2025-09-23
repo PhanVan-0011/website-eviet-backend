@@ -122,15 +122,10 @@ class CategoryController extends Controller
                 'success' => false,
                 'message' => 'Không tìm thấy danh mục',
             ], 404);
-        } catch (QueryException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tên danh mục đã tồn tại',
-            ], 409);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Lỗi khi cập nhật danh mục',
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -138,7 +133,7 @@ class CategoryController extends Controller
     /**
      * Xóa một danh mục
      */
-    public function destroy($id)
+   public function destroy($id)
     {
         try {
             $deleted = $this->categoryService->deleteCategory($id);
@@ -159,16 +154,10 @@ class CategoryController extends Controller
                 'message' => 'Danh mục không tồn tại',
             ], 404);
         } catch (Exception $e) {
-            if (str_contains($e->getMessage(), 'không thể xóa') || str_contains($e->getMessage(), 'đang được sử dụng')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage(),
-                ], 400);
-            }
             return response()->json([
                 'success' => false,
-                'message' => 'Đã xảy ra lỗi khi xóa danh mục',
-            ], 500);
+                'message' => $e->getMessage(),
+            ], 400);
         }
     }
     /**
@@ -183,22 +172,17 @@ class CategoryController extends Controller
                 'success' => true,
                 'message' => "Đã xóa thành công {$deletedCount} danh mục"
             ]);
-        } catch (ModelNotFoundException $e) {
+                } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 404);
         } catch (Exception $e) {
-            if (str_contains($e->getMessage(), 'không thể xóa') || str_contains($e->getMessage(), 'đang được sử dụng')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage(),
-                ], 400);
-            }
             return response()->json([
                 'success' => false,
-                'message' => 'Đã xảy ra lỗi khi xóa danh mục',
-            ], 500);
+                'message' => $e->getMessage(),
+            ], 400);
         }
+
     }
 }

@@ -118,7 +118,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/', [CategoryController::class, 'index']);
         Route::get('/{id}', [CategoryController::class, 'show']);
         Route::post('/', [CategoryController::class, 'store'])->middleware('check.permission:categories.manage');
-        Route::put('/{id}', [CategoryController::class, 'update'])->middleware('check.permission:categories.manage');
+        Route::post('/{id}', [CategoryController::class, 'update'])->middleware('check.permission:categories.manage');
         Route::delete('/multi-delete', [CategoryController::class, 'multiDelete'])->middleware('check.permission:categories.manage');
         Route::delete('/{id}', [CategoryController::class, 'destroy'])->middleware('check.permission:categories.manage');
     });

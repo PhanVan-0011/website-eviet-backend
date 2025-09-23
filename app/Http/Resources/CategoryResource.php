@@ -19,12 +19,15 @@ class CategoryResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
+            'icon' => $this->whenLoaded('icon', function () {
+                return $this->icon ? asset($this->icon->image_url) : null;
+            }),
             'status' => $this->status,
             'parent_id' => $this->parent_id,
 
             'parent' => $this->whenLoaded('parent', fn() => new CategoryResource($this->parent)),
             'children' => $this->whenLoaded('children', fn() => CategoryResource::collection($this->children)),
-            
+
             'products_count' => $this->when(isset($this->products_count), $this->products_count),
             'products' => ProductResource::collection($this->whenLoaded('products')),
 

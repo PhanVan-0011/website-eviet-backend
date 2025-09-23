@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\Category;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
 
 class UpdateCategoryRequest extends FormRequest
 {
@@ -23,11 +24,14 @@ class UpdateCategoryRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Lấy ID của danh mục từ route
+         $categoryId = $this->route('id');
         return [
-            'name' => 'string|max:255' . $this->route('category'),
-            'description' => 'nullable|string',
-            'status' => 'boolean',
-            'parent_id' => 'nullable|exists:categories,id', // Thêm validation cho parent_id
+            'name'        =>'sometimes','required','string','max:255',Rule::unique('name')->ignore($categoryId),
+            'description' => 'sometimes|nullable|string',
+            'status'      => 'sometimes|required|boolean',
+            'parent_id'   => 'sometimes|nullable|exists:categories,id',
+            'icon'        => 'sometimes|nullable|file|mimes:jpeg,png,jpg,svg|max:2048',
         ];
     }
     /**
@@ -38,11 +42,15 @@ class UpdateCategoryRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'name.unique' => 'Tên danh mục đã tồn tại.',
             'name.string' => 'Tên danh mục phải là chuỗi ký tự.',
             'name.max' => 'Tên danh mục không được dài quá 50 ký tự.',
             'description.string' => 'Mô tả phải là chuỗi ký tự.',
             'status.boolean' => 'Trạng thái phải là true hoặc false.',
             'parent_id.exists' => 'Danh mục cha không tồn tại.',
+            'icon.file' => 'Icon phải là một file ảnh.',
+            'icon.mimes' => 'Icon phải thuộc định dạng: jpeg, png, jpg hoặc svg.',
+            'icon.max' => 'Dung lượng file icon không được vượt quá 2MB.',
         ];
     }
     /**

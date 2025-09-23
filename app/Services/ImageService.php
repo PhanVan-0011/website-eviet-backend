@@ -37,8 +37,11 @@ class ImageService
             'thumb' => [50, 50]
         ],
         'promotions' => [
-            'main' => [800, 400], 
-            'thumb' => [400, 200]   
+            'main' => [800, 400],
+            'thumb' => [400, 200]
+        ],
+        'categories' => [
+            'icon' => [100, 100],// Danh mục
         ],
     ];
     /**
@@ -59,9 +62,15 @@ class ImageService
         try {
             $year = now()->format('Y');
             $month = now()->format('m');
+            $extension = $file->getClientOriginalExtension();
 
-            $fileName = Str::slug($slug) . '-' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $fileName = Str::slug($slug) . '-' . uniqid() . '.' . $extension;
             $basePath = "{$folder}/{$year}/{$month}/{$fileName}";
+            // Xử lý file SVG riêng biệt
+            if ($extension === 'svg') {
+                Storage::disk('public')->put($basePath, file_get_contents($file));
+                return $basePath;
+            }
             $imageSizes = $this->sizes[$folder] ?? [];
 
             if (empty($imageSizes)) {
@@ -98,6 +107,7 @@ class ImageService
         }
 
         try {
+            $extension = pathinfo($basePath, PATHINFO_EXTENSION);
             $imageSizes = $this->sizes[$folder] ?? [];
 
             if (empty($imageSizes)) {

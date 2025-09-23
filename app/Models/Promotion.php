@@ -71,5 +71,10 @@ class Promotion extends Model
     {
         return $this->hasMany(OrderPromotion::class);
     }
+    // Quan hệ đa hình: Một danh mục có một icon
+    public function icon()
+    {
+        return $this->morphOne(Image::class, 'imageable');
+    }
 
 }

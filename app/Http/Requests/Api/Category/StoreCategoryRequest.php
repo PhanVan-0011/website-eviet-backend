@@ -25,6 +25,7 @@ class StoreCategoryRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255|unique:categories,name,' . $this->route('category'),
+            'icon' => 'nullable|file|mimes:jpeg,png,jpg,svg|max:2048',
             'description' => 'nullable|string',
             'status' => 'required|boolean',
             'parent_id' => 'nullable|exists:categories,id', // Thêm validation cho parent_id
@@ -37,9 +38,17 @@ class StoreCategoryRequest extends FormRequest
             'name.string' => 'Tên danh mục phải là chuỗi ký tự.',
             'name.max' => 'Tên danh mục không được dài quá 255 ký tự.',
             'name.unique' => 'Tên danh mục đã tồn tại.',
+
+            'image_url.image' => 'File tải lên phải là hình ảnh.',
+            'image_url.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
+            'image_url.max' => 'Kích thước ảnh không được vượt quá 2MB.',
+
+
             'description.string' => 'Mô tả phải là chuỗi ký tự.',
+
             'status.required' => 'Trạng thái là bắt buộc.',
             'status.boolean' => 'Trạng thái phải là true hoặc false.',
+
             'parent_id.exists' => 'Danh mục cha không tồn tại.',
         ];
     }

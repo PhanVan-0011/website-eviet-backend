@@ -42,4 +42,9 @@ class Category extends Model
     {
         return $this->belongsToMany(Promotion::class, 'promotion_categories')->withTimestamps();
     }
+    // Quan hệ đa hình: Một danh mục có một icon
+    public function icon()
+    {
+        return $this->morphOne(Image::class, 'imageable');
+    }
 }
