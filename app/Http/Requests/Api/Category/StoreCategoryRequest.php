@@ -39,9 +39,9 @@ class StoreCategoryRequest extends FormRequest
             'name.max' => 'Tên danh mục không được dài quá 255 ký tự.',
             'name.unique' => 'Tên danh mục đã tồn tại.',
 
-            'image_url.image' => 'File tải lên phải là hình ảnh.',
-            'image_url.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
-            'image_url.max' => 'Kích thước ảnh không được vượt quá 2MB.',
+            'icon.image' => 'File tải lên phải là hình ảnh.',
+            'icon.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg hoặc svg.',
+            'icon.max' => 'Kích thước ảnh không được vượt quá 2MB.',
 
 
             'description.string' => 'Mô tả phải là chuỗi ký tự.',

@@ -41,7 +41,8 @@ class ImageService
             'thumb' => [400, 200]
         ],
         'categories' => [
-            'icon' => [100, 100],// Danh mục
+            'main' => [100, 100],
+            //'thumb' => [50, 50],
         ],
     ];
     /**
@@ -63,32 +64,28 @@ class ImageService
             $year = now()->format('Y');
             $month = now()->format('m');
             $extension = $file->getClientOriginalExtension();
+            $baseFileName = Str::slug($slug) . '-' . uniqid();
 
-            $fileName = Str::slug($slug) . '-' . uniqid() . '.' . $extension;
-            $basePath = "{$folder}/{$year}/{$month}/{$fileName}";
+            $baseDir = "{$folder}/{$year}/{$month}";
+            $basePath = "{$baseDir}/main/{$baseFileName}.{$extension}";
+
             // Xử lý file SVG riêng biệt
             if ($extension === 'svg') {
                 Storage::disk('public')->put($basePath, file_get_contents($file));
                 return $basePath;
             }
+
             $imageSizes = $this->sizes[$folder] ?? [];
 
-            if (empty($imageSizes)) {
-                Storage::disk('public')->put($basePath, file_get_contents($file));
-                return $basePath;
-            }
-
-            //Sử dụng đối tượng đã được tiêm vào
+            // Lưu các phiên bản ảnh đã resize
             $image = $this->imageManager->read($file->getRealPath());
 
             foreach ($imageSizes as $sizeName => $dimensions) {
-                $fullPath = "{$folder}/{$year}/{$month}/{$sizeName}/{$fileName}";
-
+                $fullPath = "{$baseDir}/{$sizeName}/{$baseFileName}.{$extension}";
                 $resizedImage = $image->scale($dimensions[0], $dimensions[1])->encode();
-
                 Storage::disk('public')->put($fullPath, $resizedImage);
             }
-
+            
             return $basePath;
         } catch (\Exception $e) {
             Log::error("Lỗi khi xử lý ảnh: " . $e->getMessage());
@@ -102,28 +99,32 @@ class ImageService
      */
     public function delete(?string $basePath, string $folder): void
     {
-        if (!$basePath) {
+         if (!$basePath) {
             return;
         }
 
         try {
-            $extension = pathinfo($basePath, PATHINFO_EXTENSION);
+            $ext = pathinfo($basePath, PATHINFO_EXTENSION);
+            $baseFileName = pathinfo($basePath, PATHINFO_FILENAME);
+            $pathParts = explode('/', $basePath);
+            $year = $pathParts[1];
+            $month = $pathParts[2];
+            $baseDir = "{$folder}/{$year}/{$month}";
+
             $imageSizes = $this->sizes[$folder] ?? [];
 
-            if (empty($imageSizes)) {
-                if (Storage::disk('public')->exists($basePath)) {
-                    Storage::disk('public')->delete($basePath);
+            // Xóa file SVG
+            if ($ext === 'svg') {
+                $svgPath = "{$baseDir}/main/{$baseFileName}.{$ext}";
+                if (Storage::disk('public')->exists($svgPath)) {
+                    Storage::disk('public')->delete($svgPath);
                 }
                 return;
             }
-
+            
+            // Xóa tất cả biến thể (main, thumb,...)
             foreach (array_keys($imageSizes) as $sizeName) {
-                // Tách đường dẫn để lấy tên file và thư mục cha
-                $directory = dirname($basePath);
-                $fileName = basename($basePath);
-
-                $fullPath = "{$directory}/{$sizeName}/{$fileName}";
-
+                $fullPath = "{$baseDir}/{$sizeName}/{$baseFileName}.{$ext}";
                 if (Storage::disk('public')->exists($fullPath)) {
                     Storage::disk('public')->delete($fullPath);
                 }

@@ -166,13 +166,13 @@ class CategoryController extends Controller
     public function multiDelete(MultiDeleteCategoryRequest $request)
     {;
         try {
+            
             $deletedCount = $this->categoryService->multiDelete($request->validated()['ids']);
-
             return response()->json([
                 'success' => true,
                 'message' => "Đã xóa thành công {$deletedCount} danh mục"
-            ]);
-                } catch (ModelNotFoundException $e) {
+            ],200);
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),

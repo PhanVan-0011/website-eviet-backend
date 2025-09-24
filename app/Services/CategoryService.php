@@ -117,36 +117,38 @@ class CategoryService
      */
     public function updateCategory($id, array $data): Category
     {
-        try {
-            $category = Category::findOrFail($id);
-           // Bước 1: Cập nhật thông tin cơ bản của danh mục trước
-        $category->update($data);
-
-        // Bước 2: Sau đó, xử lý icon
-        if (isset($data['icon'])) {
-            // Xóa icon cũ nếu tồn tại
-            if ($category->icon) {
-                // Xóa file vật lý
-                $this->imageService->delete($category->icon->image_url, 'categories');
-                // Xóa bản ghi trong database
-                $category->icon()->delete();
-            }
-
-            // Lưu icon mới
-            $iconPath = $this->imageService->store($data['icon'], 'categories', $category->name);
+     try {
+           $category = Category::findOrFail($id);
             
-            // Tạo bản ghi mới cho icon
-            $category->icon()->create([
-                'image_url' => $iconPath,
-            ]);
-        }
-        
-        // Bước 3: Tải lại các mối quan hệ và trả về đối tượng đã cập nhật
-        return $category->refresh()->load(['parent', 'children', 'icon']);
-        } catch (Exception $e) {
-            Log::error('Lỗi không mong muốn khi cập nhật danh mục: ' . $e->getMessage());
-            throw $e;
-        }
+            // Lấy các trường cần cập nhật từ $data, loại bỏ 'icon'
+            $updateData = collect($data)->only(['name', 'status', 'parent_id', 'description'])->toArray();
+            
+            $category->update($updateData);
+
+            // Xử lý icon nếu có
+            if (isset($data['icon']) && $data['icon'] instanceof UploadedFile) {
+                // Xóa icon cũ nếu tồn tại
+                $existingIcon = $category->icon;
+                if ($existingIcon) {
+                    $this->imageService->delete($existingIcon->image_url, 'categories');
+                    $existingIcon->delete();
+                }
+
+                // Lưu icon mới
+                $iconPath = $this->imageService->store($data['icon'], 'categories', $category->name);
+                if ($iconPath) {
+                    $category->icon()->create([
+                        'image_url' => $iconPath,
+                        'is_featured' => true,
+                    ]);
+                }
+            }
+            
+            return $category->refresh()->load(['parent', 'children', 'icon']);
+            } catch (Exception $e) {
+                Log::error('Lỗi không mong muốn khi cập nhật danh mục: ' . $e->getMessage());
+                throw $e;
+            }
     }
 
     /**
@@ -158,25 +160,27 @@ class CategoryService
      */
     public function deleteCategory($id)
     {
-        try {
-            $category = Category::findOrFail($id);
+         try {
+            $category = Category::with('products', 'icon')->findOrFail($id);
+
+            if ($category->products->isNotEmpty()) {
+                $productCount = $category->products->count();
+                $message = "Danh mục '{$category->name}' đang được sử dụng bởi $productCount sản phẩm, không thể xóa.";
+                Log::warning("Đã chặn xóa danh mục (ID: $id): " . $message);
+                throw new Exception($message);
+            }
+
             if ($category->icon) {
                 $this->imageService->delete($category->icon->image_url, 'categories');
                 $category->icon()->delete();
             }
-            if ($category->products()->exists()) {
-                $productCount = $category->products()->count();
-                $message = "Danh mục '{$category->name}' đang được sử dụng bởi $productCount sản phẩm, không thể xóa.";
-                Log::warning("Đã chặn xóa danh mục (ID: $id): " . $message);
-                throw new \Exception($message);
-            }
-
+            
             return $category->delete();
         } catch (ModelNotFoundException $e) {
             Log::error("Không tìm thấy danh mục để xóa với ID: $id. " . $e->getMessage());
             throw $e;
         } catch (Exception $e) {
-            if ($e instanceof ModelNotFoundException == false) {
+            if (!$e instanceof ModelNotFoundException) {
                 Log::error("Lỗi không mong muốn khi xóa danh mục (ID: $id): " . $e->getMessage());
             }
             throw $e;
@@ -192,9 +196,6 @@ class CategoryService
     public function multiDelete($ids)
     {
         try {
-            // Chuyển chuỗi ID thành mảng số nguyên
-            $ids = is_string($ids) ? array_map('intval', explode(',', $ids)) : (array) $ids;
-
             // Tải các danh mục cần xóa cùng với mối quan hệ products và icon
             $categoriesToDelete = Category::whereIn('id', $ids)
                 ->with(['products', 'icon'])
@@ -211,7 +212,7 @@ class CategoryService
                     return "Danh mục '{$category->name}' đang được sử dụng bởi $productCount sản phẩm, không thể xóa.";
                 })->all();
 
-                throw new \Exception(implode(' ', $errors));
+                throw new Exception(implode(' ', $errors));
             }
 
             // Nếu không có liên kết sản phẩm, tiến hành xóa

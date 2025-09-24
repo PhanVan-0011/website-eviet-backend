@@ -9,33 +9,27 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 
 class MultiDeleteComboRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            'ids' => ['required', 'string', 'regex:/^\d+(,\d+)*$/'],
+            'ids' => ['required', 'string', 'regex:/^\\d+(?:,\\d+)*$/'],
         ];
     }
-    public function messages()
+    
+    public function messages(): array
     {
         return [
-            'ids.required' => 'Danh sách ID là bắt buộc.',
-            'ids.string' => 'IDs phải là chuỗi.',
-            'ids.regex' => 'Định dạng không hợp lệ. Ví dụ đúng: 1,2,3',
+            'ids.required' => 'Vui lòng chọn ít nhất một danh mục để xóa',
+            'ids.string' => 'Định dạng ID danh mục không hợp lệ.',
+            'ids.regex' => 'Định dạng danh sách ID không hợp lệ. Ví dụ: 1,2,3',
         ];
     }
+
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(response()->json([
@@ -43,5 +37,18 @@ class MultiDeleteComboRequest extends FormRequest
             'message' => $validator->errors()->first(),
             'errors' => $validator->errors(),
         ], 422));
+    }
+    
+    public function validationData()
+    {
+        $ids = $this->query('ids');
+        if (is_string($ids)) {
+            $ids = explode(',', $ids);
+            // Ép kiểu các phần tử trong mảng thành số nguyên
+            $ids = array_map('intval', $ids); 
+        }
+        return [
+            'ids' => $ids,
+        ];
     }
 }

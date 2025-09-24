@@ -27,7 +27,13 @@ class UpdateCategoryRequest extends FormRequest
         // Lấy ID của danh mục từ route
          $categoryId = $this->route('id');
         return [
-            'name'        =>'sometimes','required','string','max:255',Rule::unique('name')->ignore($categoryId),
+        'name'        => [
+            'sometimes',
+            'required',
+            'string',
+            'max:255',
+            Rule::unique('categories', 'name')->ignore($categoryId),
+        ],
             'description' => 'sometimes|nullable|string',
             'status'      => 'sometimes|required|boolean',
             'parent_id'   => 'sometimes|nullable|exists:categories,id',

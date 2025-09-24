@@ -5,7 +5,7 @@ namespace App\Http\Requests\Api\Category;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
-
+use Illuminate\Validation\Rule;
 class MultiDeleteCategoryRequest extends FormRequest
 {
     public function authorize(): bool
@@ -13,28 +13,36 @@ class MultiDeleteCategoryRequest extends FormRequest
         return true;
     }
 
+
     protected function prepareForValidation(): void
     {
-        if ($this->has('ids') && is_array($this->ids)) {
+        if ($this->has('ids') && is_string($this->ids)) {
             $this->merge([
-                'ids' => implode(',', $this->ids)
+                'ids' => array_filter(array_map('intval', explode(',', $this->ids))),
             ]);
         }
     }
-
-    public function rules(): array
+    
+   public function rules(): array
     {
         return [
-            'ids' => ['required', 'regex:/^[0-9]+(,[0-9]+)*$/']
+            'ids' => 'required|array|min:1',
+            'ids.*' => [
+                'required',
+                'integer',
+                Rule::exists('categories', 'id'),
+            ],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'ids.required' => 'Vui lòng chọn ít nhất một danh mục để xóa',
-            'ids.string' => 'Danh sách ID danh mục không hợp lệ',
-            'ids.regex' => 'Định dạng danh sách ID không hợp lệ. Ví dụ: 1,2,3'
+            'ids.required' => 'Vui lòng cung cấp danh sách ID danh mục cần xóa.',
+            'ids.array' => 'Định dạng danh sách ID không hợp lệ.',
+            'ids.min' => 'Vui lòng chọn ít nhất một danh mục để xóa.',
+            'ids.*.integer' => 'Mỗi ID trong danh sách phải là một số nguyên.',
+            'ids.*.exists' => 'Một trong các ID không tồn tại.',
         ];
     }
 
@@ -46,4 +54,6 @@ class MultiDeleteCategoryRequest extends FormRequest
             'errors' => $validator->errors(),
         ], 422));
     }
+   
+
 }
