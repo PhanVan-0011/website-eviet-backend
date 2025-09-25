@@ -8,7 +8,7 @@ use Exception;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
-
+use Illuminate\Support\Facades\DB;
 
 class CategoryService
 {
@@ -31,7 +31,28 @@ class CategoryService
             $perPage = max(1, min(100, (int) $request->input('limit', 10)));
             $currentPage = max(1, (int) $request->input('page', 1));
             $keyword = (string) $request->input('keyword', '');
+
+            // Bổ sung các tham số lọc mới
+            $status = $request->input('status');
+            $parentId = $request->input('parent_id');
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+
             $query = Category::query();
+
+            // Lọc theo trạng thái
+            if (isset($status)) {
+                $query->where('status', (int) $status);
+            }
+
+            // Lọc theo danh mục cha
+            if (isset($parentId) && $parentId !== 'all') {
+                if ($parentId === 'null') {
+                    $query->whereNull('parent_id');
+                } else {
+                    $query->where('parent_id', (int) $parentId);
+                }
+            }
 
             if (!empty($keyword)) {
                 $query->where(function ($q) use ($keyword) {
@@ -39,7 +60,15 @@ class CategoryService
                         ->orWhere('description', 'like', "%{$keyword}%");
                 });
             }
+            // Lọc theo ngày tạo
+            if (!empty($startDate)) {
+                $query->whereDate('created_at', '>=', $startDate);
+            }
 
+            if (!empty($endDate)) {
+                $query->whereDate('created_at', '<=', $endDate);
+            }
+            
             $query->orderBy('id', 'desc');
 
             $query->with(['parent', 'children', 'icon'])->withCount('products');
@@ -117,12 +146,12 @@ class CategoryService
      */
     public function updateCategory($id, array $data): Category
     {
-     try {
-           $category = Category::findOrFail($id);
-            
+        try {
+            $category = Category::findOrFail($id);
+
             // Lấy các trường cần cập nhật từ $data, loại bỏ 'icon'
             $updateData = collect($data)->only(['name', 'status', 'parent_id', 'description'])->toArray();
-            
+
             $category->update($updateData);
 
             // Xử lý icon nếu có
@@ -143,12 +172,12 @@ class CategoryService
                     ]);
                 }
             }
-            
+
             return $category->refresh()->load(['parent', 'children', 'icon']);
-            } catch (Exception $e) {
-                Log::error('Lỗi không mong muốn khi cập nhật danh mục: ' . $e->getMessage());
-                throw $e;
-            }
+        } catch (Exception $e) {
+            Log::error('Lỗi không mong muốn khi cập nhật danh mục: ' . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
@@ -160,22 +189,25 @@ class CategoryService
      */
     public function deleteCategory($id)
     {
-         try {
-            $category = Category::with('products', 'icon')->findOrFail($id);
+        try {
+            // Sử dụng DB::transaction để đảm bảo tính toàn vẹn
+            return DB::transaction(function () use ($id) {
+                $category = Category::with('products', 'icon')->findOrFail($id);
 
-            if ($category->products->isNotEmpty()) {
-                $productCount = $category->products->count();
-                $message = "Danh mục '{$category->name}' đang được sử dụng bởi $productCount sản phẩm, không thể xóa.";
-                Log::warning("Đã chặn xóa danh mục (ID: $id): " . $message);
-                throw new Exception($message);
-            }
+                if ($category->products->isNotEmpty()) {
+                    $productCount = $category->products->count();
+                    $message = "Danh mục '{$category->name}' đang được sử dụng bởi $productCount sản phẩm, không thể xóa.";
+                    Log::warning("Đã chặn xóa danh mục (ID: $id): " . $message);
+                    throw new Exception($message);
+                }
 
-            if ($category->icon) {
-                $this->imageService->delete($category->icon->image_url, 'categories');
-                $category->icon()->delete();
-            }
-            
-            return $category->delete();
+                if ($category->icon) {
+                    $this->imageService->delete($category->icon->image_url, 'categories');
+                    $category->icon()->delete();
+                }
+
+                return $category->delete();
+            });
         } catch (ModelNotFoundException $e) {
             Log::error("Không tìm thấy danh mục để xóa với ID: $id. " . $e->getMessage());
             throw $e;
@@ -196,40 +228,42 @@ class CategoryService
     public function multiDelete($ids)
     {
         try {
-            // Tải các danh mục cần xóa cùng với mối quan hệ products và icon
-            $categoriesToDelete = Category::whereIn('id', $ids)
-                ->with(['products', 'icon'])
-                ->get();
+            return DB::transaction(function () use ($ids) {
+                // Tải các danh mục cần xóa cùng với mối quan hệ products và icon
+                $categoriesToDelete = Category::whereIn('id', $ids)
+                    ->with(['products', 'icon'])
+                    ->get();
 
-            // Kiểm tra xem có danh mục nào đang có sản phẩm không
-            $categoriesWithProducts = $categoriesToDelete->filter(function ($category) {
-                return $category->products->isNotEmpty();
-            });
+                // Kiểm tra xem có danh mục nào đang có sản phẩm không
+                $categoriesWithProducts = $categoriesToDelete->filter(function ($category) {
+                    return $category->products->isNotEmpty();
+                });
 
-            if ($categoriesWithProducts->isNotEmpty()) {
-                $errors = $categoriesWithProducts->map(function ($category) {
-                    $productCount = $category->products->count();
-                    return "Danh mục '{$category->name}' đang được sử dụng bởi $productCount sản phẩm, không thể xóa.";
-                })->all();
+                if ($categoriesWithProducts->isNotEmpty()) {
+                    $errors = $categoriesWithProducts->map(function ($category) {
+                        $productCount = $category->products->count();
+                        return "Danh mục '{$category->name}' đang được sử dụng bởi $productCount sản phẩm, không thể xóa.";
+                    })->all();
 
-                throw new Exception(implode(' ', $errors));
-            }
-
-            // Nếu không có liên kết sản phẩm, tiến hành xóa
-            $count = 0;
-            foreach ($categoriesToDelete as $category) {
-                // Xóa icon trước khi xóa danh mục
-                if ($category->icon) {
-                    $this->imageService->delete($category->icon->image_url, 'categories');
-                    $category->icon()->delete();
+                    throw new Exception(implode(' ', $errors));
                 }
-                $category->delete();
-                $count++;
-            }
 
-            return $count;
+                $count = 0;
+                foreach ($categoriesToDelete as $category) {
+                    // Xóa icon trước khi xóa danh mục
+                    if ($category->icon) {
+                        $this->imageService->delete($category->icon->image_url, 'categories');
+                        $category->icon()->delete();
+                    }
+                    $category->delete();
+                    $count++;
+                }
+
+                return $count;
+            });
         } catch (Exception $e) {
             Log::error("Lỗi khi xóa nhiều danh mục: " . $e->getMessage());
+            throw $e;
         }
     }
 }

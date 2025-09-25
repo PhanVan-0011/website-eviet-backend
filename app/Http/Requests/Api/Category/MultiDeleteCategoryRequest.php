@@ -14,14 +14,31 @@ class MultiDeleteCategoryRequest extends FormRequest
     }
 
 
+    // protected function prepareForValidation(): void
+    // {
+    //     if ($this->has('ids') && is_string($this->ids)) {
+    //         $this->merge([
+    //             'ids' => array_filter(array_map('intval', explode(',', $this->ids))),
+    //         ]);
+    //     }
+    // }
     protected function prepareForValidation(): void
     {
-        if ($this->has('ids') && is_string($this->ids)) {
+        // Chuyển đổi tham số 'ids' thành mảng các số nguyên
+        if ($this->has('ids')) {
+            $ids = $this->ids;
+            if (is_string($ids)) {
+                $ids = explode(',', $ids);
+            }
+
             $this->merge([
-                'ids' => array_filter(array_map('intval', explode(',', $this->ids))),
+                // Đảm bảo mảng chỉ chứa các giá trị số nguyên duy nhất và hợp lệ
+                'ids' => array_unique(array_filter(array_map('intval', (array) $ids))),
             ]);
         }
     }
+
+
     
    public function rules(): array
     {
