@@ -17,10 +17,11 @@ use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AdminUserController;
-use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 use App\Http\Controllers\Api\Client\RegistrationController;
 use App\Http\Controllers\Api\Client\ForgotPasswordController;
+use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\Client\ClientSliderController;
+use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 use App\Http\Controllers\Api\Client\ProductController as ClientProductController;
 use App\Http\Controllers\Api\Client\PromotionController as ClientPromotionController;
 use App\Http\Controllers\Api\Client\ComboController as ClientComboController;
@@ -92,6 +93,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
 //Admin
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    // ---Branch---
+    Route::prefix('branches')->group(function () {
+        Route::get('/', [BranchController::class, 'index']);
+        Route::delete('/multi-delete', [BranchController::class, 'multiDelete']);
+        Route::get('/{id}', [BranchController::class, 'show']);
+        Route::post('/', [BranchController::class, 'store']);
+        Route::post('/{id}', [BranchController::class, 'update']);
+        Route::delete('/{id}', [BranchController::class, 'destroy']);
+ 
+    });
 
     // ---Slider---
     Route::prefix('sliders')->middleware('check.permission:sliders.manage')->group(function () {
