@@ -19,10 +19,28 @@ class SupplierService
             $currentPage = max(1, (int) $request->input('page', 1));
             $query = Supplier::query();
 
+            // --- BỘ LỌC CHÍNH ---
+            
+            // Lọc theo trạng thái hoạt động
             if ($request->has('active')) {
-                $query->where('is_active', $request->active);
+                $query->where('is_active', (bool) $request->active);
             }
 
+            //Lọc theo nhóm nhà cung cấp
+            if ($request->has('group_id') && $request->group_id !== 'all') {
+                $query->where('group_id', $request->group_id);
+            }
+
+            //Lọc theo ngày tạo
+            if (!empty($request->input('start_date'))) {
+                $query->whereDate('created_at', '>=', $request->input('start_date'));
+            }
+
+            if (!empty($request->input('end_date'))) {
+                $query->whereDate('created_at', '<=', $request->input('end_date'));
+            }
+            // --- KẾT THÚC BỘ LỌC ---
+            //Tìm kiếm theo tên, và mã
             if ($request->has('keyword')) {
                 $keyword = $request->keyword;
                 $query->where(function ($q) use ($keyword) {
@@ -68,7 +86,8 @@ class SupplierService
     public function createSupplier(array $data): Supplier
     {
         try {
-            return Supplier::create($data);
+           $supplier = Supplier::create($data);
+           return $supplier->fresh()->load(['group', 'user']);
         } catch (Exception $e) {
             Log::error('Lỗi khi tạo nhà cung cấp: ' . $e->getMessage());
             throw $e;
@@ -80,10 +99,10 @@ class SupplierService
      */
     public function updateSupplier(string $id, array $data): Supplier
     {
-        try {
+         try {
             $supplier = $this->getSupplierById($id);
             $supplier->update($data);
-            return $supplier;
+            return $supplier->fresh()->load(['group', 'user']);
         } catch (ModelNotFoundException $e) {
             throw $e;
         } catch (Exception $e) {
@@ -121,22 +140,23 @@ class SupplierService
      */
     public function multiDelete(array $ids): int
     {
-        try {
+         try {
             return DB::transaction(function () use ($ids) {
                 $suppliersToDelete = Supplier::whereIn('id', $ids)
                     ->with('purchaseInvoices')
                     ->get();
                 
-                $errors = [];
+                $linkedSuppliersCount = 0;
+                
                 foreach ($suppliersToDelete as $supplier) {
                     if ($supplier->purchaseInvoices->isNotEmpty()) {
-                        $errors[] = "Không thể xóa nhà cung cấp '{$supplier->name}' vì đang có hóa đơn nhập hàng.";
+                        $linkedSuppliersCount++;
                     }
                 }
-                if (!empty($errors)) {
-                    throw new Exception(implode(' ', $errors));
-                }
 
+                if ($linkedSuppliersCount > 0) {
+                    throw new Exception("Không thể xóa do có {$linkedSuppliersCount} nhà cung cấp đang liên kết với hóa đơn nhập hàng.");
+                }
                 $count = 0;
                 foreach ($suppliersToDelete as $supplier) {
                     $supplier->delete();

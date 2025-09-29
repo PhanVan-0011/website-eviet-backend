@@ -27,7 +27,7 @@ class SupplierResource extends JsonResource
             'notes' => $this->notes,
             'total_purchase_amount' => $this->total_purchase_amount,
             'balance_due' => $this->balance_due,
-            'is_active' => $this->is_active,
+            'active' => $this->is_active,
             'user_id' => $this->user_id,
             'user' => new UserResource($this->whenLoaded('user')),
             'created_at' => $this->created_at,

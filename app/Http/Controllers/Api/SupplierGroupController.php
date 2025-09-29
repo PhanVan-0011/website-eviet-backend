@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\SupplierGroup\StoreSupplierGroupRequest;
-use App\Http\Requests\Api\SupplierGroup\UpdateSupplierGroupRequest;
-use App\Http\Requests\Api\SupplierGroup\MultiDeleteSupplierGroupRequest;
+use App\Http\Requests\Api\SupplierGroups\StoreSupplierGroupRequest;
+use App\Http\Requests\Api\SupplierGroups\UpdateSupplierGroupRequest;
+use App\Http\Requests\Api\SupplierGroups\MultiDeleteSupplierGroupRequest;
 use App\Http\Resources\SupplierGroupResource;
 use App\Services\SupplierGroupService;
 use Illuminate\Http\Request;
@@ -148,7 +148,6 @@ class SupplierGroupController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-                'error' => $e->getMessage(),
             ], 500);
         }
     }

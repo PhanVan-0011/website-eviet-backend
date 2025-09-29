@@ -11,10 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('supplier_groups', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('supplier_groups')) {
+            Schema::create('supplier_groups', function (Blueprint $table) {
+                $table->id();
+                $table->string('name')->unique()->comment('Tên nhóm nhà cung cấp');
+                $table->text('description')->nullable()->comment('Mô tả nhóm');
+                $table->timestamps();
+            });
+        }
+
     }
 
     /**
@@ -25,3 +30,4 @@ return new class extends Migration
         Schema::dropIfExists('supplier_groups');
     }
 };
+

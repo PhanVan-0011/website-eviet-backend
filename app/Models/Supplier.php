@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Supplier extends Model
 {
@@ -22,6 +24,13 @@ class Supplier extends Model
         'is_active',
         'user_id',
     ];
+    /**
+     * Mối quan hệ: Một nhà cung cấp thuộc về một nhóm nhà cung cấp.
+     */
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(SupplierGroup::class, 'group_id');
+    }
       // Mối quan hệ: Một nhà cung cấp thuộc về một người dùng (người tạo)
     public function user()
     {

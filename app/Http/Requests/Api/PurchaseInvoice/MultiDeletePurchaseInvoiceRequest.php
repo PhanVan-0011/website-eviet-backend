@@ -1,24 +1,17 @@
 <?php
 
-namespace App\Http\Requests\Api\SupplierGroups;
+namespace App\Http\Requests\Api\PurchaseInvoice;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
 
-class MultiDeleteSupplierGroupRequest extends FormRequest
+class MultiDeletePurchaseInvoiceRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        return true;
-    }
-
-     /**
      * Prepare the data for validation.
+     * Xử lý ID có thể đến từ query string (URL) hoặc request body.
      */
     protected function prepareForValidation(): void
     {
@@ -39,8 +32,8 @@ class MultiDeleteSupplierGroupRequest extends FormRequest
             'ids.*' => [
                 'required',
                 'integer',
-                // Đảm bảo nhóm nhà cung cấp tồn tại trong database
-                Rule::exists('supplier_groups', 'id'),
+                // Đảm bảo hóa đơn nhập tồn tại trong database
+                Rule::exists('purchase_invoices', 'id'),
             ],
         ];
     }
@@ -51,11 +44,11 @@ class MultiDeleteSupplierGroupRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'ids.required' => 'Vui lòng cung cấp danh sách ID nhóm nhà cung cấp cần xóa.',
+            'ids.required' => 'Vui lòng cung cấp danh sách ID hóa đơn nhập cần xóa.',
             'ids.array' => 'Định dạng danh sách ID không hợp lệ.',
-            'ids.min' => 'Vui lòng chọn ít nhất một nhóm để xóa.',
+            'ids.min' => 'Vui lòng chọn ít nhất một hóa đơn để xóa.',
             'ids.*.integer' => 'Mỗi ID trong danh sách phải là một số nguyên.',
-            'ids.*.exists' => 'Một trong các ID không tồn tại.',
+            'ids.*.exists' => 'Một trong các ID hóa đơn nhập không tồn tại.',
         ];
     }
     

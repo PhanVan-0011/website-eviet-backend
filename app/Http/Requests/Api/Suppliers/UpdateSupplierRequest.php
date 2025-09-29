@@ -24,13 +24,15 @@ class UpdateSupplierRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Lấy ID từ tham số route (giả sử tên tham số là 'id')
+       $supplierId = $this->route('id');
        return [
-            'code' => ['sometimes', 'required', 'string', 'max:50', Rule::unique('suppliers', 'code')->ignore($this->route('supplier'))],
-            'name' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('suppliers', 'name')->ignore($this->route('supplier'))],
+            'code' => ['sometimes', 'required', 'string', 'max:50', Rule::unique('suppliers', 'code')->ignore($supplierId)],
+            'name' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('suppliers', 'name')->ignore($supplierId)],
             'group_id' => 'sometimes|nullable|integer|exists:supplier_groups,id',
-            'phone_number' => ['sometimes', 'nullable', 'string', 'max:20', Rule::unique('suppliers', 'phone_number')->ignore($this->route('supplier')), 'regex:/^(0|\+84)(3[2-9]|5[6|8|9]|7[0|6-9]|8[1-9]|9[0-4|6-9])[0-9]{7}$/'],
+            'phone_number' => ['sometimes', 'nullable', 'string', 'max:20', Rule::unique('suppliers', 'phone_number')->ignore($supplierId), 'regex:/^(0|\+84)(3[2-9]|5[6|8|9]|7[0|6-9]|8[1-9]|9[0-4|6-9])[0-9]{7}$/'],
             'address' => 'sometimes|nullable|string|max:255',
-            'email' => ['sometimes', 'nullable', 'email', 'max:255', Rule::unique('suppliers', 'email')->ignore($this->route('supplier'))],
+            'email' => ['sometimes', 'nullable', 'email', 'max:255', Rule::unique('suppliers', 'email')->ignore($supplierId)],
             'tax_code' => 'sometimes|nullable|string|max:50',
             'notes' => 'sometimes|nullable|string',
             'is_active' => 'sometimes|boolean',

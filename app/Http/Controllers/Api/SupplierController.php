@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\Supplier\StoreSupplierRequest;
-use App\Http\Requests\Api\Supplier\UpdateSupplierRequest;
+use App\Http\Requests\Api\Suppliers\MultiDeleteSuppliersRequest;
+use App\Http\Requests\Api\Suppliers\StoreSupplierRequest;
+use App\Http\Requests\Api\Suppliers\UpdateSupplierRequest;
 use App\Http\Resources\SupplierResource;
 use App\Services\SupplierService;
 use Illuminate\Http\Request;
@@ -156,7 +157,7 @@ class SupplierController extends Controller
     /**
      * Xóa nhiều nhà cung cấp cùng lúc.
      */
-    public function multiDelete(MultiDeleteSupplierRequest $request)
+    public function multiDelete(MultiDeleteSuppliersRequest $request)
     {
         try {
             $deletedCount = $this->supplierService->multiDelete($request->validated()['ids']);

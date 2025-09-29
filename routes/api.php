@@ -20,6 +20,8 @@ use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\Client\RegistrationController;
 use App\Http\Controllers\Api\Client\ForgotPasswordController;
 use App\Http\Controllers\Api\BranchController;
+use App\Http\Controllers\Api\SupplierGroupController;
+use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\Client\ClientSliderController;
 use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 use App\Http\Controllers\Api\Client\ProductController as ClientProductController;
@@ -93,6 +95,26 @@ Route::middleware('auth:sanctum')->group(function () {
 
 //Admin
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+     // --- Supplier Groups ---
+    Route::prefix('supplier-groups')->group(function () {
+        Route::get('/', [SupplierGroupController::class, 'index']);
+
+        Route::get('/{id}', [SupplierGroupController::class, 'show']);
+        Route::post('/', [SupplierGroupController::class, 'store']);
+        Route::put('/{id}', [SupplierGroupController::class, 'update']);
+        Route::delete('/multi-delete', [SupplierGroupController::class, 'multiDelete']);
+        Route::delete('/{id}', [SupplierGroupController::class, 'destroy']);
+    });
+
+    // --- Suppliers ---
+    Route::prefix('suppliers')->group(function () {
+        Route::get('/', [SupplierController::class, 'index']);
+        Route::delete('/multi-delete', [SupplierController::class, 'multiDelete']);
+        Route::get('/{id}', [SupplierController::class, 'show']);
+        Route::post('/', [SupplierController::class, 'store']);
+        Route::put('/{id}', [SupplierController::class, 'update']);
+        Route::delete('/{id}', [SupplierController::class, 'destroy']);
+    });
     // ---Branch---
     Route::prefix('branches')->group(function () {
         Route::get('/', [BranchController::class, 'index']);

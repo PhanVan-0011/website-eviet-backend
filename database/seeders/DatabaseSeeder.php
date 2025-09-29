@@ -7,6 +7,8 @@ use App\Models\Order;
 use App\Models\User;
 use App\Models\Product;
 use App\Models\OrderDetail;
+use App\Models\Supplier;
+use App\Models\SupplierGroup;
 use Illuminate\Database\Seeder;
 use Database\Seeders\PaymentMethodSeeder;
 
@@ -52,8 +54,10 @@ class DatabaseSeeder extends Seeder
 
             DashboardDemoSeeder::class,
             OtpVerificationSeeder::class,
-             CartSeeder::class,
-             BranchSeeder::class,
+            CartSeeder::class,
+            BranchSeeder::class,
+            SupplierGroup::class,
+            Supplier::class,
         ]);
 
         // Cập nhật total_amount cho mỗi đơn hàng

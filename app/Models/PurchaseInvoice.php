@@ -19,6 +19,8 @@ class PurchaseInvoice extends Model
         'subtotal_amount',
         'discount_amount',
         'total_amount',
+        'paid_amount', 
+        'amount_owed', 
         'notes',
         'status',
     ];

@@ -117,16 +117,54 @@ class SupplierGroupService
         try {
             return DB::transaction(function () use ($ids) {
                 $groupsToDelete = SupplierGroup::whereIn('id', $ids)
+                    ->with(['suppliers' => function ($query) {
+                        // Chỉ cần tải ID để đếm, tối ưu hóa truy vấn
+                        $query->select('id', 'group_id');
+                    }])
+                    ->get();
+                
+                $totalLinkedSuppliers = 0;
+                $hasLinkedGroup = false;
+
+                foreach ($groupsToDelete as $group) {
+                    if ($group->suppliers->isNotEmpty()) {
+                        $hasLinkedGroup = true;
+                        $totalLinkedSuppliers += $group->suppliers->count();
+                    }
+                }
+                
+                // Nếu có bất kỳ nhóm nào đang có nhà cung cấp liên kết, ném lỗi tổng hợp
+                if ($hasLinkedGroup) {
+                    throw new Exception("Không thể xóa nhóm nhà cung cấp vì đang có {$totalLinkedSuppliers} nhà cung cấp liên kết.");
+                }
+
+                // Tiến hành xóa
+                $count = 0;
+                foreach ($groupsToDelete as $group) {
+                    $group->delete();
+                    $count++;
+                }
+                return $count;
+            });
+        } catch (Exception $e) {
+            Log::error('Lỗi khi xóa nhiều nhóm nhà cung cấp: ' . $e->getMessage());
+            throw $e;
+        }
+         try {
+            return DB::transaction(function () use ($ids) {
+                $groupsToDelete = SupplierGroup::whereIn('id', $ids)
                     ->with('suppliers')
                     ->get();
                 
                 $errors = [];
                 foreach ($groupsToDelete as $group) {
                     if ($group->suppliers->isNotEmpty()) {
+                        // Ném ra các lỗi riêng lẻ, không nối chuỗi
                         $errors[] = "Không thể xóa nhóm nhà cung cấp '{$group->name}' vì đang có nhà cung cấp liên kết.";
                     }
                 }
                 if (!empty($errors)) {
+                    // Ném Exception, Controller sẽ xử lý các lỗi này
                     throw new Exception(implode(' ', $errors));
                 }
 
