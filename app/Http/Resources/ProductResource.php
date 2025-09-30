@@ -20,17 +20,10 @@ class ProductResource extends JsonResource
             'product_code' => $this->product_code,
             'name' => $this->name,
             'description' => $this->description,
-            'original_price' => $this->original_price,
-            'sale_price' => $this->sale_price,
-            'stock_quantity' => $this->stock_quantity,
             'status' => $this->status,
-
             'image_urls' => ImageResource::collection($this->whenLoaded('images')),
-            
+    
             'featured_image' => new ImageResource($this->whenLoaded('featuredImage')),
-
-            'size' => $this->size,
-
             'categories' => CategoryResource::collection($this->whenLoaded('categories')),
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),

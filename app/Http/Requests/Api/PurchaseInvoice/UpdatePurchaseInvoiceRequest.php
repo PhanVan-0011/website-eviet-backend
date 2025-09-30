@@ -16,15 +16,49 @@ class UpdatePurchaseInvoiceRequest extends FormRequest
     {
         return true;
     }
+    /**
+     * Tính toán lại tổng tiền hóa đơn trước khi validation chạy.
+     */
+    protected function prepareForValidation(): void
+    {
+        $subtotal = 0.00;
+        // Lấy discount từ request, hoặc giá trị hiện tại của model nếu không được gửi
+        $discount = (float) $this->input('discount_amount', $this->invoice->discount_amount ?? 0.00);
 
-     public function rules(): array
+        // Tính toán Subtotal từ chi tiết MỚI được gửi
+        if ($this->has('details') && is_array($this->details)) {
+            foreach ($this->details as $detail) {
+                // Ép kiểu float rõ ràng
+                $quantity = (float) ($detail['quantity'] ?? 0.00);
+                $unitPrice = (float) ($detail['unit_price'] ?? 0.00);
+                $subtotal += $quantity * $unitPrice;
+            }
+        } else {
+            // Nếu KHÔNG có details mới, giữ lại subtotal cũ của model
+            $subtotal = $this->invoice->subtotal_amount ?? 0.00;
+        }
+
+        // Tính Total Amount cuối cùng
+        $totalAmount = max(0.00, $subtotal - $discount);
+        $paidAmount = (float) $this->input('paid_amount', $this->invoice->paid_amount ?? 0.00); // Lấy giá trị paid_amount mới hoặc cũ
+
+        // Merge các giá trị đã tính toán và chuẩn hóa
+        $this->merge([
+            'total_amount' => $totalAmount,
+            'subtotal_amount' => $subtotal,
+            'discount_amount' => $discount,
+            'paid_amount' => $paidAmount,
+        ]);
+    }
+
+    public function rules(): array
     {
         return [
             'supplier_id' => 'sometimes|required|integer|exists:suppliers,id',
             'branch_id' => 'sometimes|required|integer|exists:branches,id',
             'invoice_date' => 'sometimes|required|date',
             'status' => 'sometimes|required|string|in:draft,received,cancelled',
-            
+
             // Các trường tiền tệ/số lượng
             'discount_amount' => 'sometimes|nullable|numeric|min:0',
             'paid_amount' => 'sometimes|nullable|numeric|min:0|lte:total_amount',
@@ -41,7 +75,7 @@ class UpdatePurchaseInvoiceRequest extends FormRequest
             'total_amount' => 'sometimes|nullable|numeric|min:0',
         ];
     }
-    
+
     public function messages(): array
     {
         return [
@@ -50,7 +84,7 @@ class UpdatePurchaseInvoiceRequest extends FormRequest
             'details.*.product_id.required' => 'ID sản phẩm chi tiết là bắt buộc.',
         ];
     }
-    
+
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(response()->json([

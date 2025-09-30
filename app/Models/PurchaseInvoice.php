@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany; 
 
 class PurchaseInvoice extends Model
 {
@@ -19,8 +20,8 @@ class PurchaseInvoice extends Model
         'subtotal_amount',
         'discount_amount',
         'total_amount',
-        'paid_amount', 
-        'amount_owed', 
+        'paid_amount',
+        'amount_owed',
         'notes',
         'status',
     ];
@@ -43,8 +44,8 @@ class PurchaseInvoice extends Model
     }
 
     // Mối quan hệ: Một hóa đơn nhập có nhiều chi tiết
-    public function details()
+    public function details(): HasMany
     {
-        return $this->hasMany(PurchaseInvoiceDetail::class);
+        return $this->hasMany(PurchaseInvoiceDetail::class, 'invoice_id');
     }
 }
