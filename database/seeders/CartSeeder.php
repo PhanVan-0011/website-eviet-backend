@@ -15,7 +15,7 @@ class CartSeeder extends Seeder
     /**
      * Run the database seeds.
      */
-     public function run(): void
+    public function run(): void
     {
         // Lấy dữ liệu mẫu (giả sử đã có sẵn)
         $user = User::query()->inRandomOrder()->first();
@@ -45,7 +45,7 @@ class CartSeeder extends Seeder
                 'sku_snapshot'   => $product1->product_code ?? $product1->code ?? null,
                 'attributes'     => ['size' => 'M', 'sugar' => 'less'],
                 'quantity'       => 2,
-                'unit_price'     => (float) ($product1->sale_price ?? $product1->price ?? 0),
+                'unit_price'     => 20000, // Giá mặc định cho sản phẩm 1
                 'notes'          => 'Ít đá',
             ],
             [
@@ -55,7 +55,7 @@ class CartSeeder extends Seeder
                 'sku_snapshot'   => $product2->product_code ?? $product2->code ?? null,
                 'attributes'     => null,
                 'quantity'       => 1,
-                'unit_price'     => (float) ($product2->sale_price ?? $product2->price ?? 0),
+                'unit_price'     => 6000, // Giá mặc định cho sản phẩm 2
                 'notes'          => null,
             ],
             [
@@ -65,7 +65,7 @@ class CartSeeder extends Seeder
                 'sku_snapshot'   => $combo->slug ?? null,
                 'attributes'     => null,
                 'quantity'       => 1,
-                'unit_price'     => (float) ($combo->price ?? 0),
+                'unit_price'     => 1500000, // Giá mặc định cho combo
                 'notes'          => 'Ăn sáng nhanh',
             ],
         ];

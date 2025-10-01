@@ -133,7 +133,7 @@ class CategoryController extends Controller
     /**
      * Xóa một danh mục
      */
-   public function destroy($id)
+    public function destroy($id)
     {
         try {
             $deleted = $this->categoryService->deleteCategory($id);
@@ -166,12 +166,12 @@ class CategoryController extends Controller
     public function multiDelete(MultiDeleteCategoryRequest $request)
     {;
         try {
-            
+
             $deletedCount = $this->categoryService->multiDelete($request->validated()['ids']);
             return response()->json([
                 'success' => true,
                 'message' => "Đã xóa thành công {$deletedCount} danh mục"
-            ],200);
+            ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
@@ -183,6 +183,5 @@ class CategoryController extends Controller
                 'message' => $e->getMessage(),
             ], 400);
         }
-
     }
 }

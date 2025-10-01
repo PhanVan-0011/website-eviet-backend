@@ -53,7 +53,7 @@ class Combo extends Model
             // Nếu name thay đổi, tạo lại slug
             if ($combo->isDirty('name')) {
                 $combo->slug = Str::slug($combo->name);
-                
+
                 // Kiểm tra và đảm bảo slug là duy nhất khi cập nhật
                 $originalSlug = $combo->slug;
                 $counter = 1;
@@ -85,9 +85,17 @@ class Combo extends Model
         return $this->belongsToMany(Promotion::class, 'promotion_combos')->withTimestamps();
     }
 
-     public function orderDetails()
+    public function orderDetails()
     {
         return $this->hasMany(OrderDetail::class, 'combo_id');
+    }
+
+    /**
+     * Một combo có nhiều mức giá
+     */
+    public function prices()
+    {
+        return $this->hasMany(ComboPrice::class);
     }
 
     /**

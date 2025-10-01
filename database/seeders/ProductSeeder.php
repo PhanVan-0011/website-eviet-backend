@@ -16,10 +16,6 @@ class ProductSeeder extends Seeder
             [
                 'name' => 'Cà phê đen',
                 'description' => 'Cà phê đen không đường',
-                'size' => 'L',
-                'original_price' => 15000,
-                'sale_price' => 20000,
-                'stock_quantity' => 5,
                 'status' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -27,10 +23,6 @@ class ProductSeeder extends Seeder
             [
                 'name' => 'Bánh tráng',
                 'description' => 'Bánh tráng phơi sương,bánh tráng xì ke',
-                'size' => null,
-                'original_price' => 5000,
-                'sale_price' => 6000,
-                'stock_quantity' => 20,
                 'status' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
