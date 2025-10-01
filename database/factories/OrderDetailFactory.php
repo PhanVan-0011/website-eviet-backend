@@ -30,7 +30,7 @@ class OrderDetailFactory extends Factory
             'order_id' => Order::factory(),
             'product_id' => $product->id,
             'quantity' => $this->faker->numberBetween(1, 10),
-            'unit_price' => $product->sale_price ?? $product->original_price ?? 0.0,
+            'unit_price' => $this->faker->randomFloat(2, 10000, 100000), // Giá ngẫu nhiên từ 10k đến 100k
 
         ];
     }

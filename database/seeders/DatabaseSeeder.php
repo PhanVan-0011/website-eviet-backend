@@ -28,36 +28,47 @@ class DatabaseSeeder extends Seeder
         // ]);
 
         $this->call([
+            // 1. Seeder cơ bản - không phụ thuộc vào bảng khác
             RolesAndPermissionsSeeder::class,
+            PaymentMethodSeeder::class,
+            OtpVerificationSeeder::class,
+
+            // 2. Seeder cho người dùng và chi nhánh
             UserSeeder::class,
-            // Seeder cho danh mục và sản phẩm
+            BranchSeeder::class,
+
+            // 3. Seeder cho nhà cung cấp
+            SupplierGroupSeeder::class,
+            SupplierSeeder::class,
+
+            // 4. Seeder cho danh mục và sản phẩm
             CategoriesSeeder::class,
             ProductSeeder::class,
-            ProductAttributeSeeder::class,  
-            // Seeder cho combo
+            ProductPriceSeeder::class,
+            BranchProductStockSeeder::class,
+            ProductAttributeSeeder::class,
+
+            // 5. Seeder cho combo
             ComboSeeder::class,
+            ComboPriceSeeder::class,
             ComboItemSeeder::class,
 
-            // Seeder cho slider và bài viết
+            // 6. Seeder cho slider và bài viết
             SliderSeeder::class,
             PostSeeder::class,
 
-            // Seeder cho đơn hàng
-            OrderSeeder::class,
-
-            // Seeder cho khuyến mãi
+            // 7. Seeder cho khuyến mãi
             PromotionSeeder::class,
             PromotionRelationSeeder::class,
 
-            // Gọi seeder phương thức thanh toán
-            PaymentMethodSeeder::class,
+            // 8. Seeder cho đơn hàng (cần có sản phẩm trước)
+            OrderSeeder::class,
 
-            DashboardDemoSeeder::class,
-            OtpVerificationSeeder::class,
+            // 9. Seeder cho giỏ hàng (cần có sản phẩm và combo trước)
             CartSeeder::class,
-            BranchSeeder::class,
-            SupplierGroup::class,
-            Supplier::class,
+
+            // 10. Seeder demo cuối cùng
+            DashboardDemoSeeder::class,
         ]);
 
         // Cập nhật total_amount cho mỗi đơn hàng

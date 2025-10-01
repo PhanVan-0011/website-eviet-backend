@@ -47,7 +47,7 @@ class DashboardDemoSeeder extends Seeder
             $chosenProducts = $products->random($numProducts);
             foreach ($chosenProducts as $product) {
                 $qty = rand(1, 5);
-                $unitPrice = $product->price ?? rand(20000, 100000);
+                $unitPrice = rand(20000, 100000); // Giá ngẫu nhiên cho demo
                 $details[] = [
                     'order_id' => $order->id,
                     'product_id' => $product->id,

@@ -12,7 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-             Schema::table('products', function (Blueprint $table) {
             // Xóa cột giá cũ
             $table->dropColumn('original_price');
             $table->dropColumn('sale_price');
@@ -20,7 +19,6 @@ return new class extends Migration
             $table->dropColumn('stock_quantity');
             // Xóa cột size
             $table->dropColumn('size');
-        });
         });
     }
 

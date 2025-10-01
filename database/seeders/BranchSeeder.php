@@ -13,10 +13,10 @@ class BranchSeeder extends Seeder
      */
     public function run(): void
     {
-        
+
         // Vô hiệu hóa foreign key checks để tránh lỗi khi seeding
         DB::statement('SET FOREIGN_KEY_CHECKS=0;'); // Sử dụng cách gọi đúng
-        
+
         // Xóa tất cả các bản ghi hiện có
         Branch::truncate();
 
