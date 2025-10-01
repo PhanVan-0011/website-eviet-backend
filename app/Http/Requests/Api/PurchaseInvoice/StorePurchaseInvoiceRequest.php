@@ -16,7 +16,42 @@ class StorePurchaseInvoiceRequest extends FormRequest
     {
         return true;
     }
+    /**
+     * Tính toán tổng tiền hóa đơn trước khi validation chạy.
+     */
+    protected function prepareForValidation(): void
+    {
+        $subtotal = 0.00;
+        // Tổng chiết khấu HĐ ban đầu (có thể từ input field discount_amount)
+        $totalDiscount = (float) $this->input('discount_amount', 0.00); 
 
+        if ($this->has('details') && is_array($this->details)) {
+            foreach ($this->details as $detail) {
+                // Ép kiểu float/numeric
+                $quantity = (float) ($detail['quantity'] ?? 0.00);
+                $unitPrice = (float) ($detail['unit_price'] ?? 0.00);
+                // Lấy item discount từ input, mặc định là 0
+                $itemDiscount = (float) ($detail['item_discount'] ?? 0.00); 
+                
+                // Tính subtotal: (Số lượng * Đơn giá) - Giảm giá mặt hàng
+                $subtotal += ($quantity * $unitPrice) - $itemDiscount;
+                
+                // Cộng dồn giảm giá mặt hàng vào tổng chiết khấu HĐ
+                $totalDiscount += $itemDiscount; 
+            }
+        }
+        
+        $totalAmount = max(0.00, $subtotal - $totalDiscount);
+        $paidAmount = (float) $this->input('paid_amount', 0.00);
+
+        // Merge các giá trị đã tính toán và chuẩn hóa
+        $this->merge([
+            'total_amount' => $totalAmount,
+            'subtotal_amount' => $subtotal,
+            'discount_amount' => $totalDiscount,
+            'paid_amount' => $paidAmount, 
+        ]);
+    }
     public function rules(): array
     {
         return [
@@ -26,7 +61,7 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'user_id' => 'required|integer|exists:users,id',
             'invoice_date' => 'required|date',
             'status' => 'required|string|in:draft,received,cancelled',
-            
+
             // Các trường giá trị tiền tệ/số lượng (sẽ được tính toán lại trong Service)
             'subtotal_amount' => 'nullable|numeric|min:0',
             'discount_amount' => 'nullable|numeric|min:0',
@@ -39,9 +74,12 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'details.*.product_id' => 'required|integer|exists:products,id',
             'details.*.quantity' => 'required|integer|min:1',
             'details.*.unit_price' => 'required|numeric|min:0',
+              // --- Validation cho 2 cột mới ---
+            'details.*.unit_of_measure' => 'required|string|max:50',
+            'details.*.item_discount' => 'nullable|numeric|min:0', 
         ];
     }
-    
+
     public function messages(): array
     {
         return [
@@ -56,9 +94,11 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'details.required' => 'Hóa đơn phải có ít nhất một sản phẩm.',
             'details.*.product_id.required' => 'ID sản phẩm chi tiết là bắt buộc.',
             'details.*.quantity.min' => 'Số lượng sản phẩm phải lớn hơn 0.',
+            'details.*.unit_of_measure.required' => 'Đơn vị tính là bắt buộc.',
+            'details.*.item_discount.numeric' => 'Giảm giá phải là số.',
         ];
     }
-    
+
     protected function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(response()->json([

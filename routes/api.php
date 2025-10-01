@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\Client\ForgotPasswordController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\SupplierGroupController;
 use App\Http\Controllers\Api\SupplierController;
+use App\Http\Controllers\Api\PurchaseInvoiceController;
 use App\Http\Controllers\Api\Client\ClientSliderController;
 use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 use App\Http\Controllers\Api\Client\ProductController as ClientProductController;
@@ -95,10 +96,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
 //Admin
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+     // --- Purchase Invoices (Hóa đơn nhập hàng) ---
+    Route::prefix('purchase-invoices')->group(function () {
+        Route::get('/', [PurchaseInvoiceController::class, 'index']);
+        Route::get('/{id}', [PurchaseInvoiceController::class, 'show']);
+        Route::post('/', [PurchaseInvoiceController::class, 'store']);
+        Route::post('/{id}', [PurchaseInvoiceController::class, 'update']);
+        Route::delete('/multi-delete', [PurchaseInvoiceController::class, 'multiDelete']);
+        Route::delete('/{id}', [PurchaseInvoiceController::class, 'destroy']);
+    });
      // --- Supplier Groups ---
     Route::prefix('supplier-groups')->group(function () {
         Route::get('/', [SupplierGroupController::class, 'index']);
-
         Route::get('/{id}', [SupplierGroupController::class, 'show']);
         Route::post('/', [SupplierGroupController::class, 'store']);
         Route::put('/{id}', [SupplierGroupController::class, 'update']);
