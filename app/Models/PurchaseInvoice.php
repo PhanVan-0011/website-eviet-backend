@@ -25,6 +25,23 @@ class PurchaseInvoice extends Model
         'notes',
         'status',
     ];
+    
+    /**
+     * Ép kiểu để đảm bảo các phép tính tiền tệ chính xác và không bị ghi đè.
+     * Lưu ý: cast 'decimal:2' trả về string khi serialize để tránh sai số float.
+     */
+    protected $casts = [
+        'invoice_date'     => 'datetime',
+        'total_quantity'   => 'int',
+        'total_items'      => 'int',
+
+        // Money fields
+        'subtotal_amount'  => 'decimal:2',
+        'discount_amount'  => 'decimal:2',
+        'total_amount'     => 'decimal:2',
+        'paid_amount'      => 'decimal:2',
+        'amount_owed'      => 'decimal:2',
+    ];
     // Mối quan hệ: Một hóa đơn nhập thuộc về một nhà cung cấp
     public function supplier()
     {

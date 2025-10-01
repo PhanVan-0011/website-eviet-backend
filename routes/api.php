@@ -101,7 +101,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/', [PurchaseInvoiceController::class, 'index']);
         Route::get('/{id}', [PurchaseInvoiceController::class, 'show']);
         Route::post('/', [PurchaseInvoiceController::class, 'store']);
-        Route::post('/{id}', [PurchaseInvoiceController::class, 'update']);
+        Route::put('/{id}', [PurchaseInvoiceController::class, 'update']);
         Route::delete('/multi-delete', [PurchaseInvoiceController::class, 'multiDelete']);
         Route::delete('/{id}', [PurchaseInvoiceController::class, 'destroy']);
     });

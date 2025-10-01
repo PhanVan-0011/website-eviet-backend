@@ -29,11 +29,11 @@ class PurchaseInvoiceResource extends JsonResource
             'total_quantity' => $this->total_quantity,
             'total_items' => $this->total_items,
             
-            'subtotal_amount' => (float) $this->subtotal_amount,
-            'discount_amount' => (float) $this->discount_amount,
-            'total_amount' => (float) $this->total_amount,
-            'paid_amount' => (float) $this->paid_amount,
-            'amount_owed' => (float) $this->amount_owed,
+            'subtotal_amount' =>$this->subtotal_amount,
+            'discount_amount' =>$this->discount_amount,
+            'total_amount' =>$this->total_amount,
+            'paid_amount' => $this->paid_amount,
+            'amount_owed' => $this->amount_owed,
             
             'notes' => $this->notes,
             'status' => $this->status,
