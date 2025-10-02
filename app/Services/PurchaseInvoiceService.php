@@ -81,7 +81,6 @@ class PurchaseInvoiceService
             throw $e;
         }
     }
-
     /**
      * Lấy chi tiết một hóa đơn nhập hàng.
      */
@@ -90,7 +89,7 @@ class PurchaseInvoiceService
         return PurchaseInvoice::with('supplier', 'branch', 'user', 'details.product')->findOrFail($id);
     }
 
-      /**
+     /**
      * Tạo mới một hóa đơn nhập hàng và cập nhật tồn kho.
      */
     public function createInvoice(array $data): PurchaseInvoice
@@ -98,14 +97,18 @@ class PurchaseInvoiceService
         try {
             return DB::transaction(function () use ($data) {
                 
-                //Tính toán lại tổng tiền và công nợ (SỬA LỖI TÍNH TOÁN)
+                //Tính toán lại tổng tiền và công nợ
                 $calculatedData = $this->calculateInvoiceTotals($data);
 
                 //Tạo hóa đơn chính
                 $invoice = PurchaseInvoice::create($calculatedData);
+                
+                //LƯU chi tiết hóa đơn (Dù là draft hay received)
+                $this->syncDetails($invoice, $calculatedData['details']);
 
-                //Lưu chi tiết hóa đơn và cập nhật tồn kho
-                $this->syncDetailsAndStocks($invoice, $calculatedData['details']); 
+                if ($invoice->status === 'received') {
+                    $this->updateStock($invoice, $calculatedData['details'], 1);
+                }
 
                 //Trả về hóa đơn đã tạo (Observer tự động cập nhật công nợ NCC)
                 return $invoice->load(['supplier', 'branch', 'user', 'details.product']);
@@ -119,43 +122,50 @@ class PurchaseInvoiceService
     /**
      * Cập nhật hóa đơn và các chi tiết liên quan.
      */
+    /**
+     * Cập nhật hóa đơn và các chi tiết liên quan.
+     */
     public function updateInvoice(string $id, array $data): PurchaseInvoice
     {
         try {
             return DB::transaction(function () use ($id, $data) {
-                // Lấy hóa đơn cơ bản
-                $invoice = PurchaseInvoice::findOrFail($id); 
+                $invoice = PurchaseInvoice::with('details')->findOrFail($id);
+                $oldStatus = $invoice->status;
+                $oldDetails = $invoice->details->toArray(); // LƯU LẠI DETAILS CŨ TRƯỚC KHI TÍNH TOÁN
                 
-                // --- ĐÃ CHỈNH SỬA ---
-                
-                // 1. Kiểm tra xem có details mới được gửi không
                 $hasNewDetails = isset($data['details']) && is_array($data['details']);
-
-                // 2. Lấy phiên bản FRESH (để tính toán) và load details (nếu cần cho reverse)
-                $freshInvoiceForCalculation = $invoice->fresh(); 
-
-                if (!$hasNewDetails) {
-                    // Load details cũ để hoàn tác/giữ nguyên khi không có details mới
-                    $invoice->load('details');
-                }
+                $newStatus = $data['status'] ?? $oldStatus;
                 
-                $calculatedData = $this->calculateInvoiceTotals($data, $freshInvoiceForCalculation);
+                // Tính toán lại tổng tiền và công nợ. $calculatedData sẽ chứa chi tiết mới nếu có.
+                $calculatedData = $this->calculateInvoiceTotals($data, $invoice->fresh());
 
-                // 3. Nếu có details mới, ta cần hoàn tác tồn kho cũ
-                if ($hasNewDetails) {
-                    $this->reverseDetailsAndStocks($invoice); 
+                // 1. HOÀN TÁC TỒN KHO CŨ nếu chi tiết thay đổi HOẶC status chuyển từ received đi
+                if ($oldStatus === 'received' && ($hasNewDetails || $newStatus !== 'received')) {
+                    // Dùng chi tiết CŨ đã lưu ở trên để đảo ngược tồn kho
+                    $this->updateStock($invoice, $oldDetails, -1); // -1: Giảm tồn
                 }
-                
+
                 // Cập nhật hóa đơn chính 
                 $invoice->update($calculatedData);
-
-                // 4. Nếu có details mới, xóa chi tiết cũ và đồng bộ chi tiết mới, cập nhật tồn kho
+                
+                // 2. CẬP NHẬT DETAILS MỚI (Nếu có)
                 if ($hasNewDetails) {
-                    $invoice->details()->delete();
-                    $this->syncDetailsAndStocks($invoice, $calculatedData['details']);
+                    // XÓA chi tiết cũ bằng truy vấn trực tiếp trước khi thêm chi tiết mới
+                    PurchaseInvoiceDetail::where('invoice_id', $invoice->id)->delete();
+                    $this->syncDetails($invoice, $calculatedData['details']);
+                    
+                    // FIX MỚI: Tải lại chi tiết MỚI đã được lưu vào DB
+                    $invoice->load('details'); 
                 }
-                // --- KẾT THÚC CHỈNH SỬA ---
+                
+                // 3. XỬ LÝ TỒN KHO MỚI
+                if ($newStatus === 'received' && $oldStatus !== 'received') {
+                    // FIX: LUÔN DÙNG $invoice->details (đã được load mới nhất)
+                    $detailsToUse = $invoice->details->toArray();
 
+                    $this->updateStock($invoice, $detailsToUse, 1);
+                } 
+                
                 return $invoice->refresh()->load(['supplier', 'branch', 'user', 'details.product']);
             });
         } catch (Exception $e) {
@@ -165,62 +175,17 @@ class PurchaseInvoiceService
     }
 
 
-    /**
-     * Xóa một hóa đơn nhập hàng và hoàn tác tồn kho/công nợ.
-     */
-    public function deleteInvoice(string $id): bool
-    {
-        try {
-            return DB::transaction(function () use ($id) {
-                $invoice = $this->getInvoiceById($id);
-
-                $this->reverseDetailsAndStocks($invoice); 
-                
-                return $invoice->delete();
-            });
-        } catch (Exception $e) {
-            Log::error("Lỗi khi xóa hóa đơn nhập (ID: {$id}): " . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * Xóa nhiều hóa đơn nhập hàng.
-     */
-    public function multiDelete(array $ids): int
-    {
-        try {
-            $deletedCount = 0;
-            return DB::transaction(function () use ($ids, &$deletedCount) {
-                $invoices = PurchaseInvoice::whereIn('id', $ids)->get();
-
-                foreach ($invoices as $invoice) {
-                    // Sử dụng deleteInvoice để đảm bảo hoàn tác transaction và tồn kho
-                    $this->deleteInvoice($invoice->id); 
-                    $deletedCount++;
-                }
-                return $deletedCount;
-            });
-        } catch (Exception $e) {
-            Log::error('Lỗi khi xóa nhiều hóa đơn nhập: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    protected function calculateInvoiceTotals(array $data, ?PurchaseInvoice $existingInvoice = null): array
+   protected function calculateInvoiceTotals(array $data, ?PurchaseInvoice $existingInvoice = null): array
     {
         $paid = (float)($data['paid_amount'] ?? ($existingInvoice->paid_amount ?? 0));
         $hasNewDetails = isset($data['details']) && is_array($data['details']);
         $hasNewDiscount = isset($data['discount_amount']);
 
-        // ==============================================================================
-        // FIX: XỬ LÝ KHI CHỈ CẬP NHẬT PAID_AMOUNT (BẢO TOÀN CÁC TỔNG TIỀN CŨ)
         if ($existingInvoice && !$hasNewDetails && !$hasNewDiscount) {
             
-            // 1. UY TIÊN GIÁ TRỊ TỔNG TIỀN TỪ REQUEST (đã được Request merge giá trị cũ)
             $totalAmount = (float)($data['total_amount'] ?? 0.00);
             
-            // Lấy các giá trị tổng tiền còn lại (nếu có trong $data)
+            // Lấy các giá trị tổng tiền còn lại
             $data['subtotal_amount'] = (float)($data['subtotal_amount'] ?? 0.00);
             $data['discount_amount'] = (float)($data['discount_amount'] ?? 0.00);
             $data['total_quantity'] = (float)($data['total_quantity'] ?? 0);
@@ -228,12 +193,11 @@ class PurchaseInvoiceService
             
             
             if ($totalAmount === 0.00 && $existingInvoice->id) {
-                // 2. QUERY TRỰC TIẾP DB BẰNG DB::table NẾU REQUEST KHÔNG CÓ GIÁ TRỊ TỔNG TIỀN
-                // Thao tác này buộc phải đọc từ DB, tránh lỗi cache model trong transaction.
+                // QUERY TRỰC TIẾP DB BẰNG DB::table NẾU REQUEST KHÔNG CÓ GIÁ TRỊ TỔNG TIỀN
                 $db_totals = DB::table('purchase_invoices')
-                            ->select('subtotal_amount', 'discount_amount', 'total_amount', 'total_quantity', 'total_items')
-                            ->where('id', $existingInvoice->id)
-                            ->first();
+                                ->select('subtotal_amount', 'discount_amount', 'total_amount', 'total_quantity', 'total_items')
+                                ->where('id', $existingInvoice->id)
+                                ->first();
 
                 if ($db_totals) {
                     // ĐẶT CÁC GIÁ TRỊ CHÍNH XÁC TỪ DB VÀO $data
@@ -252,7 +216,7 @@ class PurchaseInvoiceService
                 }
             }
             
-            // Đặt Total Amount cuối cùng (49000.00)
+            // Đặt Total Amount cuối cùng (đã được FIX)
             $data['total_amount'] = $totalAmount;
             
             // Tính Công nợ MỚI dựa trên Total Amount chính xác
@@ -263,9 +227,7 @@ class PurchaseInvoiceService
             
             return $data; // Dùng early return để kết thúc hàm tại đây.
         }
-        // ==============================================================================
         
-        // --- LOGIC TÍNH TOÁN LẠI (Chạy khi có details hoặc discount_amount mới) ---
 
         $details = $data['details'] ?? ($existingInvoice->details->toArray() ?? []);
         
@@ -276,66 +238,102 @@ class PurchaseInvoiceService
         $totalItems = 0;
         
         // Chiết khấu HĐ gốc (Lấy từ trường đã merge trong Request)
-        // LƯU Ý: $data['discount_amount'] / $data['invoice_discount_only'] giờ là CK Header
         $invoiceDiscountOnly = (float)($data['invoice_discount_only'] ?? ($data['discount_amount'] ?? 0)); 
         
 
         // Nếu có details mới được gửi hoặc có details cũ (khi cập nhật), ta tính toán
         if (!empty($details)) { 
-            foreach ($details as &$detail) { 
+            foreach ($details as $index => $detail) { // **Sử dụng $index và gán lại $details[$index]**
                 $detail = is_array($detail) ? $detail : $detail->toArray();
                 
                 // Tính Gross Line Total
                 $grossLineTotal = (float)($detail['quantity'] * $detail['unit_price']);
                 $itemDiscount = (float)($detail['item_discount'] ?? 0);
 
-                // Cộng dồn Gross Subtotal và Total Item Discount
+                //GIỚI HẠN CHIẾT KHẤU MẶT HÀNG KHÔNG VƯỢT QUÁ GIÁ TRỊ DÒNG
+                $adjustedItemDiscount = round(min($itemDiscount, $grossLineTotal), 2);
+                
+                // BẮT BUỘC CẬP NHẬT GIÁ TRỊ ĐÃ GIỚI HẠN VÀO MẢNG $details CHÍNH
+                $details[$index]['item_discount'] = $adjustedItemDiscount; 
+
+                // Cộng dồn Gross Subtotal và Total Item Discount đã điều chỉnh
                 $grossSubtotal += $grossLineTotal; 
-                $totalItemDiscount += $itemDiscount;
+                $totalItemDiscount += $adjustedItemDiscount; // Dùng giá trị đã điều chỉnh
                 
                 // Tính Net Line Total cho chi tiết 
-                $detail['subtotal'] = max(0, $grossLineTotal - $itemDiscount); 
-                $netSubtotal += $detail['subtotal']; 
+                $details[$index]['subtotal'] = max(0, round($grossLineTotal - $adjustedItemDiscount, 2)); 
+                $netSubtotal += $details[$index]['subtotal']; 
                 
                 $totalQuantity += $detail['quantity'] ?? 0;
                 $totalItems++;
             }
         }
         
-        // Tổng chiết khấu TOÀN BỘ (Item + Header)
-        $totalDiscountAll = $totalItemDiscount + $invoiceDiscountOnly;
+        // CÁC BƯỚC TÍNH TOÁN CUỐI CÙNG (Đã tối ưu logic và FIX lỗi giới hạn CK Header)
 
-        // TÍNH TỔNG TIỀN CUỐI CÙNG: Gross Subtotal - Total Discount TOÀN BỘ
-        $totalAmount = max(0, $grossSubtotal - $totalDiscountAll);
-
-        // Gán các giá trị đã tính toán vào mảng $data
-        $data['subtotal_amount'] = max(0, $netSubtotal);
-        // $data['discount_amount'] đã được set là CK Header trong Request, KHÔNG GHI ĐÈ
+        $netSubtotal = round($netSubtotal, 2); 
         
+        //Net Subtotal (Đã trừ CK Item)
+        $data['subtotal_amount'] = max(0, $netSubtotal);
+
+        //GIỚI HẠN CK HEADER KHÔNG VƯỢT QUÁ NET SUBTOTAL
+        $adjustedInvoiceDiscount = round(min(max(0, $invoiceDiscountOnly), $netSubtotal), 2);
+        
+        //Cập nhật lại discount_amount của Hóa đơn (Chỉ lưu CK Header đã giới hạn)
+        $data['discount_amount'] = $adjustedInvoiceDiscount; 
+        
+        //Total Amount CUỐI CÙNG: Net Subtotal - CK Header đã giới hạn
+        $totalAmount = max(0, $netSubtotal - $adjustedInvoiceDiscount);
+
+        //Gán các giá trị đã tính toán vào mảng $data
         $data['total_quantity'] = $totalQuantity;
         $data['total_items'] = $totalItems;
-        $data['total_amount'] = $totalAmount;
+        $data['total_amount'] = round($totalAmount, 2);
         
-        // Tính Công nợ
-        $data['amount_owed'] = max(0, $totalAmount - $paid); 
+        //Tính Công nợ
+        $data['amount_owed'] = max(0, round($data['total_amount'] - $paid, 2)); 
         
-        // Loại bỏ trường trung gian invoice_discount_only trước khi lưu vào Model
+        //Loại bỏ trường trung gian invoice_discount_only trước khi lưu vào Model
         unset($data['invoice_discount_only']); 
         
-        // Gán lại details đã được tính toán (có thêm 'subtotal')
+        //Gán lại details đã được tính toán (có thêm 'subtotal' và 'item_discount' đã giới hạn)
         $data['details'] = $details; 
 
         return $data;
     }
 
+    /**
+     *Tái tính toán tổng tiền và công nợ của Nhà cung cấp 
+     */
+    public function recalculateSupplierTotals(int $supplierId): void
+    {
+        $supplier = Supplier::lockForUpdate()->find($supplierId);
+
+        if (!$supplier) {
+            return;
+        }
+
+        // Tính tổng Total Amount và tổng Amount Owed từ TẤT CẢ hóa đơn có trạng thái 'received'
+        $totals = PurchaseInvoice::where('supplier_id', $supplierId)
+            ->where('status', 'received')
+            ->selectRaw('ROUND(SUM(total_amount), 2) as sum_total_amount, ROUND(SUM(amount_owed), 2) as sum_amount_owed')
+            ->first();
+
+        $sumTotalAmount = (float) ($totals->sum_total_amount ?? 0.00);
+        $sumAmountOwed = (float) ($totals->sum_amount_owed ?? 0.00);
+
+        // GÁN GIÁ TRỊ TỔNG HỢP VÀO NHÀ CUNG CẤP
+        $supplier->total_purchase_amount = $sumTotalAmount;
+        $supplier->balance_due = $sumAmountOwed;
+        $supplier->save();
+    }
+
 
     /**
-     * Đồng bộ chi tiết hóa đơn và cập nhật tồn kho.
+     * đồng bộ chi tiết hóa đơn vào DB, không cập nhật tồn kho.
      */
-    protected function syncDetailsAndStocks(PurchaseInvoice $invoice, array $details): void
+    protected function syncDetails(PurchaseInvoice $invoice, array $details): void
     {
-        $branchId = $invoice->branch_id;
-
         foreach ($details as $detail) {
             $subtotal = $detail['subtotal'] ?? 0; 
 
@@ -348,13 +346,27 @@ class PurchaseInvoiceService
                 'unit_of_measure' => $detail['unit_of_measure'],
                 'item_discount' => $detail['item_discount'] ?? 0,
             ]);
+        }
+    }
+    
+    /**
+     *Cập nhật tồn kho (Thêm hoặc Trừ)
+     * @param int $direction 1: Tăng (+), -1: Giảm (-)
+     */
+     protected function updateStock(PurchaseInvoice $invoice, array $details, int $direction): void
+    {
+        $branchId = $invoice->branch_id;
+        $sign = $direction === 1 ? '+' : '-';
 
-            //Cập nhật tồn kho (Thêm số lượng)
+        foreach ($details as $detail) {
+            $quantity = $detail['quantity'];
+            
+            // Fix: Đảm bảo sử dụng DB::raw() với logic cộng dồn an toàn
             BranchProductStock::updateOrCreate(
                 ['branch_id' => $branchId, 'product_id' => $detail['product_id']],
                 [
-                    // Tăng số lượng tồn kho
-                    'quantity' => DB::raw('quantity + ' . $detail['quantity'])
+                    // Cập nhật quantity bằng cách cộng/trừ số lượng
+                    'quantity' => DB::raw("GREATEST(0, quantity {$sign} {$quantity})")
                 ]
             );
         }
@@ -365,21 +377,62 @@ class PurchaseInvoiceService
      */
     protected function reverseDetailsAndStocks(PurchaseInvoice $invoice): void
     {
-        // Hoàn tác tồn kho chỉ khi hóa đơn không phải là 'cancelled'
-        if ($invoice->status !== 'cancelled') {
-            $branchId = $invoice->branch_id;
-            
-            foreach ($invoice->details as $detail) {
-                // Giảm số lượng tồn kho
-                BranchProductStock::where('branch_id', $branchId)
-                    ->where('product_id', $detail->product_id)
-                    ->update([
-                        'quantity' => DB::raw('GREATEST(0, quantity - ' . $detail->quantity . ')') // Đảm bảo không âm
-                    ]);
-            }
+        // Hoàn tác tồn kho chỉ khi hóa đơn ở trạng thái 'received'
+        if ($invoice->status === 'received') {
+            $details = $invoice->details->toArray();
+            $this->updateStock($invoice, $details, -1); // -1: Giảm tồn
         }
-        
-        // Xóa tất cả chi tiết hóa đơn
-        $invoice->details()->delete();
+    }
+
+    /**
+     * Xóa một hóa đơn nhập hàng và hoàn tác tồn kho/công nợ.
+     */
+    public function deleteInvoice(string $id): bool
+    {
+        try {
+            return DB::transaction(function () use ($id) {
+                $invoice = PurchaseInvoice::with('details')->findOrFail($id); // Load details để hoàn tác
+
+                $this->reverseDetailsAndStocks($invoice); 
+                
+                //Xóa chi tiết bằng truy vấn trực tiếp trước khi xóa hóa đơn cha
+                PurchaseInvoiceDetail::where('invoice_id', $invoice->id)->delete();
+                
+                return $invoice->delete();
+            });
+        } catch (Exception $e) {
+            Log::error('Lỗi khi xóa hóa đơn nhập: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Xóa nhiều hóa đơn nhập hàng.
+     */
+    public function multiDelete(array $ids): int
+    {
+        try {
+            $deletedCount = 0;
+            return DB::transaction(function () use ($ids, &$deletedCount) {
+                // Tải hóa đơn với details để đảm bảo hoàn tác tồn kho
+                $invoices = PurchaseInvoice::whereIn('id', $ids)->with('details')->get();
+                
+                foreach ($invoices as $invoice) {
+                    $this->reverseDetailsAndStocks($invoice); 
+                    
+                    // FIX LỖI: Xóa chi tiết bằng truy vấn trực tiếp
+                    PurchaseInvoiceDetail::where('invoice_id', $invoice->id)->delete();
+                    
+                    $result = $invoice->delete();
+                    if ($result) {
+                        $deletedCount++;
+                    }
+                }
+                return $deletedCount;
+            });
+        } catch (Exception $e) {
+            Log::error('Lỗi khi xóa nhiều hóa đơn nhập: ' . $e->getMessage());
+            throw $e;
+        }
     }
 }

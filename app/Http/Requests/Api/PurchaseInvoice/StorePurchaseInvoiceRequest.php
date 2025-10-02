@@ -30,53 +30,53 @@ class StorePurchaseInvoiceRequest extends FormRequest
         $invoiceDiscountOnly = (float) $this->input('discount_amount', 0.00); 
 
         if ($this->has('details') && is_array($this->details)) {
-            foreach ($this->details as $detail) {
-                // Ép kiểu FLOAT cho tất cả các biến số học
+            // Sử dụng tham chiếu (&) để có thể cập nhật giá trị item_discount đã giới hạn
+            // Tuy nhiên, đối với Store Request, ta chỉ cần tính toán tổng ở đây, việc
+            // giới hạn Item Discount để lưu vào DB sẽ do Service đảm nhận.
+            foreach ($this->details as $detail) { 
+
                 $quantity = (float) ($detail['quantity'] ?? 0.00);
                 $unitPrice = (float) ($detail['unit_price'] ?? 0.00);
                 $itemDiscount = (float) ($detail['item_discount'] ?? 0.00); 
                 
-                // 1. Tính TỔNG TIỀN GỐC (Gross Subtotal)
-                $grossSubtotal += $quantity * $unitPrice;
+                // Tính Gross Line Total
+                $lineGross = round($quantity * $unitPrice, 2);
+
+                // 1. Cộng dồn Gross Subtotal
+                $grossSubtotal += $lineGross;
                 
-                // 2. Cộng dồn giảm giá mặt hàng vào tổng chiết khấu
-                $totalItemDiscount += $itemDiscount; 
+                // 2. FIX: Giới hạn Item Discount không vượt quá giá trị dòng khi tính tổng Net Subtotal.
+                $adjustedItemDiscount = round(min($itemDiscount, $lineGross), 2);
+                $totalItemDiscount += $adjustedItemDiscount; 
             }
         }
+    
+        // Net Subtotal (Đã trừ CK Item)
+        $subtotalAmount = max(0.00, round($grossSubtotal - $totalItemDiscount, 2));
+
+        //Giới hạn CK HĐ không được lớn hơn Net Subtotal
+        $adjustedInvoiceDiscount = min(round(max(0.00, $invoiceDiscountOnly), 2), $subtotalAmount);
+
+        // Total Amount CUỐI CÙNG: Net Subtotal - Adjusted Invoice Discount
+        $totalAmount = max(0.00, round($subtotalAmount - $adjustedInvoiceDiscount, 2)); 
         
-        // TÍNH TOÁN CÁC GIÁ TRỊ CẦN LƯU VÀO DB:
-
-        // Net Subtotal (Đã trừ CK Item): Gross Subtotal - Total Item Discount (69,500)
-        $subtotalAmount = max(0.00, $grossSubtotal - $totalItemDiscount);
-
-        // Giới hạn CK HĐ không được lớn hơn Net Subtotal
-        $invoiceDiscountOnly = min(round(max(0.00, $invoiceDiscountOnly), 2), $subtotalAmount);
-
-        // Total Amount CUỐI CÙNG: Net Subtotal - Invoice Discount Only (67,000)
-        $totalAmount = max(0.00, $subtotalAmount - $invoiceDiscountOnly); 
+        // Cột discount_amount trong DB CHỈ LƯU CK HEADER ĐÃ ĐIỀU CHỈNH.
         
-        // Total Discount TOÀN BỘ (Item + Header) (3,000) - Chỉ dùng để tính totalAmount, không lưu vào cột discount_amount của Model
-        $totalAllDiscount = $totalItemDiscount + $invoiceDiscountOnly;
-
         $paidAmount = (float) $this->input('paid_amount', 0.00);
 
         // Merge các giá trị đã tính toán và chuẩn hóa
         $this->merge([
-            'total_amount' => $totalAmount, // Giá trị cuối cùng của HĐ (67,000)
-            'subtotal_amount' => $subtotalAmount, // Giá trị hàng sau CK Item (69,500)
-            'discount_amount' => $invoiceDiscountOnly, // CHỈ LƯU CK HEADER VÀO CỘT NÀY (2,500)
-            'invoice_discount_only' => $invoiceDiscountOnly, // Trường trung gian CK Header (2,500)
+            'total_amount' => $totalAmount, 
+            'subtotal_amount' => $subtotalAmount, 
+            'discount_amount' => $adjustedInvoiceDiscount, // Lưu CK Header đã điều chỉnh
+            'invoice_discount_only' => $adjustedInvoiceDiscount, 
             'paid_amount' => $paidAmount, 
             
-            // LƯU Ý QUAN TRỌNG:
-            // Cần lưu tổng chiết khấu vào một trường khác nếu bạn muốn lưu 3000.00
-            // Hoặc sử dụng totalAllDiscount trong Service để tính toán.
-            // Hiện tại, cột discount_amount (DB) được dùng để lưu CK Header (2500)
         ]);
     }
     public function rules(): array
     {
-        return [
+                return [
             // Các trường chính của hóa đơn
             'supplier_id' => 'required|integer|exists:suppliers,id',
             'branch_id' => 'required|integer|exists:branches,id',
@@ -84,13 +84,13 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'invoice_date' => 'required|date',
             'status' => 'required|string|in:draft,received,cancelled',
             
-            'invoice_discount_only' => 'nullable|numeric|min:0', // Trường mới được merge
+            'invoice_discount_only' => 'nullable|numeric|min:0', // Trường được merge
 
             // Các trường giá trị tiền tệ/số lượng (Đã được merge)
             'subtotal_amount' => 'nullable|numeric|min:0',
             'discount_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'nullable|numeric|min:0',
-            'paid_amount' => 'nullable|numeric|min:0|lte:total_amount', // Số tiền đã trả không được lớn hơn tổng tiền (122k)
+            'paid_amount' => 'nullable|numeric|min:0|lte:total_amount', 
             'notes' => 'nullable|string',
 
             // Chi tiết sản phẩm (Mảng)
@@ -102,6 +102,7 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'details.*.item_discount' => 'nullable|numeric|min:0',  
         ];
     }
+    
 
     public function messages(): array
     {
