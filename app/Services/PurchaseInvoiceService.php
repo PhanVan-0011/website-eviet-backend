@@ -122,46 +122,44 @@ class PurchaseInvoiceService
     /**
      * Cập nhật hóa đơn và các chi tiết liên quan.
      */
-    /**
-     * Cập nhật hóa đơn và các chi tiết liên quan.
-     */
     public function updateInvoice(string $id, array $data): PurchaseInvoice
     {
         try {
             return DB::transaction(function () use ($id, $data) {
                 $invoice = PurchaseInvoice::with('details')->findOrFail($id);
                 $oldStatus = $invoice->status;
-                $oldDetails = $invoice->details->toArray(); // LƯU LẠI DETAILS CŨ TRƯỚC KHI TÍNH TOÁN
+                $oldDetails = $invoice->details->toArray(); 
                 
                 $hasNewDetails = isset($data['details']) && is_array($data['details']);
                 $newStatus = $data['status'] ?? $oldStatus;
                 
-                // Tính toán lại tổng tiền và công nợ. $calculatedData sẽ chứa chi tiết mới nếu có.
                 $calculatedData = $this->calculateInvoiceTotals($data, $invoice->fresh());
 
-                // 1. HOÀN TÁC TỒN KHO CŨ nếu chi tiết thay đổi HOẶC status chuyển từ received đi
+                //HOÀN TÁC TỒN KHO CŨ 
                 if ($oldStatus === 'received' && ($hasNewDetails || $newStatus !== 'received')) {
                     // Dùng chi tiết CŨ đã lưu ở trên để đảo ngược tồn kho
-                    $this->updateStock($invoice, $oldDetails, -1); // -1: Giảm tồn
+                    $this->updateStock($invoice, $oldDetails, -1); 
                 }
 
                 // Cập nhật hóa đơn chính 
                 $invoice->update($calculatedData);
                 
-                // 2. CẬP NHẬT DETAILS MỚI (Nếu có)
+                // CẬP NHẬT DETAILS MỚI (Nếu có)
                 if ($hasNewDetails) {
                     // XÓA chi tiết cũ bằng truy vấn trực tiếp trước khi thêm chi tiết mới
                     PurchaseInvoiceDetail::where('invoice_id', $invoice->id)->delete();
                     $this->syncDetails($invoice, $calculatedData['details']);
                     
-                    // FIX MỚI: Tải lại chi tiết MỚI đã được lưu vào DB
                     $invoice->load('details'); 
                 }
                 
-                // 3. XỬ LÝ TỒN KHO MỚI
+                //XỬ LÝ TỒN KHO MỚI
                 if ($newStatus === 'received' && $oldStatus !== 'received') {
-                    // FIX: LUÔN DÙNG $invoice->details (đã được load mới nhất)
-                    $detailsToUse = $invoice->details->toArray();
+                   $detailsToUse = $hasNewDetails 
+                        ? $calculatedData['details'] 
+                        : (isset($calculatedData['details']) 
+                            ? $calculatedData['details'] 
+                            : $invoice->refresh()->details->toArray());
 
                     $this->updateStock($invoice, $detailsToUse, 1);
                 } 
@@ -353,24 +351,40 @@ class PurchaseInvoiceService
      *Cập nhật tồn kho (Thêm hoặc Trừ)
      * @param int $direction 1: Tăng (+), -1: Giảm (-)
      */
-     protected function updateStock(PurchaseInvoice $invoice, array $details, int $direction): void
+  protected function updateStock(PurchaseInvoice $invoice, array $details, int $direction): void
     {
         $branchId = $invoice->branch_id;
         $sign = $direction === 1 ? '+' : '-';
+        $operation = $direction === 1 ? 'increment' : 'decrement';
 
         foreach ($details as $detail) {
+            // Lấy quantity từ chi tiết (giữ nguyên)
             $quantity = $detail['quantity'];
-            
-            // Fix: Đảm bảo sử dụng DB::raw() với logic cộng dồn an toàn
-            BranchProductStock::updateOrCreate(
-                ['branch_id' => $branchId, 'product_id' => $detail['product_id']],
-                [
-                    // Cập nhật quantity bằng cách cộng/trừ số lượng
-                    'quantity' => DB::raw("GREATEST(0, quantity {$sign} {$quantity})")
-                ]
-            );
+            $productId = $detail['product_id'];
+
+            // 1. Cố gắng cập nhật (Increment/Decrement) tồn kho
+            $affected = DB::table('branch_product_stocks')
+                ->where('branch_id', $branchId)
+                ->where('product_id', $productId)
+                // Sử dụng increment/decrement thay vì DB::raw() trong updateOrCreate
+                ->update(['quantity' => DB::raw("GREATEST(0, quantity {$sign} {$quantity})")]);
+
+            // 2. Nếu không có hàng nào được cập nhật, nghĩa là bản ghi chưa tồn tại, ta thêm mới
+            if ($affected === 0) {
+                // Chỉ insert nếu không phải phép trừ (decrement) hoặc insert với giá trị quantity = 0
+                if ($operation === 'increment') {
+                    DB::table('branch_product_stocks')->insert([
+                        'branch_id' => $branchId,
+                        'product_id' => $productId,
+                        'quantity' => max(0, $quantity),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
         }
     }
+
 
     /**
      * Hoàn tác tồn kho và xóa chi tiết hóa đơn cũ.
@@ -380,7 +394,7 @@ class PurchaseInvoiceService
         // Hoàn tác tồn kho chỉ khi hóa đơn ở trạng thái 'received'
         if ($invoice->status === 'received') {
             $details = $invoice->details->toArray();
-            $this->updateStock($invoice, $details, -1); // -1: Giảm tồn
+            $this->updateStock($invoice, $details, -1); // Giảm tồn
         }
     }
 
