@@ -18,11 +18,10 @@ class Branch extends Model
         'email',
         'active',
     ];
-    // Mối quan hệ: Một chi nhánh có nhiều sản phẩm
-    /**
-     * Lấy tất cả các sản phẩm thuộc chi nhánh này.
-     * Mối quan hệ này sử dụng bảng trung gian 'branch_product_stocks'
-     */
+    
+    protected $casts = [
+        'active' => 'boolean', 
+    ];
     public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'branch_product_stocks')

@@ -21,6 +21,7 @@ class ProductResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'status' => $this->status,
+            'base_unit' => $this->base_unit, 
             'image_urls' => ImageResource::collection($this->whenLoaded('images')),
     
             'featured_image' => new ImageResource($this->whenLoaded('featuredImage')),

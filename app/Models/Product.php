@@ -87,4 +87,11 @@ class Product extends Model
                     ->withPivot('quantity')
                     ->withTimestamps();
     }
+    /**
+     * Lấy tất cả các quy tắc chuyển đổi đơn vị của sản phẩm.
+     */
+    public function unitConversions(): HasMany
+    {
+        return $this->hasMany(ProductUnitConversion::class);
+    }
 }

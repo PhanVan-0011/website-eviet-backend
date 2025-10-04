@@ -54,7 +54,7 @@ class UpdateBranchRequest extends FormRequest
                 'max:255',
                 Rule::unique('branches', 'email')->ignore($this->route('id')),
             ],
-            'is_active' => 'sometimes|nullable|boolean',
+            'active' => 'sometimes|nullable|boolean',
         ];
     }
     
@@ -87,7 +87,7 @@ class UpdateBranchRequest extends FormRequest
             'email.max' => 'Email không được vượt quá 255 ký tự.',
             'email.unique' => 'Email đã tồn tại.',
             
-            'is_active.boolean' => 'Trạng thái hoạt động phải là đúng hoặc sai.',
+            'active.boolean' => 'Trạng thái hoạt động phải là hoạt động hoặc không.',
         ];
     }
     

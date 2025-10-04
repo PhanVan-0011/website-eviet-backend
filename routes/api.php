@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\SupplierGroupController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\PurchaseInvoiceController;
 use App\Http\Controllers\Api\Client\ClientSliderController;
+use App\Http\Controllers\Api\ProductUnitConversionController;
 use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 use App\Http\Controllers\Api\Client\ProductController as ClientProductController;
 use App\Http\Controllers\Api\Client\PromotionController as ClientPromotionController;
@@ -173,6 +174,13 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/{id}', [ProductController::class, 'update'])->middleware('check.permission:products.update');
         Route::delete('/multi-delete', [ProductController::class, 'multiDelete'])->middleware('check.permission:products.delete');
         Route::delete('/{id}', [ProductController::class, 'destroy'])->middleware('check.permission:products.delete');
+    });
+    // ---Product Unit Conversions (Đơn vị chuyển đổi) 
+    Route::prefix('product-units')->middleware('check.permission:products.manage')->group(function () {
+        Route::get('product/{product_id}', [ProductUnitConversionController::class, 'index']);
+        Route::post('/', [ProductUnitConversionController::class, 'store']);
+        Route::put('{id}', [ProductUnitConversionController::class, 'update']);
+        Route::delete('/{id}', [ProductUnitConversionController::class, 'destroy']);
     });
     // ---Product attributes---
     Route::prefix('product-attributes')->middleware('check.permission:products.manage')->group(function () {
