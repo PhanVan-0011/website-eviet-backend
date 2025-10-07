@@ -35,6 +35,7 @@ class StoreProductUnitConversionRequest extends FormRequest
                     return $query->where('product_id', $this->product_id);
                 }),
             ],
+            'initial_unit_cost' => 'nullable|numeric|min:0', 
             'conversion_factor' => 'required|numeric|min:0.0001', // Hệ số phải lớn hơn 0
             'is_purchase_unit' => 'nullable|boolean',
             'is_sales_unit' => 'nullable|boolean',
@@ -50,6 +51,9 @@ class StoreProductUnitConversionRequest extends FormRequest
             'conversion_factor.required' => 'Hệ số quy đổi là bắt buộc.',
             'conversion_factor.numeric' => 'Hệ số quy đổi phải là một số.',
             'conversion_factor.min' => 'Hệ số quy đổi phải lớn hơn 0.',
+
+            'initial_unit_cost.numeric' => 'Giá vốn ban đầu phải là một số.',
+            'initial_unit_cost.min' => 'Giá vốn ban đầu phải là số dương hoặc bằng 0.',
         ];
     }
 

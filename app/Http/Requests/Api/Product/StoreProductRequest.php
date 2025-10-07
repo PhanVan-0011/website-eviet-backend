@@ -26,10 +26,6 @@ class StoreProductRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'size' => 'nullable|string|max:10',
-            'original_price' => 'nullable|numeric|min:0',
-            'sale_price' => 'nullable|numeric|min:0|gte:original_price',
-            'stock_quantity' => 'required|integer|min:0',
 
             'image_url' => 'nullable|array|max:4',
             
@@ -50,20 +46,6 @@ class StoreProductRequest extends FormRequest
             'name.max' => 'Tên sản phẩm không được dài quá 255 ký tự.',
 
             'description.string' => 'Mô tả phải là chuỗi ký tự.',
-
-            'size.max' => 'Kích thước không được dài quá 10 ký tự.',
-
-            'original_price.numeric' => 'Giá gốc phải là số.',
-            'original_price.min' => 'Giá gốc không được nhỏ hơn 0.',
-
-            'sale_price.numeric' => 'Giá khuyến mãi phải là số.',
-            'sale_price.min' => 'Giá khuyến mãi không được nhỏ hơn 0.',
-            'sale_price.gte' => 'Giá bán phải lớn hơn hoặc bằng giá gốc.',
-
-            'stock_quantity.required' => 'Số lượng tồn kho là bắt buộc.',
-            'stock_quantity.integer' => 'Số lượng tồn kho phải là số nguyên.',
-            'stock_quantity.min' => 'Số lượng tồn kho không được nhỏ hơn 0.',
-
             'status.required' => 'Trạng thái là bắt buộc.',
             'status.boolean' => 'Trạng thái phải là true hoặc false.',
 

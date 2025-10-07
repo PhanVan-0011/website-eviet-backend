@@ -37,6 +37,7 @@ class UpdateProductUnitConversionRequest extends FormRequest
                 Rule::unique('product_unit_conversions','unit_name')->ignore($conversionId), // LOẠI TRỪ bản ghi hiện tại
             ],
             'conversion_factor' => 'sometimes|required|numeric|min:0.0001',
+            'initial_unit_cost' => 'sometimes|nullable|numeric|min:0',
             'is_purchase_unit' => 'nullable|boolean',
             'is_sales_unit' => 'nullable|boolean',
         ];
@@ -50,6 +51,9 @@ class UpdateProductUnitConversionRequest extends FormRequest
             'unit_name.unique' => 'Quy tắc chuyển đổi này đã tồn tại cho sản phẩm này.',
             'conversion_factor.required' => 'Hệ số quy đổi là bắt buộc.',
             'conversion_factor.min' => 'Hệ số quy đổi phải lớn hơn 0.',
+
+            'initial_unit_cost.numeric' => 'Giá vốn ban đầu phải là một số.',
+            'initial_unit_cost.min' => 'Giá vốn ban đầu phải là số dương hoặc bằng 0.',
         ];
     }
 

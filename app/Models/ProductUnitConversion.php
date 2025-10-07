@@ -15,6 +15,7 @@ class ProductUnitConversion extends Model
         'conversion_factor',
         'is_purchase_unit',
         'is_sales_unit',
+        'initial_unit_cost', 
     ];
 
     /**
