@@ -31,7 +31,7 @@ class ProductAttributeController extends Controller
         // Toàn bộ logic validation đã được chuyển vào IndexProductAttributeRequest
         try {
             $data = $this->productAttributeService->getPaginatedAttributes($request);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => ProductAttributeResource::collection($data['data']),
@@ -145,7 +145,7 @@ class ProductAttributeController extends Controller
                 'message' => "Đã xóa thành công {$deletedCount} thuộc tính",
             ]);
         } catch (ModelNotFoundException $e) {
-             return response()->json([
+            return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 404);
@@ -156,28 +156,31 @@ class ProductAttributeController extends Controller
             ], 422);
         }
     }
-    
+
     /**
      * Xóa một giá trị (value) của thuộc tính.
      */
-    public function deleteAttributeValue(int $id): void
+    public function deleteAttributeValue(int $id)
     {
-        $value = AttributeValue::findOrFail($id);
-        
-        // Kiểm tra ràng buộc trước khi xóa
-        $isUsed = CartItem::whereJsonContains('attributes', ['value' => $value->value])
-                          ->whereJsonContains('attributes', ['name' => $value->productAttribute->name])
-                          ->exists();
-
-        if ($isUsed) {
-            throw new Exception("Không thể xóa giá trị '{$value->value}' vì đang được sử dụng.");
-        }
-        
         try {
-            $value->delete();
+            $this->productAttributeService->deleteAttributeValue($id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa giá trị thuộc tính thành công'
+            ]);
+        } catch (ModelNotFoundException $e) {
+            // Bắt lỗi 404
+            return response()->json([
+                'success' => false,
+                'message' => 'Giá trị thuộc tính không tồn tại.'
+            ], 404);
         } catch (Exception $e) {
-            Log::error("Lỗi khi xóa giá trị thuộc tính ID {$id}: " . $e->getMessage());
-            throw $e;
+            // Bắt lỗi nghiệp vụ (ví dụ: "Không thể xóa vì đang sử dụng") -> Trả về 422
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
         }
     }
 }

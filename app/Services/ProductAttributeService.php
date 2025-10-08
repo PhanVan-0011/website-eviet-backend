@@ -1,12 +1,14 @@
 <?php
 
 namespace App\Services;
+
 use App\Models\ProductAttribute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use App\Models\CartItem;         
+use App\Models\CartItem;
+use App\Models\AttributeValue;
 use Exception;
 
 class ProductAttributeService
@@ -59,7 +61,7 @@ class ProductAttributeService
             throw $e;
         }
     }
-     /**
+    /**
      * Lấy chi tiết một thuộc tính bằng ID.
      */
     public function getAttributeById(int $id): ProductAttribute
@@ -71,7 +73,7 @@ class ProductAttributeService
             throw new ModelNotFoundException("Không tìm thấy thuộc tính sản phẩm.");
         }
     }
-     /**
+    /**
      * Tạo mới một thuộc tính và các giá trị của nó.
      */
     public function createAttribute(array $data): ProductAttribute
@@ -131,13 +133,13 @@ class ProductAttributeService
             throw $e;
         }
     }
-     /**
+    /**
      * Xóa một thuộc tính.
      */
     public function deleteAttribute(int $id): void
     {
         $attribute = $this->getAttributeById($id);
-        
+
         // Kiểm tra xem thuộc tính có đang được sử dụng trong giỏ hàng nào không
         $isUsed = CartItem::whereJsonContains('attributes', ['name' => $attribute->name])->exists();
         if ($isUsed) {
@@ -164,10 +166,10 @@ class ProductAttributeService
 
         // Kiểm tra ràng buộc dữ liệu phát sinh
         foreach ($attributes as $attribute) {
-             $isUsed = CartItem::whereJsonContains('attributes', ['name' => $attribute->name])->exists();
-             if ($isUsed) {
+            $isUsed = CartItem::whereJsonContains('attributes', ['name' => $attribute->name])->exists();
+            if ($isUsed) {
                 throw new Exception("Không thể xóa thuộc tính '{$attribute->name}' (ID: {$attribute->id}) vì đang được sử dụng.");
-             }
+            }
         }
 
         try {
@@ -177,5 +179,25 @@ class ProductAttributeService
             throw $e;
         }
     }
-    
+
+    public function deleteAttributeValue(int $id): void
+    {
+        $value = AttributeValue::findOrFail($id);
+
+        // Logic kiểm tra ràng buộc (Nghiệp vụ)
+        $isUsed = CartItem::whereJsonContains('attributes', ['value' => $value->value])
+            ->whereJsonContains('attributes', ['name' => $value->productAttribute->name])
+            ->exists();
+
+        if ($isUsed) {
+            throw new Exception("Không thể xóa giá trị '{$value->value}' vì đang được sử dụng.");
+        }
+
+        try {
+            $value->delete(); // Thao tác DB (sau khi kiểm tra nghiệp vụ)
+        } catch (Exception $e) {
+            Log::error("Lỗi khi xóa giá trị thuộc tính ID {$id}: " . $e->getMessage());
+            throw $e;
+        }
+    }
 }

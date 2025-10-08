@@ -190,6 +190,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/{id}', [ProductAttributeController::class, 'update']);
         Route::delete('/multi-delete', [ProductAttributeController::class, 'multiDelete']);
         Route::delete('/{id}', [ProductAttributeController::class, 'destroy']);
+        Route::delete('attribute-values/{id}', [ProductAttributeController::class, 'destroyValue']);
     });
      // ---Attributes values---
     Route::prefix('attribute-values')->middleware('check.permission:products.manage')->group(function () {
