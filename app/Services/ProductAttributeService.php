@@ -99,31 +99,59 @@ class ProductAttributeService
         }
     }
 
-    /**
-     * Cập nhật một thuộc tính và các giá trị của nó (chỉ cập nhật, không xóa).
-     */
-    public function updateAttribute(int $id, array $data): ProductAttribute
+     public function updateAttribute(int $id, array $data): ProductAttribute
     {
         $attribute = $this->getAttributeById($id);
+        $submittedValueIds = [];
+        $valuesToDelete = [];
+        $existingValueIds = $attribute->values->pluck('id')->toArray();
+        
         try {
-            return DB::transaction(function () use ($attribute, $data) {
-                // Cập nhật thông tin chính của thuộc tính
+            return DB::transaction(function () use ($attribute, $data, &$submittedValueIds, &$valuesToDelete, $existingValueIds) {
+                // 1. Cập nhật thông tin chính của thuộc tính
                 $attribute->update($data);
 
-                // Chỉ xử lý thêm/sửa các giá trị được gửi lên
                 if (isset($data['values'])) {
                     foreach ($data['values'] as $valueData) {
                         if (isset($valueData['id'])) {
-                            // Cập nhật value đã có
-                            $value = $attribute->values()->find($valueData['id']);
+                            $valueId = $valueData['id'];
+                            $submittedValueIds[] = $valueId;
+                            
+                            // 1a. Cập nhật value đã có
+                            $value = $attribute->values()->find($valueId);
                             if ($value) {
                                 $value->update($valueData);
                             }
                         } else {
-                            // Tạo value mới
+                            // 1b. Tạo value mới
                             $attribute->values()->create($valueData);
                         }
                     }
+                }
+                
+                // 2. XÁC ĐỊNH VÀ KIỂM TRA giá trị CẦN XÓA (Logic SYNC)
+                
+                // Lọc ra các ID giá trị CÓ trong DB nhưng KHÔNG có trong payload
+                $valueIdsToKeep = $submittedValueIds;
+                $valueIdsToDelete = array_diff($existingValueIds, $valueIdsToKeep);
+
+                if (!empty($valueIdsToDelete)) {
+                    $valuesToDelete = $attribute->values()->whereIn('id', $valueIdsToDelete)->get();
+
+                    foreach ($valuesToDelete as $value) {
+                        // Kiểm tra ràng buộc trước khi xóa (Nghiệp vụ quan trọng)
+                        $isUsed = CartItem::whereJsonContains('attributes', ['value' => $value->value])
+                                          ->whereJsonContains('attributes', ['name' => $attribute->name])
+                                          ->exists();
+
+                        if ($isUsed) {
+                            // Ném lỗi nghiệp vụ nếu giá trị đang được sử dụng
+                            throw new Exception("Không thể xóa giá trị '{$value->value}' (ID: {$value->id}) vì đang được sử dụng trong giỏ hàng hoặc đơn hàng.");
+                        }
+                    }
+
+                    // Thực hiện xóa các giá trị đã kiểm tra và hợp lệ
+                    $attribute->values()->whereIn('id', $valueIdsToDelete)->delete();
                 }
 
                 return $attribute->load('values');
@@ -182,7 +210,7 @@ class ProductAttributeService
 
     public function deleteAttributeValue(int $id): void
     {
-        $value = AttributeValue::findOrFail($id);
+        $value = AttributeValue::with('productAttribute')->findOrFail($id);
 
         // Logic kiểm tra ràng buộc (Nghiệp vụ)
         $isUsed = CartItem::whereJsonContains('attributes', ['value' => $value->value])

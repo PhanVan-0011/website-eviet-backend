@@ -18,9 +18,12 @@ class ProductUnitConversionResource extends JsonResource
             'id' => $this->id,
             'product_id' => $this->product_id,
             'unit_name' => $this->unit_name,
+            'unit_code' => $this->unit_code,
             'conversion_factor' => (float) $this->conversion_factor,
-            'initial_unit_cost' => (float) $this->initial_unit_cost, 
-            'is_purchase_unit' => (bool) $this->is_purchase_unit,
+
+            'store_price' => (float) $this->store_price, 
+            'app_price' => (float) $this->app_price, 
+            
             'is_sales_unit' => (bool) $this->is_sales_unit,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

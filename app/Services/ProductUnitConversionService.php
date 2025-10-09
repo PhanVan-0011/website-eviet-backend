@@ -2,11 +2,11 @@
 
 namespace App\Services;
 use App\Models\ProductUnitConversion;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Models\CartItem;
+use App\Models\OrderDetail; 
 use Exception;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 class ProductUnitConversionService
@@ -14,7 +14,7 @@ class ProductUnitConversionService
      /**
      * Lấy danh sách tất cả các quy tắc chuyển đổi cho một sản phẩm cụ thể.
      */
-    public function getConversionsByProductId(int $productId): Collection
+    public function getConversionsByProductId(int $productId)
     {
         try {
             return ProductUnitConversion::where('product_id', $productId)->get();
@@ -27,7 +27,7 @@ class ProductUnitConversionService
     /**
      * Lấy chi tiết một quy tắc chuyển đổi.
      */
-    public function getConversionById(int $id): ProductUnitConversion
+    public function getConversionById(int $id)
     {
         try {
             return ProductUnitConversion::findOrFail($id);
@@ -42,9 +42,10 @@ class ProductUnitConversionService
     /**
      * Tạo mới một quy tắc chuyển đổi đơn vị.
      */
-    public function createConversion(array $data): ProductUnitConversion
+    public function createConversion(array $data)
     {
         try {
+            // Logic tạo đơn vị
             return ProductUnitConversion::create($data);
         } catch (Exception $e) {
             Log::error('Lỗi khi tạo quy tắc chuyển đổi đơn vị: ' . $e->getMessage());
@@ -55,7 +56,7 @@ class ProductUnitConversionService
     /**
      * Cập nhật quy tắc chuyển đổi đơn vị.
      */
-    public function updateConversion(int $id, array $data): ProductUnitConversion
+    public function updateConversion(int $id, array $data)
     {
         try {
             $conversion = $this->getConversionById($id);
@@ -70,25 +71,34 @@ class ProductUnitConversionService
     }
 
     /**
-     * Xóa một quy tắc chuyển đổi đơn vị, kiểm tra ràng buộc khóa ngoại.
+     * Xóa một quy tắc chuyển đổi đơn vị, kiểm tra ràng buộc sử dụng.
      */
-    public function deleteConversion(int $id): bool
+    public function deleteConversion(int $id)
     {
         $conversion = ProductUnitConversion::findOrFail($id); 
+        $unitName = $conversion->unit_name;
+        
+        // Kiểm tra sử dụng trong giỏ hàng (CartItem)
+        $isUsedInCart = CartItem::where('product_id', $conversion->product_id)
+            ->where('unit_of_measure', $unitName)
+            ->exists();
+            
+        // Kiểm tra sử dụng trong chi tiết đơn hàng (OrderDetail)
+        $isUsedInOrder = OrderDetail::where('product_id', $conversion->product_id)
+            ->where('unit_of_measure', $unitName) 
+            ->exists();
+
+        if ($isUsedInCart || $isUsedInOrder) {
+            throw new Exception("Không thể xóa đơn vị '{$unitName}'. Đơn vị này đã được sử dụng trong lịch sử đơn hàng hoặc giỏ hàng.");
+        }
+        //THỰC HIỆN XÓA (Trong Transaction)
         try {
             return DB::transaction(function () use ($conversion, $id) {
                 $conversion->delete();
                 return true;
             });
-       } catch (ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             throw $e; 
-
-        } catch (QueryException $e) {
-            if ($e->getCode() === '23000') {
-                throw new Exception("Không thể xóa quy tắc đơn vị này. Quy tắc đang được sử dụng trong các dữ liệu lịch sử hoặc cấu hình khác.");
-            }
-            Log::error("Lỗi Query không xác định khi xóa quy tắc đơn vị ID {$id}: " . $e->getMessage());
-            throw new Exception("Lỗi CSDL khi xóa quy tắc đơn vị ID {$id}.");
         } catch (Exception $e) {
             Log::error("Lỗi khi xóa quy tắc chuyển đổi đơn vị (ID: {$id}): " . $e->getMessage());
             throw new Exception("Không thể xóa quy tắc chuyển đổi đơn vị ID {$id}.");

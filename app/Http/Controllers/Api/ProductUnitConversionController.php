@@ -36,6 +36,7 @@ class ProductUnitConversionController extends Controller
             ], 200);
 
         } catch (Exception $e) {
+            Log::error('Lỗi hệ thống khi lấy danh sách quy tắc: ' . $e->getMessage());
             return response()->json([
                 'success' => false, 
                 'message' => 'Lỗi hệ thống khi lấy danh sách quy tắc.', 
@@ -64,6 +65,7 @@ class ProductUnitConversionController extends Controller
             ], 404);
             
         } catch (Exception $e) {
+            Log::error('Lỗi hệ thống khi lấy chi tiết quy tắc: ' . $e->getMessage());
             return response()->json([
                 'success' => false, 
                 'message' => 'Lỗi hệ thống khi lấy chi tiết quy tắc.'
@@ -97,7 +99,7 @@ class ProductUnitConversionController extends Controller
     }
 
     /**
-     * Cập nhật quy tắc chuyển đổi đơn vị. (Yêu cầu 200, 404 hoặc 500)
+     * Cập nhật quy tắc chuyển đổi đơn vị.
      */
     public function update(UpdateProductUnitConversionRequest $request, string $id)
     {
@@ -111,14 +113,12 @@ class ProductUnitConversionController extends Controller
             ], 200);
             
         } catch (ModelNotFoundException $e) {
-            // Trường hợp không tìm thấy (Yêu cầu 404)
             return response()->json([
                 'success' => false, 
                 'message' => 'Không tìm thấy quy tắc chuyển đổi đơn vị.'
             ], 404);
             
         } catch (Exception $e) {
-            // Bất kỳ lỗi nào từ Service (kể cả lỗi nghiệp vụ) đều trả về 500
             Log::error("Lỗi khi cập nhật quy tắc đơn vị ID {$id}: " . $e->getMessage());
             return response()->json([
                 'success' => false, 
@@ -128,7 +128,7 @@ class ProductUnitConversionController extends Controller
     }
 
     /**
-     * Xóa một quy tắc chuyển đổi đơn vị. (Yêu cầu 200, 404 hoặc 500)
+     * Xóa một quy tắc chuyển đổi đơn vị.
      */
     public function destroy(string $id)
     {
@@ -142,19 +142,19 @@ class ProductUnitConversionController extends Controller
             ], 200);
             
         } catch (ModelNotFoundException $e) {
-            // Trường hợp không tìm thấy (Yêu cầu 404)
             return response()->json([
                 'success' => false, 
                 'message' => 'Không tìm thấy quy tắc chuyển đổi đơn vị.'
             ], 404);
             
         } catch (Exception $e) {
-            // Bất kỳ lỗi nào từ Service (kể cả lỗi nghiệp vụ/phát sinh dữ liệu) đều trả về 500
+            // Bắt lỗi nghiệp vụ (ví dụ: đang sử dụng) hoặc lỗi CSDL
             Log::error("Lỗi khi xóa quy tắc đơn vị ID {$id}: " . $e->getMessage());
+            // Trả về 422 nếu lỗi nghiệp vụ/CSDL từ service (ví dụ: lỗi Query 23000)
             return response()->json([
                 'success' => false, 
-                'message' => 'Lỗi hệ thống khi xóa quy tắc.'
-            ], 500);
+                'message' => $e->getMessage()
+            ], 422); 
         }
     }
 }

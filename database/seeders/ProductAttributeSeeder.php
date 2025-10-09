@@ -15,7 +15,7 @@ class ProductAttributeSeeder extends Seeder
     public function run(): void
     {
         // --- Dữ liệu mẫu cho sản phẩm "Cà phê đá" (ID: 1) và "Coca cola" (ID: 10) ---
-        $drinks = Product::whereIn('id', [1, 10])->get();
+        $drinks = Product::whereIn('name', ['Cà phê đen', 'Cà phê sữa', 'Bạc xỉu'])->get();
 
         foreach ($drinks as $drink) {
             // Tạo thuộc tính "Kích cỡ"

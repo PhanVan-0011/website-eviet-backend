@@ -178,6 +178,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // ---Product Unit Conversions (Đơn vị chuyển đổi) 
     Route::prefix('product-units')->middleware('check.permission:products.manage')->group(function () {
         Route::get('product/{product_id}', [ProductUnitConversionController::class, 'index']);
+        Route::get('/{id}', [ProductUnitConversionController::class, 'show']);
         Route::post('/', [ProductUnitConversionController::class, 'store']);
         Route::put('{id}', [ProductUnitConversionController::class, 'update']);
         Route::delete('/{id}', [ProductUnitConversionController::class, 'destroy']);

@@ -8,8 +8,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
-    use HasFactory;
-    protected $fillable = ['product_code','name', 'description', 'status'];
+     use HasFactory;
+    protected $fillable = [
+        'product_code', 
+        'name', 
+        'description', 
+        'status', 
+        'base_unit', 
+        'cost_price', 
+        'base_store_price', 
+        'base_app_price',
+        'is_sales_unit' 
+    ];
     /**
      * Ghi đè phương thức boot của model để đăng ký event.
      */

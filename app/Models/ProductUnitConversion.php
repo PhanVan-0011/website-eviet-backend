@@ -12,17 +12,16 @@ class ProductUnitConversion extends Model
     protected $fillable = [
         'product_id',
         'unit_name',
+        'unit_code',
         'conversion_factor',
-        'is_purchase_unit',
+        'store_price',
+        'app_price',
         'is_sales_unit',
-        'initial_unit_cost', 
     ];
 
-    /**
-     * Mỗi quy tắc chuyển đổi thuộc về một sản phẩm duy nhất.
-     */
+     // Định nghĩa quan hệ BelongsTo với Product (để truy cập product_id)
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class, 'product_id');
     }
 }
