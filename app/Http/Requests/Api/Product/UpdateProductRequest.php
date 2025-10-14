@@ -17,7 +17,18 @@ class UpdateProductRequest extends FormRequest
     {
         return true;
     }
-
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('unit_conversions_json') && is_string($this->unit_conversions_json)) {
+            $this->merge(['unit_conversions' => json_decode($this->unit_conversions_json, true) ?? []]);
+        }
+        if ($this->has('attributes_json') && is_string($this->attributes_json)) {
+            $this->merge(['attributes' => json_decode($this->attributes_json, true) ?? []]);
+        }
+        if ($this->has('apply_to_all_branches')) {
+            $this->merge(['apply_to_all_branches' => filter_var($this->apply_to_all_branches, FILTER_VALIDATE_BOOLEAN)]);
+        }
+    }
     /**
      * Get the validation rules that apply to the request.
      *
@@ -29,7 +40,7 @@ class UpdateProductRequest extends FormRequest
         return [
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|nullable|string',
-           
+
             'status' => 'sometimes|required|boolean',
             'category_ids' => 'sometimes|required|array|min:1',
             'category_ids.*' => 'sometimes|required|integer|exists:categories,id',
@@ -51,6 +62,37 @@ class UpdateProductRequest extends FormRequest
             ],
 
             'featured_image_index' => ['sometimes', 'nullable', 'integer', 'min:0'],
+
+            // === ĐƠN VỊ TÍNH & GIÁ BÁN ===
+            'base_unit' => 'sometimes|required|string|max:50',
+            'cost_price' => 'sometimes|required|numeric|min:0',
+            'base_store_price' => 'sometimes|required|numeric|min:0',
+            'base_app_price' => 'sometimes|required|numeric|min:0',
+            'is_sales_unit' => 'sometimes|required|boolean',
+            'unit_conversions' => 'sometimes|array',
+            'unit_conversions.*.unit_name' => 'required|string|max:50',
+            'unit_conversions.*.unit_code' => ['nullable', 'string', 'max:255', 'distinct', Rule::unique('product_unit_conversions', 'unit_code')->where(function ($query) use ($productId) {
+                return $query->where('product_id', '!=', $productId);
+            })],
+
+            'unit_conversions.*.conversion_factor' => 'required|numeric|gt:0',
+            'unit_conversions.*.store_price' => 'nullable|numeric|min:0',
+            'unit_conversions.*.app_price' => 'nullable|numeric|min:0',
+            'unit_conversions.*.is_sales_unit' => 'required|boolean',
+
+            // === THUỘC TÍNH ===
+            'attributes' => 'sometimes|array',
+            'attributes.*.name' => 'required|string|max:255',
+            'attributes.*.type' => 'required|string|in:select,checkbox,text',
+            'attributes.*.values' => 'nullable|array',
+            'attributes.*.values.*.value' => 'required_unless:attributes.*.type,text|string|max:255',
+            'attributes.*.values.*.price_adjustment' => 'required_unless:attributes.*.type,text|numeric',
+            'attributes.*.values.*.is_default' => 'required_unless:attributes.*.type,text|boolean',
+
+            // === PHÂN BỔ CHI NHÁNH ===
+            'apply_to_all_branches' => 'sometimes|boolean',
+            'branch_ids' => 'required_unless:apply_to_all_branches,true|nullable|array',
+            'branch_ids.*' => 'integer|exists:branches,id',
         ];
     }
     public function withValidator(Validator $validator): void
@@ -93,7 +135,7 @@ class UpdateProductRequest extends FormRequest
             'category_ids.required' => 'Vui lòng chọn ít nhất một danh mục.',
             'category_ids.array' => 'Định dạng danh mục không hợp lệ.',
             'category_ids.*.exists' => 'Một trong các danh mục được chọn không tồn tại.',
-
+            // images
             'image_url.array' => 'Định dạng ảnh tải lên không hợp lệ.',
             'image_url.max' => 'Chỉ được upload tối đa :max ảnh cho mỗi sản phẩm.',
             'image_url.*.image' => 'Mỗi file tải lên phải là hình ảnh.',
@@ -105,6 +147,34 @@ class UpdateProductRequest extends FormRequest
 
             'featured_image_index.integer' => 'Chỉ số ảnh đại diện phải là một số nguyên.',
             'featured_image_index.min' => 'Chỉ số ảnh đại diện phải lớn hơn hoặc bằng 0.',
+
+            // Đơn vị tính & giá
+            'base_unit.required' => 'Tên đơn vị cơ sở là bắt buộc.',
+            'cost_price.required' => 'Giá vốn là bắt buộc.',
+            'cost_price.min' => 'Giá vốn phải lớn hơn hoặc bằng 0.',
+            'base_store_price.required' => 'Giá bán tại cửa hàng là bắt buộc.',
+            'base_store_price.min' => 'Giá bán tại cửa hàng phải lớn hơn hoặc bằng 0.',
+            'base_app_price.required' => 'Giá bán trên ứng dụng là bắt buộc.',
+            'base_app_price.min' => 'Giá bán trên ứng dụng phải lớn hơn hoặc bằng 0.',
+
+            // Đơn vị quy đổi
+            'unit_conversions.*.unit_name.required' => 'Tên đơn vị quy đổi không được để trống.',
+            'unit_conversions.*.unit_code.required' => 'Mã hàng của đơn vị quy đổi không được để trống.',
+            'unit_conversions.*.unit_code.unique' => 'Mã hàng của đơn vị quy đổi đã tồn tại.',
+            'unit_conversions.*.unit_code.distinct' => 'Các mã hàng của đơn vị quy đổi không được trùng nhau.',
+            'unit_conversions.*.conversion_factor.required' => 'Giá trị quy đổi là bắt buộc.',
+            'unit_conversions.*.conversion_factor.gt' => 'Giá trị quy đổi phải lớn hơn 0.',
+
+            // Thuộc tính
+            'attributes.*.name.required' => 'Tên thuộc tính không được để trống.',
+            'attributes.*.type.required' => 'Vui lòng chọn loại thuộc tính.',
+            'attributes.*.type.in' => 'Loại thuộc tính không hợp lệ.',
+            'attributes.*.values.*.value.required_unless' => 'Tên giá trị thuộc tính không được để trống.',
+            'attributes.*.values.*.price_adjustment.required_unless' => 'Giá trị điều chỉnh là bắt buộc.',
+
+            // Chi nhánh
+            'branch_ids.*.exists' => 'Chi nhánh được chọn không hợp lệ.',
+            'branch_ids.required_unless' => 'Vui lòng chọn chi nhánh nếu không áp dụng cho tất cả.'
         ];
     }
     protected function failedValidation(Validator $validator)

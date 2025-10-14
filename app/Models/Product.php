@@ -20,18 +20,18 @@ class Product extends Model
         'base_app_price',
         'is_sales_unit' 
     ];
-    /**
-     * Ghi đè phương thức boot của model để đăng ký event.
-     */
-    protected static function booted(): void
-    {      
-        static::created(function ($product) {
-            if (is_null($product->product_code)) {
-                $product->product_code = 'SP' . str_pad($product->id, 6, '0', STR_PAD_LEFT);
-                $product->saveQuietly();
-            }
-        });
-    }
+    // /**
+    //  * Ghi đè phương thức boot của model để đăng ký event.
+    //  */
+    // protected static function booted(): void
+    // {      
+    //     static::created(function ($product) {
+    //         if (is_null($product->product_code)) {
+    //             $product->product_code = 'SP' . str_pad($product->id, 6, '0', STR_PAD_LEFT);
+    //             $product->saveQuietly();
+    //         }
+    //     });
+    // }
 
       /**
      * Quan hệ đa hình: Một sản phẩm có nhiều ảnh.

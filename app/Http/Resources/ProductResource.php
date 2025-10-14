@@ -27,8 +27,11 @@ class ProductResource extends JsonResource
             'cost_price' => (float) $this->cost_price, 
             'base_store_price' => (float) $this->base_store_price, 
             'base_app_price' => (float) $this->base_app_price, 
-            'is_sales_unit' => (bool) $this->is_sales_unit, // Cột bán trực tiếp mới
-
+            'is_sales_unit' => (bool) $this->is_sales_unit,
+            'total_stock_quantity' => $this->whenLoaded('branches', function () {
+                // Tính tổng quantity từ tất cả các chi nhánh được liên kết
+                return $this->branches->sum('pivot.quantity');
+            }),
             // Quan hệ phức tạp
             'images' => ImageResource::collection($this->whenLoaded('images')),
             'featured_image' => new ImageResource($this->whenLoaded('featuredImage')),
@@ -38,7 +41,8 @@ class ProductResource extends JsonResource
             'attributes' => ProductAttributeResource::collection($this->whenLoaded('attributes')),
             'unit_conversions' => ProductUnitConversionResource::collection($this->whenLoaded('unitConversions')),
 
-
+            //Chi nhánh
+            'branches' => BranchResource::collection($this->whenLoaded('branches')), 
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
             

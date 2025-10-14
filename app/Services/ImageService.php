@@ -67,12 +67,13 @@ class ImageService
             $baseFileName = Str::slug($slug) . '-' . uniqid();
 
             $baseDir = "{$folder}/{$year}/{$month}";
-            $basePath = "{$baseDir}/main/{$baseFileName}.{$extension}";
+            $basePath = "{$baseDir}/{$baseFileName}.{$extension}";
 
             // Xử lý file SVG riêng biệt
             if ($extension === 'svg') {
-                Storage::disk('public')->put($basePath, file_get_contents($file));
-                return $basePath;
+                //File SVG vật lý được lưu vào đúng thư mục 'main' ***
+                Storage::disk('public')->put("{$baseDir}/main/{$baseFileName}.{$extension}", file_get_contents($file));
+                return $basePath; // Trả về đường dẫn gốc
             }
 
             $imageSizes = $this->sizes[$folder] ?? [];
@@ -104,27 +105,42 @@ class ImageService
         }
 
         try {
-            $ext = pathinfo($basePath, PATHINFO_EXTENSION);
-            $baseFileName = pathinfo($basePath, PATHINFO_FILENAME);
-            $pathParts = explode('/', $basePath);
-            $year = $pathParts[1];
-            $month = $pathParts[2];
-            $baseDir = "{$folder}/{$year}/{$month}";
+            // $ext = pathinfo($basePath, PATHINFO_EXTENSION);
+            // $baseFileName = pathinfo($basePath, PATHINFO_FILENAME);
+            // $pathParts = explode('/', $basePath);
+            // $year = $pathParts[1];
+            // $month = $pathParts[2];
+            // $baseDir = "{$folder}/{$year}/{$month}";
 
+            // $imageSizes = $this->sizes[$folder] ?? [];
+
+            // // Xóa file SVG
+            // if ($ext === 'svg') {
+            //     $svgPath = "{$baseDir}/main/{$baseFileName}.{$ext}";
+            //     if (Storage::disk('public')->exists($svgPath)) {
+            //         Storage::disk('public')->delete($svgPath);
+            //     }
+            //     return;
+            // }
+            $directory = dirname($basePath);
+            $filename = basename($basePath);
+            
             $imageSizes = $this->sizes[$folder] ?? [];
-
-            // Xóa file SVG
-            if ($ext === 'svg') {
-                $svgPath = "{$baseDir}/main/{$baseFileName}.{$ext}";
-                if (Storage::disk('public')->exists($svgPath)) {
-                    Storage::disk('public')->delete($svgPath);
-                }
-                return;
+            // Đoạn code này đảm bảo file SVG cũng được thêm vào vòng lặp xóa bên dưới
+            if (pathinfo($filename, PATHINFO_EXTENSION) === 'svg') {
+                $imageSizes['main'] = true; 
             }
             
-            // Xóa tất cả biến thể (main, thumb,...)
+            // // Xóa tất cả biến thể (main, thumb,...)
+            // foreach (array_keys($imageSizes) as $sizeName) {
+            //     $fullPath = "{$baseDir}/{$sizeName}/{$baseFileName}.{$ext}";
+            //     if (Storage::disk('public')->exists($fullPath)) {
+            //         Storage::disk('public')->delete($fullPath);
+            //     }
+            // }
+            // Vòng lặp này giờ sẽ xóa tất cả các phiên bản (main, thumb) cho mọi loại ảnh
             foreach (array_keys($imageSizes) as $sizeName) {
-                $fullPath = "{$baseDir}/{$sizeName}/{$baseFileName}.{$ext}";
+                $fullPath = "{$directory}/{$sizeName}/{$filename}";
                 if (Storage::disk('public')->exists($fullPath)) {
                     Storage::disk('public')->delete($fullPath);
                 }
