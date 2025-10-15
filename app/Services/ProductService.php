@@ -49,10 +49,6 @@ class ProductService
                 });
             }
 
-            // === THAY ĐỔI: BỎ LỌC THEO KHOẢNG GIÁ ===
-
-            // === THAY ĐỔI: THÊM CÁC BỘ LỌC MỚI ===
-
             // Lọc theo Nhà cung cấp
             if ($request->filled('supplier_id')) {
                 $query->whereHas('purchaseInvoiceDetails.invoice', function ($q) use ($request) {
@@ -153,13 +149,13 @@ class ProductService
         $this->generatedCodes = [];
         return DB::transaction(function () use ($data) {
 
-            // GHI CHÚ: Tách các dữ liệu mảng ra khỏi $data chính.
+            //Tách các dữ liệu mảng ra khỏi $data chính.
             $applyToAllBranches = Arr::pull($data, 'apply_to_all_branches', false);
             $branchIds = Arr::pull($data, 'branch_ids', []);
             $unitConversionsData = Arr::pull($data, 'unit_conversions', []);
             $specialPricesData = Arr::pull($data, 'branch_prices', []);
 
-            // GHI CHÚ: Bắt đầu logic tự động sinh mã và tính giá.
+            //Bắt đầu logic tự động sinh mã và tính giá.
             if (empty($data['product_code'])) {
                 $data['product_code'] = $this->generateUniqueCode('SP');
             } else {
@@ -194,7 +190,7 @@ class ProductService
                     $product->categories()->attach($categoryIds);
                 }
 
-                // GHI CHÚ: Xử lý logic phân bổ cho tất cả hoặc các chi nhánh được chọn.
+                //Xử lý logic phân bổ cho tất cả hoặc các chi nhánh được chọn.
                 if ($applyToAllBranches) {
                     $branchIds = Branch::where('active', true)->pluck('id')->all();
                 }
@@ -202,7 +198,7 @@ class ProductService
                     $product->branches()->attach($branchIds);
                 }
 
-                // GHI CHÚ: Lưu các giá đặc biệt theo chi nhánh (nếu có).
+                //Lưu các giá đặc biệt theo chi nhánh (nếu có).
                 if (!empty($specialPricesData)) {
                     $product->prices()->createMany($specialPricesData);
                 }
@@ -248,24 +244,19 @@ class ProductService
         return DB::transaction(function () use ($id, $data) {
             try {
                 $product = Product::findOrFail($id);
-
-                // === GHI CHÚ: ĐÂY LÀ LOGIC ĐỒNG BỘ MỚI VÀ CHÍNH XÁC ===
-                // Logic này sử dụng Arr::has() để kiểm tra xem người dùng có thực sự
-                // gửi dữ liệu của một trường lên hay không, ngay cả khi nó là mảng rỗng.
-
-                // 2. Đồng bộ Danh mục
+                // Đồng bộ Danh mục
                 if (Arr::has($data, 'category_ids')) {
                     $product->categories()->sync(Arr::get($data, 'category_ids', []));
                 }
 
-                // 3. Đồng bộ Chi nhánh
+                // Đồng bộ Chi nhánh
                 if (Arr::get($data, 'apply_to_all_branches')) {
                     $product->branches()->sync(Branch::where('active', true)->pluck('id')->all());
                 } elseif (Arr::has($data, 'branch_ids')) {
                     $product->branches()->sync(Arr::get($data, 'branch_ids', []));
                 }
 
-                // 4. Đồng bộ Giá đặc biệt
+                // Đồng bộ Giá đặc biệt
                 if (Arr::has($data, 'branch_prices')) {
                     $product->prices()->delete();
                     $specialPricesData = Arr::get($data, 'branch_prices', []);
@@ -274,7 +265,7 @@ class ProductService
                     }
                 }
 
-                // 5. Đồng bộ Đơn vị quy đổi
+                // Đồng bộ Đơn vị quy đổi
                 if (Arr::has($data, 'unit_conversions')) {
                     $unitConversionsData = Arr::get($data, 'unit_conversions', []);
                     
@@ -308,7 +299,7 @@ class ProductService
                     }
                 }
 
-                // 6. Đồng bộ Thuộc tính
+                // Đồng bộ Thuộc tính
                 if (Arr::has($data, 'attributes')) {
                      $attributesData = Arr::get($data, 'attributes', []);
                      $product->attributes()->each(function ($attribute) {
@@ -326,14 +317,14 @@ class ProductService
                      }
                 }
                 
-                // 1. Cập nhật thông tin cơ bản của sản phẩm sau cùng
+                // Cập nhật thông tin cơ bản của sản phẩm sau cùng
                 $product->update(Arr::except($data, [
                     'category_ids', 'apply_to_all_branches', 'branch_ids',
                     'branch_prices', 'unit_conversions', 'attributes',
                     'image_url', 'deleted_image_ids', 'featured_image_index'
                 ]));
 
-                // 7. Xử lý ảnh (logic không đổi)
+                // Xử lý ảnh (logic không đổi)
                 $newImageFiles = Arr::get($data, 'image_url', []);
                 $deletedImageIds = Arr::get($data, 'deleted_image_ids', []);
                 $featuredImageIndex = Arr::get($data, 'featured_image_index');
@@ -369,7 +360,7 @@ class ProductService
                 }
 
                 Log::info("Đã cập nhật sản phẩm [ID: {$product->id}]");
-                return $product->refresh()->load(['images', 'categories', 'featuredImage', 'attributes.values', 'unitConversions', 'branches', 'prices']);
+                return $product->refresh()->load(['images', 'categories.icon', 'featuredImage', 'attributes.values', 'unitConversions', 'branches', 'prices']);
 
             } catch (ModelNotFoundException $e) {
                 Log::warning("Không tìm thấy sản phẩm để cập nhật. ID: {$id}");
