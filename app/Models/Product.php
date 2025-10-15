@@ -104,4 +104,11 @@ class Product extends Model
     {
         return $this->hasMany(ProductUnitConversion::class);
     }
+    /**
+     * Quan hệ: Một sản phẩm có thể xuất hiện trong nhiều chi tiết phiếu nhập.
+     */
+    public function purchaseInvoiceDetails(): HasMany
+    {
+        return $this->hasMany(PurchaseInvoiceDetail::class);
+    }
 }

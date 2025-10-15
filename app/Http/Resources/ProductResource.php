@@ -28,6 +28,7 @@ class ProductResource extends JsonResource
             'base_store_price' => (float) $this->base_store_price, 
             'base_app_price' => (float) $this->base_app_price, 
             'is_sales_unit' => (bool) $this->is_sales_unit,
+            
             'total_stock_quantity' => $this->whenLoaded('branches', function () {
                 // Tính tổng quantity từ tất cả các chi nhánh được liên kết
                 return $this->branches->sum('pivot.quantity');
@@ -41,8 +42,12 @@ class ProductResource extends JsonResource
             'attributes' => ProductAttributeResource::collection($this->whenLoaded('attributes')),
             'unit_conversions' => ProductUnitConversionResource::collection($this->whenLoaded('unitConversions')),
 
+            'special_prices' => ProductPriceResource::collection($this->whenLoaded('prices')),
+
             //Chi nhánh
             'branches' => BranchResource::collection($this->whenLoaded('branches')), 
+
+
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
             

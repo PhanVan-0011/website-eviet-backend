@@ -25,10 +25,14 @@ class UpdateProductRequest extends FormRequest
         if ($this->has('attributes_json') && is_string($this->attributes_json)) {
             $this->merge(['attributes' => json_decode($this->attributes_json, true) ?? []]);
         }
+        if ($this->has('branch_prices_json') && is_string($this->branch_prices_json)) {
+            $this->merge(['branch_prices' => json_decode($this->branch_prices_json, true) ?? []]);
+        }
         if ($this->has('apply_to_all_branches')) {
             $this->merge(['apply_to_all_branches' => filter_var($this->apply_to_all_branches, FILTER_VALIDATE_BOOLEAN)]);
         }
     }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -40,6 +44,7 @@ class UpdateProductRequest extends FormRequest
         return [
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|nullable|string',
+            'product_code' => ['sometimes', 'nullable', 'string', 'max:255', Rule::unique('products')->ignore($productId)],
 
             'status' => 'sometimes|required|boolean',
             'category_ids' => 'sometimes|required|array|min:1',
@@ -66,21 +71,23 @@ class UpdateProductRequest extends FormRequest
             // === ĐƠN VỊ TÍNH & GIÁ BÁN ===
             'base_unit' => 'sometimes|required|string|max:50',
             'cost_price' => 'sometimes|required|numeric|min:0',
-            'base_store_price' => 'sometimes|required|numeric|min:0',
-            'base_app_price' => 'sometimes|required|numeric|min:0',
+
+            'base_store_price' => ['sometimes', 'required', 'numeric', 'min:0', Rule::when($this->filled('cost_price'), 'gte:cost_price')],
+            'base_app_price' => ['sometimes', 'required', 'numeric', 'min:0', Rule::when($this->filled('cost_price'), 'gte:cost_price')],
+
             'is_sales_unit' => 'sometimes|required|boolean',
             'unit_conversions' => 'sometimes|array',
             'unit_conversions.*.unit_name' => 'required|string|max:50',
             'unit_conversions.*.unit_code' => ['nullable', 'string', 'max:255', 'distinct', Rule::unique('product_unit_conversions', 'unit_code')->where(function ($query) use ($productId) {
                 return $query->where('product_id', '!=', $productId);
             })],
-
+            //=== Đơn vị ====
             'unit_conversions.*.conversion_factor' => 'required|numeric|gt:0',
             'unit_conversions.*.store_price' => 'nullable|numeric|min:0',
             'unit_conversions.*.app_price' => 'nullable|numeric|min:0',
             'unit_conversions.*.is_sales_unit' => 'required|boolean',
 
-            // === THUỘC TÍNH ===
+            //=== THUỘC TÍNH ===
             'attributes' => 'sometimes|array',
             'attributes.*.name' => 'required|string|max:255',
             'attributes.*.type' => 'required|string|in:select,checkbox,text',
@@ -93,6 +100,12 @@ class UpdateProductRequest extends FormRequest
             'apply_to_all_branches' => 'sometimes|boolean',
             'branch_ids' => 'required_unless:apply_to_all_branches,true|nullable|array',
             'branch_ids.*' => 'integer|exists:branches,id',
+            // GIÁ THEO CHI NHÁNH
+            'branch_prices' => 'sometimes|array',
+            'branch_prices.*.branch_id' => 'required|integer|exists:branches,id',
+            'branch_prices.*.price_type' => 'required|string|in:store_price,app_price',
+            'branch_prices.*.price' => 'required|numeric|min:0',
+            'branch_prices.*.unit_of_measure' => 'required|string|max:50',
         ];
     }
     public function withValidator(Validator $validator): void
@@ -116,6 +129,21 @@ class UpdateProductRequest extends FormRequest
                 // Chỉ số phải nhỏ hơn tổng số ảnh cuối cùng
                 if ($featuredIndex >= $finalImageCount) {
                     $validator->errors()->add('featured_image_index', 'Chỉ số ảnh đại diện không hợp lệ hoặc vượt quá số lượng ảnh.');
+                }
+            }
+
+            // Lấy giá vốn mới nhất (từ request hoặc từ DB) để so sánh
+            $costPrice = $this->filled('cost_price') ? (float)$this->input('cost_price') : (float)$product->cost_price;
+            $unitConversions = $this->input('unit_conversions', []);
+
+            foreach ($unitConversions as $index => $unit) {
+                $factor = (float) ($unit['conversion_factor'] ?? 1);
+                $minPrice = $costPrice * $factor;
+                if (isset($unit['store_price']) && (float) $unit['store_price'] < $minPrice) {
+                    $validator->errors()->add("unit_conversions.{$index}.store_price", "Giá bán tại cửa hàng của ĐVT phải >= giá vốn quy đổi ({$minPrice}).");
+                }
+                if (isset($unit['app_price']) && (float) $unit['app_price'] < $minPrice) {
+                    $validator->errors()->add("unit_conversions.{$index}.app_price", "Giá bán trên app của ĐVT phải >= giá vốn quy đổi ({$minPrice}).");
                 }
             }
         });

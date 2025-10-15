@@ -37,6 +37,10 @@ class StoreProductRequest extends FormRequest
                 'attributes' => is_array($decoded) ? $decoded : [],
             ]);
         }
+        //Chuyển đổi giá khác nhau theo chi nhánh
+        if ($this->has('branch_prices_json') && is_string($this->branch_prices_json)) {
+            $this->merge(['branch_prices' => json_decode($this->branch_prices_json, true) ?? []]);
+        }
 
         // Chọn toàn bộ chi nhánh để thêm sản phẩm
         if ($this->has('apply_to_all_branches')) {
@@ -77,7 +81,7 @@ class StoreProductRequest extends FormRequest
     {
         return [
             //'product_code' => 'required|string|max:255|unique:products,product_code',
-            'product_code' => 'nullable|string|max:255|unique:products,product_code', 
+            'product_code' => 'nullable|string|max:255|unique:products,product_code',
 
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -96,7 +100,7 @@ class StoreProductRequest extends FormRequest
             'base_unit' => 'required|string|max:50',
             'cost_price' => 'required|numeric|min:0',
             'base_store_price' => 'required|numeric|min:0|gte:cost_price', //ràng buộc giá
-            'base_app_price' => 'required|numeric|min:0|gte:cost_price', 
+            'base_app_price' => 'required|numeric|min:0|gte:cost_price',
             'is_sales_unit' => 'required|boolean',
 
             'unit_conversions' => 'nullable|array',
@@ -106,7 +110,6 @@ class StoreProductRequest extends FormRequest
             'unit_conversions.*.store_price' => 'nullable|numeric|min:0',
             'unit_conversions.*.app_price' => 'nullable|numeric|min:0',
             'unit_conversions.*.is_sales_unit' => 'required|boolean',
-            
 
             // === THUỘC TÍNH ===
             'attributes' => 'nullable|array',
@@ -117,10 +120,16 @@ class StoreProductRequest extends FormRequest
             'attributes.*.values.*.price_adjustment' => 'required_unless:attributes.*.type,text|numeric',
             'attributes.*.values.*.is_default' => 'required_unless:attributes.*.type,text|boolean',
 
-            //PHÂN BỔ CHI NHÁNH ===
+            //===CHI NHÁNH ===
             'apply_to_all_branches' => 'nullable|boolean',
-            'branch_ids' =>'required_unless:apply_to_all_branches,true|nullable|array',
+            'branch_ids' => 'required_unless:apply_to_all_branches,true|nullable|array',
             'branch_ids.*' => 'integer|exists:branches,id',
+            // GIÁ KHÁC NHAU THEO CHI NHÁNH
+            'branch_prices' => 'sometimes|array',
+            'branch_prices.*.branch_id' => 'required|integer|exists:branches,id',
+            'branch_prices.*.price_type' => 'required|string|in:store_price,app_price',
+            'branch_prices.*.price' => 'required|numeric|min:0',
+            'branch_prices.*.unit_of_measure' => 'required|string|max:50',
 
         ];
     }
@@ -139,7 +148,6 @@ class StoreProductRequest extends FormRequest
             'category_ids.array' => 'Định dạng danh mục không hợp lệ.',
             'category_ids.*.exists' => 'Một trong các danh mục được chọn không tồn tại.',
 
-            // --- THÔNG BÁO LỖI CHO UPLOAD NHIỀU ẢNH ---
             'image_url.array' => 'Định dạng ảnh không hợp lệ.',
             'image_url.max' => 'Chỉ được upload tối đa :max ảnh cho mỗi sản phẩm.',
             'image_url.*.required' => 'Vui lòng chọn file ảnh.',
