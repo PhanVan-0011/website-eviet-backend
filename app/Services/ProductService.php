@@ -195,7 +195,8 @@ class ProductService
                     $branchIds = Branch::where('active', true)->pluck('id')->all();
                 }
                 if (!empty($branchIds)) {
-                    $product->branches()->attach($branchIds);
+                    //$product->branches()->attach($branchIds);
+                    $product->branches()->attach(array_unique($branchIds));
                 }
 
                 //Lưu các giá đặc biệt theo chi nhánh (nếu có).
