@@ -12,6 +12,7 @@ use Illuminate\Support\Arr;
 use App\Models\Image as ImageModel;
 use App\Models\ProductUnitConversion;
 use App\Models\Branch;
+use App\Models\PurchaseInvoiceDetail;
 
 class ProductService
 {
@@ -380,9 +381,11 @@ class ProductService
         return DB::transaction(function () use ($id) {
             try {
                 $product = Product::with('images', 'attributes.values', 'unitConversions')->findOrFail($id);
-
                 if (OrderDetail::where('product_id', $id)->exists()) {
-                    throw new Exception("Sản phẩm đang được sử dụng trong đơn hàng, không thể xóa.");
+                throw new Exception("Sản phẩm đã phát sinh trong Đơn hàng bán ra, không thể xóa.");
+                }
+                if (PurchaseInvoiceDetail::where('product_id', $id)->exists()) {
+                    throw new Exception("Sản phẩm đã phát sinh trong Lịch sử nhập hàng, không thể xóa.");
                 }
 
                 foreach ($product->images as $image) {
@@ -423,13 +426,22 @@ class ProductService
             $missingIds = array_diff($ids, $foundIds);
             throw new ModelNotFoundException('Một hoặc nhiều sản phẩm không tồn tại: ' . implode(', ', $missingIds));
         }
-        $usedProducts = $products->filter(function ($product) {
-            return $product->orderDetails()->exists();
-        });
+        // $usedProducts = $products->filter(function ($product) {
+        //     return $product->orderDetails()->exists();
+        // });
 
-        if ($usedProducts->isNotEmpty()) {
-            $productIds = $usedProducts->pluck('id')->implode(', ');
-            throw new Exception("Không thể xóa các sản phẩm {$productIds} vì đã phát sinh đơn hàng.");
+        // if ($usedProducts->isNotEmpty()) {
+        //     $productIds = $usedProducts->pluck('id')->implode(', ');
+        //     throw new Exception("Không thể xóa các sản phẩm {$productIds} vì đã phát sinh đơn hàng.");
+        // }
+        $usedInOrders = OrderDetail::whereIn('product_id', $ids)->pluck('product_id')->unique();
+        if ($usedInOrders->isNotEmpty()) {
+            throw new Exception("Không thể xóa các sản phẩm (ID: " . $usedInOrders->implode(', ') . ") vì đã phát sinh đơn hàng bán ra.");
+        }
+
+        $usedInPurchases = PurchaseInvoiceDetail::whereIn('product_id', $ids)->pluck('product_id')->unique();
+        if ($usedInPurchases->isNotEmpty()) {
+            throw new Exception("Không thể xóa các sản phẩm (ID: " . $usedInPurchases->implode(', ') . ") vì đã phát sinh lịch sử nhập hàng.");
         }
 
         return DB::transaction(function () use ($products) {
