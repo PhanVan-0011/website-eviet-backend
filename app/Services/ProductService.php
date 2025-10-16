@@ -31,7 +31,7 @@ class ProductService
             $perPage = max(1, min(100, (int) $request->input('limit', 25)));
             $currentPage = max(1, (int) $request->input('page', 1));
 
-            $query = Product::query()->with(['categories.icon', 'featuredImage']);
+            $query = Product::query()->with(['categories.icon', 'featuredImage','branches']);
 
             // Tìm kiếm theo từ khóa (giữ nguyên)
             if ($request->filled('keyword')) {
