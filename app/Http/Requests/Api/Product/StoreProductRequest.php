@@ -37,10 +37,10 @@ class StoreProductRequest extends FormRequest
                 'attributes' => is_array($decoded) ? $decoded : [],
             ]);
         }
-        //Chuyển đổi giá khác nhau theo chi nhánh
-        if ($this->has('branch_prices_json') && is_string($this->branch_prices_json)) {
-            $this->merge(['branch_prices' => json_decode($this->branch_prices_json, true) ?? []]);
-        }
+        // //Chuyển đổi giá khác nhau theo chi nhánh
+        // if ($this->has('branch_prices_json') && is_string($this->branch_prices_json)) {
+        //     $this->merge(['branch_prices' => json_decode($this->branch_prices_json, true) ?? []]);
+        // }
 
         // Chọn toàn bộ chi nhánh để thêm sản phẩm
         if ($this->has('apply_to_all_branches')) {
