@@ -125,11 +125,11 @@ class StoreProductRequest extends FormRequest
             'branch_ids' => 'required_unless:apply_to_all_branches,true|nullable|array',
             'branch_ids.*' => 'integer|exists:branches,id',
             // GIÁ KHÁC NHAU THEO CHI NHÁNH
-            'branch_prices' => 'sometimes|array',
-            'branch_prices.*.branch_id' => 'required|integer|exists:branches,id',
-            'branch_prices.*.price_type' => 'required|string|in:store_price,app_price',
-            'branch_prices.*.price' => 'required|numeric|min:0',
-            'branch_prices.*.unit_of_measure' => 'required|string|max:50',
+            // 'branch_prices' => 'sometimes|array',
+            // 'branch_prices.*.branch_id' => 'required|integer|exists:branches,id',
+            // 'branch_prices.*.price_type' => 'required|string|in:store_price,app_price',
+            // 'branch_prices.*.price' => 'required|numeric|min:0',
+            // 'branch_prices.*.unit_of_measure' => 'required|string|max:50',
 
         ];
     }

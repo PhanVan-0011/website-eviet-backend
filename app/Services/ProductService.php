@@ -56,6 +56,7 @@ class ProductService
                     $q->where('supplier_id', $request->input('supplier_id'));
                 });
             }
+            
 
             // Lọc theo khoảng ngày tạo
             if ($request->filled('start_date')) {
@@ -110,7 +111,7 @@ class ProductService
                 'attributes.values',
                 'unitConversions',
                 'branches',
-                'prices'
+                
             ])->findOrFail($id);
         } catch (ModelNotFoundException $e) {
             Log::error("Sản phẩm với ID {$id} không tồn tại: " . $e->getMessage());
@@ -154,7 +155,7 @@ class ProductService
             $applyToAllBranches = Arr::pull($data, 'apply_to_all_branches', false);
             $branchIds = Arr::pull($data, 'branch_ids', []);
             $unitConversionsData = Arr::pull($data, 'unit_conversions', []);
-            $specialPricesData = Arr::pull($data, 'branch_prices', []);
+            //$specialPricesData = Arr::pull($data, 'branch_prices', []);
 
             //Bắt đầu logic tự động sinh mã và tính giá.
             if (empty($data['product_code'])) {
@@ -200,10 +201,10 @@ class ProductService
                     $product->branches()->attach(array_unique($branchIds));
                 }
 
-                //Lưu các giá đặc biệt theo chi nhánh (nếu có).
-                if (!empty($specialPricesData)) {
-                    $product->prices()->createMany($specialPricesData);
-                }
+                // //Lưu các giá đặc biệt theo chi nhánh (nếu có).
+                // if (!empty($specialPricesData)) {
+                //     $product->prices()->createMany($specialPricesData);
+                // }
 
                 if (!empty($unitConversionsData)) {
                     $product->unitConversions()->createMany($unitConversionsData);
@@ -258,14 +259,14 @@ class ProductService
                     $product->branches()->sync(Arr::get($data, 'branch_ids', []));
                 }
 
-                // Đồng bộ Giá đặc biệt
-                if (Arr::has($data, 'branch_prices')) {
-                    $product->prices()->delete();
-                    $specialPricesData = Arr::get($data, 'branch_prices', []);
-                    if (!empty($specialPricesData)) {
-                        $product->prices()->createMany($specialPricesData);
-                    }
-                }
+                // // Đồng bộ Giá đặc biệt
+                // if (Arr::has($data, 'branch_prices')) {
+                //     $product->prices()->delete();
+                //     $specialPricesData = Arr::get($data, 'branch_prices', []);
+                //     if (!empty($specialPricesData)) {
+                //         $product->prices()->createMany($specialPricesData);
+                //     }
+                // }
 
                 // Đồng bộ Đơn vị quy đổi
                 if (Arr::has($data, 'unit_conversions')) {

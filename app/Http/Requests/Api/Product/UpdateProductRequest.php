@@ -25,9 +25,9 @@ class UpdateProductRequest extends FormRequest
         if ($this->has('attributes_json') && is_string($this->attributes_json)) {
             $this->merge(['attributes' => json_decode($this->attributes_json, true) ?? []]);
         }
-        if ($this->has('branch_prices_json') && is_string($this->branch_prices_json)) {
-            $this->merge(['branch_prices' => json_decode($this->branch_prices_json, true) ?? []]);
-        }
+        // if ($this->has('branch_prices_json') && is_string($this->branch_prices_json)) {
+        //     $this->merge(['branch_prices' => json_decode($this->branch_prices_json, true) ?? []]);
+        // }
         if ($this->has('apply_to_all_branches')) {
             $this->merge(['apply_to_all_branches' => filter_var($this->apply_to_all_branches, FILTER_VALIDATE_BOOLEAN)]);
         }
@@ -103,11 +103,11 @@ class UpdateProductRequest extends FormRequest
             })],
             'branch_ids.*' => 'integer|exists:branches,id',
             // GIÁ THEO CHI NHÁNH
-            'branch_prices' => 'sometimes|array',
-            'branch_prices.*.branch_id' => 'required|integer|exists:branches,id',
-            'branch_prices.*.price_type' => 'required|string|in:store_price,app_price',
-            'branch_prices.*.price' => 'required|numeric|min:0',
-            'branch_prices.*.unit_of_measure' => 'required|string|max:50',
+            // 'branch_prices' => 'sometimes|array',
+            // 'branch_prices.*.branch_id' => 'required|integer|exists:branches,id',
+            // 'branch_prices.*.price_type' => 'required|string|in:store_price,app_price',
+            // 'branch_prices.*.price' => 'required|numeric|min:0',
+            // 'branch_prices.*.unit_of_measure' => 'required|string|max:50',
         ];
     }
     public function withValidator(Validator $validator): void

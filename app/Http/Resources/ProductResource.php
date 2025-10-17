@@ -42,7 +42,7 @@ class ProductResource extends JsonResource
             'attributes' => ProductAttributeResource::collection($this->whenLoaded('attributes')),
             'unit_conversions' => ProductUnitConversionResource::collection($this->whenLoaded('unitConversions')),
 
-            'special_prices' => ProductPriceResource::collection($this->whenLoaded('prices')),
+            //'special_prices' => ProductPriceResource::collection($this->whenLoaded('prices')),
 
             //Chi nhánh
             'branches' => BranchResource::collection($this->whenLoaded('branches')), 
