@@ -8,12 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class ProductPrice extends Model
 {
     use HasFactory;
-      protected $fillable = [
+    protected $fillable = [
         'product_id',
         'branch_id',
         'price_type',
         'unit_of_measure',
-        'unit_multiplier',
         'price',
         'start_date',
         'end_date',

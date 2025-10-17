@@ -53,6 +53,7 @@ class DashboardDemoSeeder extends Seeder
                     'product_id' => $product->id,
                     'quantity' => $qty,
                     'unit_price' => $unitPrice,
+                    'unit_of_measure' => $product->base_unit ?? 'cái',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];

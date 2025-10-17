@@ -41,6 +41,7 @@ class CartSeeder extends Seeder
             [
                 'product_id'     => $product1->id,
                 'combo_id'       => null,
+                'unit_of_measure' => $product1->base_unit ?? 'cái',
                 'name_snapshot'  => $product1->name ?? 'SP 1',
                 'sku_snapshot'   => $product1->product_code ?? $product1->code ?? null,
                 'attributes'     => ['size' => 'M', 'sugar' => 'less'],
@@ -51,6 +52,7 @@ class CartSeeder extends Seeder
             [
                 'product_id'     => $product2->id,
                 'combo_id'       => null,
+                'unit_of_measure' => $product2->base_unit ?? 'cái',
                 'name_snapshot'  => $product2->name ?? 'SP 2',
                 'sku_snapshot'   => $product2->product_code ?? $product2->code ?? null,
                 'attributes'     => null,
@@ -61,6 +63,7 @@ class CartSeeder extends Seeder
             [
                 'product_id'     => null,
                 'combo_id'       => $combo->id,
+                'unit_of_measure' => 'combo',
                 'name_snapshot'  => $combo->name ?? 'Combo',
                 'sku_snapshot'   => $combo->slug ?? null,
                 'attributes'     => null,

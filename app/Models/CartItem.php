@@ -12,6 +12,7 @@ class CartItem extends Model
         'cart_id',
         'product_id',
         'combo_id',
+        'unit_of_measure',
         'name_snapshot',
         'sku_snapshot',
         'attributes',
@@ -19,7 +20,7 @@ class CartItem extends Model
         'unit_price',
         'notes',
     ];
-    
+
     protected $casts = [
         'attributes' => 'array', // Tự động parse JSON sang array
     ];

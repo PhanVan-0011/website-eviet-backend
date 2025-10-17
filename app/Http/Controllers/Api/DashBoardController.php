@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Exception;
 
-class DashBoardController extends Controller
+class DashboardController extends Controller
 {
     protected DashboardService $dashboardService;
 
@@ -26,6 +26,7 @@ class DashBoardController extends Controller
                 'data' => $stats
             ]);
         } catch (Exception $e) {
+            Log::error('DashboardController@getStatistics: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Đã có lỗi hệ thống xảy ra.'], 500);
         }
     }

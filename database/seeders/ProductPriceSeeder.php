@@ -30,7 +30,6 @@ class ProductPriceSeeder extends Seeder
                     'branch_id' => $branch->id,
                     'price_type' => 'store_price',
                     'unit_of_measure' => 'cái',
-                    'unit_multiplier' => 1,
                     'price' => $product->name === 'Cà phê đen' ? 20000 : 6000,
                     'start_date' => now(),
                 ]);
@@ -41,7 +40,6 @@ class ProductPriceSeeder extends Seeder
                     'branch_id' => $branch->id,
                     'price_type' => 'app_price',
                     'unit_of_measure' => 'cái',
-                    'unit_multiplier' => 1,
                     'price' => $product->name === 'Cà phê đen' ? 18000 : 5500,
                     'start_date' => now(),
                 ]);
@@ -52,7 +50,6 @@ class ProductPriceSeeder extends Seeder
                     'branch_id' => $branch->id,
                     'price_type' => 'wholesale_price',
                     'unit_of_measure' => 'cái',
-                    'unit_multiplier' => 1,
                     'price' => $product->name === 'Cà phê đen' ? 15000 : 5000,
                     'start_date' => now(),
                 ]);

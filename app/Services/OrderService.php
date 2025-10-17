@@ -55,9 +55,9 @@ class OrderService
             if ($request->filled('end_date')) {
                 $query->whereDate('order_date', '<=', $request->input('end_date'));
             }
-           $query->orderByRaw("FIELD(status, 'pending', 'processing', 'shipped', 'delivered', 'cancelled')")
-             ->orderByDesc('order_date');
-             
+            $query->orderByRaw("FIELD(status, 'pending', 'processing', 'shipped', 'delivered', 'cancelled')")
+                ->orderByDesc('order_date');
+
             $total = $query->count();
             $offset = ($currentPage - 1) * $perPage;
             $orders = $query->skip($offset)->take($perPage)->get();
@@ -147,6 +147,7 @@ class OrderService
                         'product_id' => $product->id,
                         'quantity' => $itemQuantity,
                         'unit_price' => $unitPrice,
+                        'unit_of_measure' => $product->base_unit ?? 'cái',
                         'combo_id' => null,
                     ];
                 } elseif ($item['type'] === 'combo') {
@@ -175,6 +176,7 @@ class OrderService
                             'product_id' => $comboItem->product->id,
                             'quantity'   => $comboItem->quantity * $itemQuantity,
                             'unit_price' => $discountedUnitPrice,
+                            'unit_of_measure' => $comboItem->product->base_unit ?? 'cái',
                             'combo_id'   => $combo->id,
                         ];
                     }
@@ -313,7 +315,7 @@ class OrderService
                             'paid_at' => null,
                         ]);
                     }
-                                        $order->save();
+                    $order->save();
 
                     //Cộng trả lại tồn kho
                     foreach ($order->orderDetails as $detail) {
