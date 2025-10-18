@@ -44,10 +44,10 @@ class UpdatePurchaseInvoiceRequest extends FormRequest
             foreach ($detailsToCalculate as $d) {
                 $q  = max(0.0, (float)($d['quantity'] ?? 0));
                 $up = max(0.0, (float)($d['unit_price'] ?? 0));
-                $id = max(0.0, (float)($d['item_discount'] ?? 0));
+                //$id = max(0.0, (float)($d['item_discount'] ?? 0));
 
-                $lineGross = round($q * $up, 2);
-                $lineDisc  = min($id, $lineGross); // Giới hạn Item Discount tạm thời
+                //$lineGross = round($q * $up, 2);
+                //$lineDisc  = min($id, $lineGross); // Giới hạn Item Discount tạm thời
 
                 $grossSubtotal     = round($grossSubtotal + $lineGross, 2);
                 $totalItemDiscount = round($totalItemDiscount + $lineDisc, 2);

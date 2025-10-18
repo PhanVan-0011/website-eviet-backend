@@ -15,15 +15,9 @@ class PurchaseInvoiceDetail extends Model
         'unit_of_measure',
         'quantity',
         'unit_price',
-        'item_discount',
         'subtotal',
     ];
-
-    // Mối quan hệ: Một chi tiết thuộc về một hóa đơn nhập
-    // public function purchaseInvoice()
-    // {
-    //     return $this->belongsTo(PurchaseInvoice::class, 'invoice_id');
-    // }
+    
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(PurchaseInvoice::class, 'invoice_id');

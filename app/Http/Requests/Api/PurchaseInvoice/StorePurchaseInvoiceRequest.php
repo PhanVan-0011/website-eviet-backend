@@ -98,8 +98,7 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'details.*.product_id' => 'required|integer|exists:products,id',
             'details.*.quantity' => 'required|integer|min:1',
             'details.*.unit_price' => 'required|numeric|min:0',
-            'details.*.unit_of_measure' => 'required|string|max:50',
-            'details.*.item_discount' => 'nullable|numeric|min:0',  
+            'details.*.unit_of_measure' => 'required|string|max:50', 
         ];
     }
     
@@ -119,7 +118,6 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'details.*.product_id.required' => 'ID sản phẩm chi tiết là bắt buộc.',
             'details.*.quantity.min' => 'Số lượng sản phẩm phải lớn hơn 0.',
             'details.*.unit_of_measure.required' => 'Đơn vị tính là bắt buộc.',
-            'details.*.item_discount.numeric' => 'Giảm giá phải là số.',
         ];
     }
 

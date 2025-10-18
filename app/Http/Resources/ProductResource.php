@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Models\Branch;
 
 class ProductResource extends JsonResource
 {
@@ -33,6 +34,7 @@ class ProductResource extends JsonResource
                 // Tính tổng quantity từ tất cả các chi nhánh được liên kết
                 return $this->branches->sum('pivot.quantity');
             }),
+            
             // Quan hệ phức tạp
             'images' => ImageResource::collection($this->whenLoaded('images')),
             'featured_image' => new ImageResource($this->whenLoaded('featuredImage')),
@@ -46,7 +48,14 @@ class ProductResource extends JsonResource
 
             //Chi nhánh
             'branches' => BranchResource::collection($this->whenLoaded('branches')), 
-
+            // Kiếm tra trả về loại chọn chi nhánh toàn bộ hoặc 1
+            'applies_to_all_branches' => $this->whenLoaded('branches', function () {
+                            // Đếm tổng số chi nhánh đang hoạt động trong toàn hệ thống
+                            $totalActiveBranches = Branch::where('active', true)->count();
+                            // So sánh với số chi nhánh mà sản phẩm này đang được liên kết
+                            // Điều kiện count() > 0 để xử lý trường hợp không có chi nhánh nào trong hệ thống
+                            return ($this->branches->count() > 0) && ($this->branches->count() == $totalActiveBranches);
+                        }),
 
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
