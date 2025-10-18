@@ -18,7 +18,8 @@ class Product extends Model
         'cost_price', 
         'base_store_price', 
         'base_app_price',
-        'is_sales_unit' 
+        'is_sales_unit',
+        'applies_to_all_branches'
     ];
     // /**
     //  * Ghi đè phương thức boot của model để đăng ký event.

@@ -28,8 +28,8 @@ class UpdateProductRequest extends FormRequest
         // if ($this->has('branch_prices_json') && is_string($this->branch_prices_json)) {
         //     $this->merge(['branch_prices' => json_decode($this->branch_prices_json, true) ?? []]);
         // }
-        if ($this->has('apply_to_all_branches')) {
-            $this->merge(['apply_to_all_branches' => filter_var($this->apply_to_all_branches, FILTER_VALIDATE_BOOLEAN)]);
+        if ($this->has('applies_to_all_branches')) {
+            $this->merge(['applies_to_all_branches' => filter_var($this->applies_to_all_branches, FILTER_VALIDATE_BOOLEAN)]);
         }
     }
 
@@ -97,7 +97,7 @@ class UpdateProductRequest extends FormRequest
             'attributes.*.values.*.is_default' => 'required_unless:attributes.*.type,text|boolean',
 
             // === PHÂN BỔ CHI NHÁNH ===
-            'apply_to_all_branches' => 'sometimes|boolean',
+            'applies_to_all_branches' => 'sometimes|boolean',
             'branch_ids' => ['sometimes', 'nullable', 'array', Rule::requiredIf(function () {
                 return $this->has('apply_to_all_branches') && !$this->input('apply_to_all_branches');
             })],

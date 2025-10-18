@@ -43,9 +43,9 @@ class StoreProductRequest extends FormRequest
         // }
 
         // Chọn toàn bộ chi nhánh để thêm sản phẩm
-        if ($this->has('apply_to_all_branches')) {
+        if ($this->has('applies_to_all_branches')) {
             $this->merge([
-                'apply_to_all_branches' => filter_var($this->apply_to_all_branches, FILTER_VALIDATE_BOOLEAN),
+                'applies_to_all_branches' => filter_var($this->applies_to_all_branches, FILTER_VALIDATE_BOOLEAN),
             ]);
         }
     }
@@ -121,7 +121,7 @@ class StoreProductRequest extends FormRequest
             'attributes.*.values.*.is_default' => 'required_unless:attributes.*.type,text|boolean',
 
             //===CHI NHÁNH ===
-            'apply_to_all_branches' => 'nullable|boolean',
+            'applies_to_all_branches' => 'nullable|boolean',
             'branch_ids' => 'required_unless:apply_to_all_branches,true|nullable|array',
             'branch_ids.*' => 'integer|exists:branches,id',
             // GIÁ KHÁC NHAU THEO CHI NHÁNH
