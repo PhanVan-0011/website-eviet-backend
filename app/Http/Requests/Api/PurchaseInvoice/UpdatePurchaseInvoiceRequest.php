@@ -18,84 +18,44 @@ class UpdatePurchaseInvoiceRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Chuẩn bị dữ liệu để validation, đảm bảo tính toán tổng tiền chính xác khi cập nhật.
+     */
     protected function prepareForValidation(): void
     {
-        //Lấy model FRESH (đảm bảo total_amount từ DB là giá trị chính xác)
-        $invoice = $this->route('id')
-            ? PurchaseInvoice::query()->find($this->route('id'))?->fresh()
-            : null;
+        $invoice = $this->route('id') ? PurchaseInvoice::with('details')->find($this->route('id')) : null;
 
-        $details = $this->input('details', []);
-        $invoiceDiscountOnly = (float) $this->input('discount_amount', 0.00);
-        // Lấy paid amount mới/cũ
-        $paidAmount = (float) $this->input('paid_amount', $invoice->paid_amount ?? 0.00);
+        if (!$invoice) {
+            return; // Nếu không tìm thấy hóa đơn, không cần làm gì thêm
+        }
 
-        // Các flags kiểm tra thay đổi
-        $hasNewDetails = !empty($details);
-        $hasNewDiscount = $this->has('discount_amount');
+        // 1. Xác định dữ liệu chi tiết để tính toán
+        // Ưu tiên lấy 'details' từ request gửi lên, nếu không có thì lấy từ DB
+        $details = $this->has('details') ? $this->input('details') : $invoice->details->toArray();
 
-        if ($hasNewDetails || $hasNewDiscount) {
-            $grossSubtotal     = 0.00; 
-            $totalItemDiscount = 0.00; 
-
-            // Nếu không có details mới,  lấy details từ DB
-            $detailsToCalculate = $hasNewDetails ? $details : ($invoice->details ?? collect())->toArray();
-
-            foreach ($detailsToCalculate as $d) {
-                $q  = max(0.0, (float)($d['quantity'] ?? 0));
-                $up = max(0.0, (float)($d['unit_price'] ?? 0));
-                //$id = max(0.0, (float)($d['item_discount'] ?? 0));
-
-                //$lineGross = round($q * $up, 2);
-                //$lineDisc  = min($id, $lineGross); // Giới hạn Item Discount tạm thời
-
-                $grossSubtotal     = round($grossSubtotal + $lineGross, 2);
-                $totalItemDiscount = round($totalItemDiscount + $lineDisc, 2);
+        // 2. Tính lại tổng tiền hàng (subtotal)
+        $subtotalAmount = 0.00;
+        if (is_array($details)) {
+            foreach ($details as $detail) {
+                $quantity = (float)($detail['quantity'] ?? 0);
+                $unitPrice = (float)($detail['unit_price'] ?? 0);
+                $subtotalAmount += round($quantity * $unitPrice, 2);
             }
-
-            // Tính toán tổng tiền mới
-            $subtotalAmount = round(max(0, $grossSubtotal - $totalItemDiscount), 2);
-            $invoiceDiscountOnly = round(min(max(0, $invoiceDiscountOnly), 2), $subtotalAmount); 
-            $totalAmount  = round(max(0, $subtotalAmount - $invoiceDiscountOnly), 2);
-
-            // Nếu số tiền đã trả > tổng tiền mới, giảm paid_amount
-            $adjustedPaidAmount = min($paidAmount, $totalAmount);
-
-            $this->merge([
-                'subtotal_amount'      => $subtotalAmount,
-                'discount_amount'      => $invoiceDiscountOnly, // Chỉ lưu CK Header
-                'invoice_discount_only' => $invoiceDiscountOnly,
-                'total_amount'         => $totalAmount,
-                'paid_amount'          => $adjustedPaidAmount, // Sử dụng giá trị đã điều chỉnh
-            ]);
-
-            return;
         }
 
-        //cập nhật Paid Amount/Status/Note (KHÔNG có details/discount)
-        if ($invoice) {
-            $existingSubtotal = (float) ($invoice->subtotal_amount ?? 0.00);
-            $existingTotal    = (float) ($invoice->total_amount ?? 0.00);
-            $existingDiscount = (float) ($invoice->discount_amount ?? 0.00);
+        // 3. Lấy các giá trị khác, ưu tiên từ request, nếu không có thì lấy từ DB
+        $invoiceDiscount = $this->has('discount_amount') ? (float)$this->input('discount_amount') : (float)$invoice->discount_amount;
+        
+        // 4. Tính toán các giá trị cuối cùng
+        $adjustedDiscount = min($invoiceDiscount, $subtotalAmount);
+        $totalAmount = $subtotalAmount - $adjustedDiscount;
 
-            // Lấy Total Amount CŨ từ DB
-            $newTotal = $existingTotal;
-
-            // FIX LỖI PAID AMOUNT: Nếu paid amount > total amount cũ, điều chỉnh paid amount
-            $adjustedPaidAmount = round(min($paidAmount, $newTotal), 2);
-
-            // SỬ DỤNG MERGE ĐỂ ĐẨY CÁC GIÁ TRỊ CŨ VÀO REQUEST CHO VALIDATION (FIX LỖI GỐC)
-            // Lệnh merge này đảm bảo 'total_amount' = 50000.00 được dùng cho validation
-            $this->merge([
-                'subtotal_amount'       => $existingSubtotal,
-                'total_amount'          => $existingTotal, // Gán Total Amount cũ từ DB
-                'discount_amount'       => $existingDiscount,
-                'paid_amount'           => $adjustedPaidAmount, // Giá trị PAID_AMOUNT đã điều chỉnh
-                'invoice_discount_only' => $existingDiscount,
-            ]);
-
-            return; // Dùng early return để Request không bị xử lý tiếp
-        }
+        // 5. Hợp nhất các giá trị đã tính vào request để validation
+        $this->merge([
+            'subtotal_amount' => $subtotalAmount,
+            'total_amount' => $totalAmount,
+            'discount_amount' => $adjustedDiscount,
+        ]);
     }
 
 
@@ -109,7 +69,7 @@ class UpdatePurchaseInvoiceRequest extends FormRequest
             'status' => 'sometimes|required|string|in:draft,received,cancelled',
 
             // Trường trung gian cần cho Service/validation
-            'invoice_discount_only' => 'nullable|numeric|min:0', // Đã thêm
+            //'invoice_discount_only' => 'nullable|numeric|min:0', // Đã thêm
 
             // Các trường tiền tệ/số lượng (Đã được merge)
             'subtotal_amount' => 'sometimes|nullable|numeric|min:0',
@@ -127,7 +87,6 @@ class UpdatePurchaseInvoiceRequest extends FormRequest
             'details.*.unit_price' => 'required|numeric|min:0',
 
             'details.*.unit_of_measure' => 'required|string|max:50',
-            'details.*.item_discount' => 'nullable|numeric|min:0',
         ];
     }
     public function messages(): array

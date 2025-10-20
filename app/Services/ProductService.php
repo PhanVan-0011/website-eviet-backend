@@ -32,14 +32,26 @@ class ProductService
             $perPage = max(1, min(100, (int) $request->input('limit', 25)));
             $currentPage = max(1, (int) $request->input('page', 1));
 
-            $query = Product::query()->with(['categories.icon', 'featuredImage', 'branches']);
+            $query = Product::query()->with(['categories.icon', 'featuredImage','unitConversions', 'branches']);
 
-            // Tìm kiếm theo từ khóa (giữ nguyên)
+            // // Tìm kiếm theo từ khóa (giữ nguyên)
+            // if ($request->filled('keyword')) {
+            //     $keyword = $request->input('keyword');
+            //     $query->where(function ($q) use ($keyword) {
+            //         $q->where('product_code', 'like', "%{$keyword}%")
+            //             ->orWhere('name', 'like', "%{$keyword}%");
+            //     });
+            // }
+             // Tìm kiếm theo từ khóa
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
                 $query->where(function ($q) use ($keyword) {
                     $q->where('product_code', 'like', "%{$keyword}%")
-                        ->orWhere('name', 'like', "%{$keyword}%");
+                      ->orWhere('name', 'like', "%{$keyword}%")
+                      // Thêm điều kiện tìm kiếm trong mã đơn vị quy đổi
+                      ->orWhereHas('unitConversions', function ($subQuery) use ($keyword) {
+                          $subQuery->where('unit_code', 'like', "%{$keyword}%");
+                      });
                 });
             }
 
