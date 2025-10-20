@@ -176,7 +176,7 @@ class UpdateProductRequest extends FormRequest
             'deleted_image_ids.*.exists' => 'ID ảnh cần xóa không tồn tại.',
 
             'featured_image_index.integer' => 'Chỉ số ảnh đại diện phải là một số nguyên.',
-            'featured_image_index.min' => 'Chỉ số ảnh đại diện phải lớn hơn hoặc bằng 0.',
+            'featured_image_index.min' => 'Vui lòng chọn ảnh đại diện.',
 
             // Đơn vị tính & giá
             'base_unit.required' => 'Tên đơn vị cơ sở là bắt buộc.',
