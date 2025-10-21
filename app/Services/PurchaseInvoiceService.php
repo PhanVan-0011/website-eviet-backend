@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Services;
+
 use App\Models\PurchaseInvoice;
 use App\Models\Supplier;
 use App\Models\User;
@@ -14,8 +15,10 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class PurchaseInvoiceService
 {
-    /**
+ /**
      * Lấy danh sách hóa đơn nhập hàng với các bộ lọc và phân trang.
+     * @param Request $request
+     * @return array
      */
     public function getAllInvoices($request)
     {
@@ -24,58 +27,53 @@ class PurchaseInvoiceService
             $currentPage = max(1, (int) $request->input('page', 1));
             $query = PurchaseInvoice::query();
 
-            // --- BỘ LỌC DANH SÁCH MỚI ---
-            
-            //Lọc theo Nhà cung cấp
-            if ($request->has('supplier_id')) {
+            // Lọc theo Nhà cung cấp
+            if ($request->filled('supplier_id')) {
                 $query->where('supplier_id', $request->supplier_id);
             }
             
-            //Lọc theo Chi nhánh
-            if ($request->has('branch_id')) {
+            // Lọc theo Chi nhánh
+            if ($request->filled('branch_id')) {
                 $query->where('branch_id', $request->branch_id);
             }
 
-            //Lọc theo Trạng thái (draft, received, cancelled)
-            if ($request->has('status') && $request->status !== 'all') {
+            // Lọc theo Trạng thái
+            if ($request->filled('status') && $request->status !== 'all') {
                 $query->where('status', $request->status);
             }
             
-            //Lọc theo Người tạo
-            if ($request->has('user_id')) {
+            // Lọc theo Người tạo
+            if ($request->filled('user_id')) {
                 $query->where('user_id', $request->user_id);
             }
 
-            //Lọc theo Mã hóa đơn
-            if ($request->has('keyword')) {
+            //Tìm kiếm theo Mã hóa đơn
+            if ($request->filled('keyword')) {
                 $query->where('invoice_code', 'like', "%{$request->keyword}%");
             }
             
-            //Lọc theo Ngày tạo
-            if (!empty($request->input('start_date'))) {
-                $query->whereDate('created_at', '>=', $request->input('start_date'));
+            // Lọc theo Ngày hóa đơn (invoice_date)
+            if ($request->filled('start_date')) {
+                $query->whereDate('invoice_date', '>=', $request->input('start_date'));
             }
 
-            if (!empty($request->input('end_date'))) {
-                $query->whereDate('created_at', '<=', $request->input('end_date'));
+            if ($request->filled('end_date')) {
+                $query->whereDate('invoice_date', '<=', $request->input('end_date'));
             }
             
-            $query->with('supplier', 'branch', 'user');
+            $query->with('supplier', 'branch', 'user')->orderBy('invoice_date', 'desc');
+            
             $total = $query->count();
             $offset = ($currentPage - 1) * $perPage;
             $invoices = $query->skip($offset)->take($perPage)->get();
-
-            $lastPage = (int) ceil($total / $perPage);
-            $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;
-            $prevPage = $currentPage > 1 ? $currentPage - 1 : null;
 
             return [
                 'data' => $invoices,
                 'page' => $currentPage,
                 'total' => $total,
-                'last_page' => $lastPage,
-                'next_page' => $nextPage,
-                'pre_page' => $prevPage,
+                'last_page' => (int) ceil($total / $perPage),
+                'next_page' => $currentPage < (int) ceil($total / $perPage) ? $currentPage + 1 : null,
+                'pre_page' => $currentPage > 1 ? $currentPage - 1 : null,
             ];
         } catch (Exception $e) {
             Log::error('Lỗi khi lấy danh sách hóa đơn nhập: ' . $e->getMessage());
@@ -90,14 +88,14 @@ class PurchaseInvoiceService
         return PurchaseInvoice::with('supplier', 'branch', 'user', 'details.product')->findOrFail($id);
     }
 
-  /**
+    /**
      * Tạo mới một hóa đơn nhập hàng.
      */
     public function createInvoice(array $data): PurchaseInvoice
     {
         return DB::transaction(function () use ($data) {
             $calculatedData = $this->_calculateInvoiceTotals($data);
-            
+
             if (empty($calculatedData['invoice_code'])) {
                 $calculatedData['invoice_code'] = $this->_generateUniqueInvoiceCode();
             }
@@ -122,35 +120,35 @@ class PurchaseInvoiceService
         return DB::transaction(function () use ($id, $data) {
             $invoice = PurchaseInvoice::with('details')->findOrFail($id);
             $oldStatus = $invoice->status;
-            $oldDetails = $invoice->details->toArray();
-            
+
             $newStatus = $data['status'] ?? $oldStatus;
-            
+
             // 1. LUÔN HOÀN TÁC TRẠNG THÁI CŨ (NẾU CẦN)
-            // Nếu phiếu cũ là 'received', chúng ta cần "undo" các tác động của nó trước khi áp dụng thay đổi mới.
             if ($oldStatus === 'received') {
-                $this->_updateStockAndCostPrice($invoice, $oldDetails, -1);
+                $this->_updateStockAndCostPrice($invoice, $invoice->details->toArray(), -1);
             }
 
-            // 2. CẬP NHẬT HÓA ĐƠN VỚI DỮ LIỆU MỚI
-            $calculatedData = $this->_calculateInvoiceTotals($data);
+            // 2. TÍNH TOÁN LẠI DỮ LIỆU
+            $calculatedData = $this->_calculateInvoiceTotals($data, $invoice);
+
+            $details = $calculatedData['details'] ?? null;
+            unset($calculatedData['details']);
+
+            // 3. CẬP NHẬT HÓA ĐƠN
             $invoice->update($calculatedData);
-            
+
             // Nếu có chi tiết mới, xóa cái cũ và thêm cái mới vào
-            if (!empty($calculatedData['details'])) {
+            if ($details !== null) {
                 $invoice->details()->delete();
-                $invoice->details()->createMany($calculatedData['details']);
+                $invoice->details()->createMany($details);
             }
-            
-            // 3. ÁP DỤNG TRẠNG THÁI MỚI (NẾU CẦN)
-            // Nếu trạng thái mới là 'received', chúng ta áp dụng tác động vào kho và giá vốn.
+
+            // 4. ÁP DỤNG TRẠNG THÁI MỚI (NẾU CẦN)
             if ($newStatus === 'received') {
-                // Lấy chi tiết mới nhất sau khi đã cập nhật
                 $newDetails = $invoice->refresh()->details->toArray();
                 $this->_updateStockAndCostPrice($invoice, $newDetails, 1);
             }
-            
-            // Observer trong Model sẽ tự động cập nhật lại công nợ NCC
+
             return $invoice->refresh()->load(['supplier', 'branch', 'user', 'details.product']);
         });
     }
@@ -162,14 +160,32 @@ class PurchaseInvoiceService
         return DB::transaction(function () use ($id) {
             $invoice = PurchaseInvoice::with('details')->findOrFail($id);
             
-            // Nếu phiếu đã nhập kho, cần hoàn tác lại
             if ($invoice->status === 'received') {
                 $this->_updateStockAndCostPrice($invoice, $invoice->details->toArray(), -1);
             }
-
-            return $invoice->delete(); // Observer sẽ tự động cập nhật công nợ NCC
+            $invoice->details()->delete();
+            return $invoice->delete();
         });
     }
+
+    /**
+     * Xóa nhiều hóa đơn nhập hàng cùng lúc.
+     */
+    public function multiDelete(array $ids): int
+    {
+        $deletedCount = 0;
+        foreach ($ids as $id) {
+            try {
+                if ($this->deleteInvoice($id)) {
+                    $deletedCount++;
+                }
+            } catch (Exception $e) {
+                Log::error("Lỗi khi xóa nhiều hóa đơn nhập - ID: {$id}: " . $e->getMessage());
+            }
+        }
+        return $deletedCount;
+    }
+
 
     /**
      * Tái tính toán và cập nhật công nợ cho một nhà cung cấp.
@@ -190,86 +206,120 @@ class PurchaseInvoiceService
         $supplier->save();
     }
 
-    /**
-     * Hàm tính toán nội bộ.
-     */
-    private function _calculateInvoiceTotals(array $data): array
+     private function _calculateInvoiceTotals(array $data, ?PurchaseInvoice $existingInvoice = null): array
     {
-        $details = $data['details'] ?? [];
-        $totalQuantity = 0;
+        $details = $data['details'] ?? ($existingInvoice ? $existingInvoice->details->toArray() : []);
+        $productIds = array_column($details, 'product_id');
+        $products = Product::with('unitConversions')->whereIn('id', $productIds)->get()->keyBy('id');
+
+        $totalQuantityOnInvoice = 0;
         $subtotal = 0;
 
         foreach ($details as $key => $detail) {
             $quantity = (float)($detail['quantity'] ?? 0);
             $unitPrice = (float)($detail['unit_price'] ?? 0);
             
-            $lineTotal = $quantity * $unitPrice;
+            $lineTotal = round($quantity * $unitPrice, 2);
             $details[$key]['subtotal'] = $lineTotal;
-
             $subtotal += $lineTotal;
-            $totalQuantity += $quantity;
+            $totalQuantityOnInvoice += $quantity;
         }
 
-        $discount = (float)($data['discount_amount'] ?? 0);
-        $totalAmount = $subtotal - $discount;
-        $paidAmount = (float)($data['paid_amount'] ?? 0);
+        $discount = array_key_exists('discount_amount', $data) ? (float)$data['discount_amount'] : ($existingInvoice ? (float)$existingInvoice->discount_amount : 0);
+        $paidAmount = array_key_exists('paid_amount', $data) ? (float)$data['paid_amount'] : ($existingInvoice ? (float)$existingInvoice->paid_amount : 0);
         
-        $data['total_quantity'] = $totalQuantity;
-        $data['total_items'] = count($details);
-        $data['subtotal_amount'] = $subtotal;
-        $data['total_amount'] = $totalAmount;
-        $data['amount_owed'] = $totalAmount - $paidAmount;
-        $data['details'] = $details;
+        $totalAmount = $subtotal - $discount;
+        
+        $result = $data;
+        $result['total_quantity'] = $totalQuantityOnInvoice;
+        $result['total_items'] = count($details);
+        $result['subtotal_amount'] = $subtotal;
+        $result['discount_amount'] = $discount;
+        $result['total_amount'] = $totalAmount;
+        $result['amount_owed'] = $totalAmount - $paidAmount;
+        
+        if (array_key_exists('details', $data)) {
+            $result['details'] = $details;
+        } else {
+            unset($result['details']);
+        }
 
-        return $data;
+        return $result;
     }
 
-    /**
-     * Hàm nội bộ để cập nhật tồn kho VÀ giá vốn.
-     * @param int $direction 1 để cộng (nhập/hoàn thành), -1 để trừ (hủy/xóa)
-     */
     private function _updateStockAndCostPrice(PurchaseInvoice $invoice, array $details, int $direction): void
     {
         $branchId = $invoice->branch_id;
+        $productIds = array_unique(array_column($details, 'product_id'));
+        $products = Product::with('unitConversions')->whereIn('id', $productIds)->get()->keyBy('id');
+        
+        $aggregatedChanges = [];
 
+        // 1. Gom nhóm và tính toán tổng thay đổi cho mỗi sản phẩm
         foreach ($details as $detail) {
             $productId = $detail['product_id'];
+            $product = $products->get($productId);
+            if (!$product) continue;
+
             $incomingQty = (float)$detail['quantity'];
             $incomingPrice = (float)$detail['unit_price'];
+            $unitOfMeasure = $detail['unit_of_measure'];
 
-            // --- Cập nhật tồn kho ---
+            $conversionFactor = 1.0;
+            if ($unitOfMeasure !== $product->base_unit) {
+                $unitConversion = $product->unitConversions->firstWhere('unit_name', $unitOfMeasure);
+                if ($unitConversion) {
+                    $conversionFactor = (float)$unitConversion->conversion_factor;
+                }
+            }
+
+            $baseUnitQty = $incomingQty * $conversionFactor;
+            $baseUnitPrice = ($conversionFactor > 0) ? $incomingPrice / $conversionFactor : 0;
+            
+            if (!isset($aggregatedChanges[$productId])) {
+                $aggregatedChanges[$productId] = ['total_base_qty' => 0, 'total_value' => 0];
+            }
+            
+            $aggregatedChanges[$productId]['total_base_qty'] += $baseUnitQty;
+            $aggregatedChanges[$productId]['total_value'] += $baseUnitQty * $baseUnitPrice;
+        }
+
+        // 2. Áp dụng các thay đổi đã được gom nhóm
+        foreach ($aggregatedChanges as $productId => $changes) {
+            $product = $products->get($productId);
+            $totalBaseQtyChange = $changes['total_base_qty'];
+            $totalValueChange = $changes['total_value'];
+            
+            // --- Cập nhật Tồn kho ---
             $stock = BranchProductStock::firstOrCreate(
                 ['branch_id' => $branchId, 'product_id' => $productId],
                 ['quantity' => 0]
             );
-            $newStockQty = $stock->quantity + ($incomingQty * $direction);
-            $stock->quantity = max(0, $newStockQty); // Đảm bảo tồn kho không âm
+            $stock->quantity = max(0, $stock->quantity + ($totalBaseQtyChange * $direction));
             $stock->save();
 
-            // --- Cập nhật giá vốn ---
-            $product = Product::find($productId);
-            if ($product) {
-                $totalStockAllBranches = (float)DB::table('branch_product_stocks')->where('product_id', $productId)->sum('quantity');
-                $oldCostPrice = (float)$product->cost_price;
+            // --- Cập nhật Giá vốn ---
+            $totalStockAllBranches = (float)BranchProductStock::where('product_id', $productId)->sum('quantity');
+            $oldCostPrice = (float)$product->cost_price;
 
-                if ($direction === 1) { // Nhập hàng
-                     $oldStockForCalc = $totalStockAllBranches - $incomingQty;
-                     $oldTotalValue = $oldStockForCalc * $oldCostPrice;
-                     $incomingValue = $incomingQty * $incomingPrice;
-                     $newCostPrice = ($totalStockAllBranches > 0) ? (($oldTotalValue + $incomingValue) / $totalStockAllBranches) : $incomingPrice;
-                } else { // Hoàn tác (Hủy / Xóa)
-                    $oldStockForCalc = $totalStockAllBranches + $incomingQty;
-                    $oldTotalValue = $oldStockForCalc * $oldCostPrice;
-                    $reversedValue = $incomingQty * $incomingPrice;
-                    $newCostPrice = ($totalStockAllBranches > 0) ? (($oldTotalValue - $reversedValue) / $totalStockAllBranches) : 0;
-                }
-                
-                $product->cost_price = max(0, $newCostPrice);
-                $product->save();
+            if ($direction === 1) { // Nhập hàng
+                 $oldStockForCalc = $totalStockAllBranches - $totalBaseQtyChange;
+                 $oldTotalValue = $oldStockForCalc * $oldCostPrice;
+                 $newCostPrice = ($totalStockAllBranches > 0) ? (($oldTotalValue + $totalValueChange) / $totalStockAllBranches) : 0;
+                 if ($totalStockAllBranches > 0 && $oldStockForCalc <= 0) { // Lần đầu nhập hàng
+                    $newCostPrice = $totalValueChange / $totalBaseQtyChange;
+                 }
+            } else { // Hoàn tác
+                $oldStockForCalc = $totalStockAllBranches + $totalBaseQtyChange;
+                $oldTotalValue = $oldStockForCalc * $oldCostPrice;
+                $newCostPrice = ($totalStockAllBranches > 0) ? (($oldTotalValue - $totalValueChange) / $totalStockAllBranches) : 0;
             }
+            
+            $product->cost_price = max(0, round($newCostPrice, 2));
+            $product->save();
         }
     }
-    
+
     /**
      * Tạo mã phiếu nhập duy nhất.
      */
@@ -281,17 +331,7 @@ class PurchaseInvoiceService
             ->first();
 
         $nextId = $lastInvoice ? ((int)substr($lastInvoice->invoice_code, strlen($prefix)) + 1) : 1;
-        
+
         return $prefix . str_pad($nextId, 6, '0', STR_PAD_LEFT);
     }
-
-    
-
-
-
-
-
-
-
-
 }

@@ -58,45 +58,52 @@ class UpdatePurchaseInvoiceRequest extends FormRequest
         ]);
     }
 
-
     public function rules(): array
     {
         return [
             // Các trường chính của hóa đơn
             'supplier_id' => 'sometimes|required|integer|exists:suppliers,id',
             'branch_id' => 'sometimes|required|integer|exists:branches,id',
+
+            'user_id' => 'sometimes|required|integer|exists:users,id',
+
             'invoice_date' => 'sometimes|required|date',
             'status' => 'sometimes|required|string|in:draft,received,cancelled',
 
-            // Trường trung gian cần cho Service/validation
-            //'invoice_discount_only' => 'nullable|numeric|min:0', // Đã thêm
-
-            // Các trường tiền tệ/số lượng (Đã được merge)
-            'subtotal_amount' => 'sometimes|nullable|numeric|min:0',
-            'discount_amount' => 'sometimes|nullable|numeric|min:0',
-            'total_amount' => 'sometimes|nullable|numeric|min:0',
-            // Validation dựa trên total_amount đã merge
-            'paid_amount' => 'sometimes|nullable|numeric|min:0|lte:total_amount',
-
+            // Các trường tiền tệ/số lượng (sẽ được merge)
+            'subtotal_amount' => 'sometimes|numeric|min:0',
+            'discount_amount' => 'sometimes|numeric|min:0',
+            'total_amount' => 'sometimes|numeric|min:0',
+            'paid_amount' => 'sometimes|numeric|min:0|lte:total_amount',
             'notes' => 'sometimes|nullable|string',
 
             // Chi tiết sản phẩm (Mảng)
-            'details' => 'sometimes|required|array|min:1',
-            'details.*.product_id' => 'required|integer|exists:products,id',
-            'details.*.quantity' => 'required|integer|min:1',
-            'details.*.unit_price' => 'required|numeric|min:0',
+            'details' => 'sometimes|array|min:1',
+            'details.*.product_id' => 'required_with:details|integer|exists:products,id',
+            'details.*.quantity' => 'required_with:details|integer|min:1',
+            'details.*.unit_price' => 'required_with:details|numeric|min:0',
+            'details.*.unit_of_measure' => 'required_with:details|string|max:50',
 
-            'details.*.unit_of_measure' => 'required|string|max:50',
+
         ];
     }
     public function messages(): array
     {
         return [
+            'supplier_id.required' => 'Nhà cung cấp là bắt buộc.',
+            'supplier_id.exists' => 'Nhà cung cấp không tồn tại.',
+            'branch_id.required' => 'Chi nhánh là bắt buộc.',
+            'branch_id.exists' => 'Chi nhánh không tồn tại.',
+            'user_id.required' => 'Người tạo hóa đơn là bắt buộc.',
+            'user_id.exists' => 'Người dùng không tồn tại.',
             'paid_amount.lte' => 'Số tiền đã trả không được lớn hơn Tổng tiền hóa đơn.',
-            'details.required' => 'Hóa đơn phải có ít nhất một sản phẩm.',
-            'details.*.product_id.required' => 'ID sản phẩm chi tiết là bắt buộc.',
-            'details.*.unit_of_measure.required' => 'Đơn vị tính là bắt buộc.',
-            'details.*.item_discount.numeric' => 'Giảm giá phải là số.',
+            'details.min' => 'Hóa đơn phải có ít nhất một sản phẩm.',
+            'details.*.product_id.required_with' => 'ID sản phẩm chi tiết là bắt buộc.',
+            'details.*.product_id.exists'   => 'Sản phẩm không tồn tại.',
+            'details.*.quantity.required_with' => 'Số lượng sản phẩm là bắt buộc.',
+            'details.*.unit_price.required_with' => 'Đơn giá là bắt buộc.',
+            'details.*.unit_of_measure.required_with' => 'Đơn vị tính là bắt buộc.',
+            
         ];
     }
 
