@@ -46,11 +46,14 @@ class UpdateSupplierRequest extends FormRequest
     {
         return [
             'code.unique' => 'Mã nhà cung cấp đã tồn tại.',
+            'name.required' => 'Tên nhà cung cấp là bắt buộc.', 
             'name.unique' => 'Tên nhà cung cấp đã tồn tại.',
             'group_id.exists' => 'Nhóm nhà cung cấp không hợp lệ.',
             'phone_number.unique' => 'Số điện thoại này đã được sử dụng.',
             'phone_number.regex' => 'Số điện thoại không đúng định dạng.',
             'email.unique' => 'Email này đã được sử dụng.',
+            'user_id.required' => 'ID người tạo là bắt buộc.', // Giữ lại
+            'user_id.exists' => 'Người dùng không tồn tại.',
         ];
     }
 

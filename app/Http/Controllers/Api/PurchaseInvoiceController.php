@@ -12,6 +12,7 @@ use App\Services\PurchaseInvoiceService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use App\Models\Supplier; 
 
 class PurchaseInvoiceController extends Controller
 {
@@ -86,6 +87,38 @@ class PurchaseInvoiceController extends Controller
             return response()->json(['success' => false, 'message' => 'Không tìm thấy hóa đơn nhập'], 404);
         } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => 'Lỗi khi cập nhật hóa đơn nhập', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getHistoryBySupplier(Request $request, string $supplierId)
+    {
+        try {
+            // Kiểm tra xem nhà cung cấp có tồn tại không
+            Supplier::findOrFail($supplierId); 
+            
+            // Tạo một request mới và thêm supplier_id vào để tái sử dụng hàm getAllInvoices
+            $filterRequest = new Request($request->query()); // Lấy các tham số query (page, limit, start_date...)
+            $filterRequest->merge(['supplier_id' => $supplierId]); // Ép bộ lọc theo nhà cung cấp
+
+            // Gọi hàm lấy danh sách với bộ lọc đã được thêm vào
+            $data = $this->invoiceService->getAllInvoices($filterRequest); 
+
+            return response()->json([
+                'success' => true,
+                'data' => PurchaseInvoiceResource::collection($data['data']),
+                'pagination' => [
+                    'page' => $data['page'],
+                    'total' => $data['total'],
+                    'last_page' => $data['last_page'],
+                    'next_page' => $data['next_page'],
+                    'pre_page' => $data['pre_page'],
+                ],
+                'message' => 'Lấy lịch sử nhập hàng của nhà cung cấp thành công',
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy nhà cung cấp'], 404);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Lỗi khi lấy lịch sử nhập hàng', 'error' => $e->getMessage()], 500);
         }
     }
 

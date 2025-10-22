@@ -121,9 +121,11 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/', [SupplierController::class, 'index']);
         Route::delete('/multi-delete', [SupplierController::class, 'multiDelete']);
         Route::get('/{id}', [SupplierController::class, 'show']);
+        Route::get('/{supplierId}/purchase-history', [PurchaseInvoiceController::class, 'getHistoryBySupplier']);
         Route::post('/', [SupplierController::class, 'store']);
         Route::put('/{id}', [SupplierController::class, 'update']);
         Route::delete('/{id}', [SupplierController::class, 'destroy']);
+        
     });
     // ---Branch---
     Route::prefix('branches')->group(function () {

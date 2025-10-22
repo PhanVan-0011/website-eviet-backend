@@ -49,7 +49,7 @@ class SupplierService
                 });
             }
 
-            $query->with('group', 'user');
+            $query->with('group', 'user')->orderBy('created_at', 'desc');;
             $total = $query->count();
             $offset = ($currentPage - 1) * $perPage;
             $suppliers = $query->skip($offset)->take($perPage)->get();
@@ -81,11 +81,16 @@ class SupplierService
     }
 
     /**
-     * Tạo mới một nhà cung cấp.
+     * Tạo mới một nhà cung cấp, tự động sinh mã nếu cần.
      */
     public function createSupplier(array $data): Supplier
     {
         try {
+           // Tự động sinh mã nếu người dùng không cung cấp
+           if (empty($data['code'])) {
+               $data['code'] = $this->_generateUniqueSupplierCode();
+           }
+           
            $supplier = Supplier::create($data);
            return $supplier->fresh()->load(['group', 'user']);
         } catch (Exception $e) {
@@ -169,5 +174,22 @@ class SupplierService
             Log::error('Lỗi khi xóa nhiều nhà cung cấp: ' . $e->getMessage());
             throw $e;
         }
+    }
+    /**
+     * Hàm nội bộ để sinh mã nhà cung cấp duy nhất.
+     */
+    private function _generateUniqueSupplierCode(): string
+    {
+        $prefix = 'NCC';
+        // Tìm nhà cung cấp có mã lớn nhất
+        $lastSupplier = Supplier::where('code', 'LIKE', "{$prefix}%")
+            ->orderByRaw('CAST(SUBSTRING(code, ' . (strlen($prefix) + 1) . ') AS UNSIGNED) DESC')
+            ->first();
+
+        // Xác định số tiếp theo
+        $nextId = $lastSupplier ? ((int)substr($lastSupplier->code, strlen($prefix)) + 1) : 1;
+        
+        // Tạo mã mới với 6 chữ số (ví dụ: NCC000001)
+        return $prefix . str_pad($nextId, 6, '0', STR_PAD_LEFT);
     }
 }
