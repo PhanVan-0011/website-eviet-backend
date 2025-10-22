@@ -146,9 +146,6 @@ class ProductController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
-        /**
-     * API tìm kiếm sản phẩm THEO TỪNG ĐƠN VỊ TÍNH cho các nghiệp vụ Nhập hàng, Bán hàng.
-     */
     /**
      * API tìm kiếm sản phẩm THEO TỪNG ĐƠN VỊ TÍNH cho các nghiệp vụ Nhập hàng, Bán hàng.
      */
@@ -161,7 +158,7 @@ class ProductController extends Controller
             return response()->json(['data' => []]);
         }
 
-        // Tìm các sản phẩm gốc có liên quan đến từ khóa
+        //Tìm các sản phẩm gốc có liên quan đến từ khóa
         $products = Product::query()
             ->where('status', 1) // Chỉ tìm sản phẩm đang hoạt động
             ->where(function ($query) use ($keyword) {
@@ -179,6 +176,15 @@ class ProductController extends Controller
 
         //"Trải phẳng" sản phẩm thành các dòng theo từng đơn vị tính
         foreach ($products as $product) {
+            
+            // Lấy đường dẫn ảnh gốc và tạo đường dẫn thumbnail
+            $baseImagePath = $product->featuredImage?->image_url;
+            $thumbUrl = null;
+            if ($baseImagePath) {
+                 $pathInfo = pathinfo($baseImagePath);
+                 $thumbUrl = $pathInfo['dirname'] . '/thumb/' . $pathInfo['basename'];
+            }
+
             // Thêm đơn vị tính cơ sở
             if ($product->is_sales_unit) {
                 $results->push([
@@ -186,7 +192,7 @@ class ProductController extends Controller
                     'display_name'    => $product->name . ' (' . $product->base_unit . ')',
                     'unit_name'       => $product->base_unit,
                     'unit_code'       => $product->product_code,
-                    'image_url'       => $product->featuredImage?->image_url,
+                    'image_url'       => $thumbUrl, // Sử dụng thumbUrl
                     'cost_price'      => (float)$product->cost_price,
                     'total_stock'     => (int)$product->branches->sum('pivot.quantity'),
                 ]);
@@ -199,7 +205,7 @@ class ProductController extends Controller
                         'display_name'    => $product->name . ' (' . $unit->unit_name . ')',
                         'unit_name'       => $unit->unit_name,
                         'unit_code'       => $unit->unit_code,
-                        'image_url'       => $product->featuredImage?->image_url,
+                        'image_url'       => $thumbUrl, // Sử dụng thumbUrl
                         // Giá vốn được tính theo hệ số quy đổi
                         'cost_price'      => (float)($product->cost_price * $unit->conversion_factor),
                         'total_stock'     => (int)$product->branches->sum('pivot.quantity'),

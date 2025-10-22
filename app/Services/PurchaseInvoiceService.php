@@ -123,18 +123,18 @@ class PurchaseInvoiceService
 
             $newStatus = $data['status'] ?? $oldStatus;
 
-            // 1. LUÔN HOÀN TÁC TRẠNG THÁI CŨ (NẾU CẦN)
+            // LUÔN HOÀN TÁC TRẠNG THÁI CŨ
             if ($oldStatus === 'received') {
                 $this->_updateStockAndCostPrice($invoice, $invoice->details->toArray(), -1);
             }
 
-            // 2. TÍNH TOÁN LẠI DỮ LIỆU
+            //TÍNH TOÁN LẠI DỮ LIỆU
             $calculatedData = $this->_calculateInvoiceTotals($data, $invoice);
 
             $details = $calculatedData['details'] ?? null;
             unset($calculatedData['details']);
 
-            // 3. CẬP NHẬT HÓA ĐƠN
+            // CẬP NHẬT HÓA ĐƠN
             $invoice->update($calculatedData);
 
             // Nếu có chi tiết mới, xóa cái cũ và thêm cái mới vào
@@ -143,7 +143,7 @@ class PurchaseInvoiceService
                 $invoice->details()->createMany($details);
             }
 
-            // 4. ÁP DỤNG TRẠNG THÁI MỚI (NẾU CẦN)
+            //ÁP DỤNG TRẠNG THÁI MỚI
             if ($newStatus === 'received') {
                 $newDetails = $invoice->refresh()->details->toArray();
                 $this->_updateStockAndCostPrice($invoice, $newDetails, 1);
@@ -255,7 +255,7 @@ class PurchaseInvoiceService
         
         $aggregatedChanges = [];
 
-        // 1. Gom nhóm và tính toán tổng thay đổi cho mỗi sản phẩm
+        //Gom nhóm và tính toán tổng thay đổi cho mỗi sản phẩm
         foreach ($details as $detail) {
             $productId = $detail['product_id'];
             $product = $products->get($productId);
@@ -284,7 +284,7 @@ class PurchaseInvoiceService
             $aggregatedChanges[$productId]['total_value'] += $baseUnitQty * $baseUnitPrice;
         }
 
-        // 2. Áp dụng các thay đổi đã được gom nhóm
+        //Áp dụng các thay đổi đã được gom nhóm
         foreach ($aggregatedChanges as $productId => $changes) {
             $product = $products->get($productId);
             $totalBaseQtyChange = $changes['total_base_qty'];

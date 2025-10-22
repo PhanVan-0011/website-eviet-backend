@@ -29,11 +29,11 @@ class UpdatePurchaseInvoiceRequest extends FormRequest
             return; // Nếu không tìm thấy hóa đơn, không cần làm gì thêm
         }
 
-        // 1. Xác định dữ liệu chi tiết để tính toán
+        //Xác định dữ liệu chi tiết để tính toán
         // Ưu tiên lấy 'details' từ request gửi lên, nếu không có thì lấy từ DB
         $details = $this->has('details') ? $this->input('details') : $invoice->details->toArray();
 
-        // 2. Tính lại tổng tiền hàng (subtotal)
+        //Tính lại tổng tiền hàng (subtotal)
         $subtotalAmount = 0.00;
         if (is_array($details)) {
             foreach ($details as $detail) {
@@ -43,14 +43,14 @@ class UpdatePurchaseInvoiceRequest extends FormRequest
             }
         }
 
-        // 3. Lấy các giá trị khác, ưu tiên từ request, nếu không có thì lấy từ DB
+        //Lấy các giá trị khác, ưu tiên từ request, nếu không có thì lấy từ DB
         $invoiceDiscount = $this->has('discount_amount') ? (float)$this->input('discount_amount') : (float)$invoice->discount_amount;
         
-        // 4. Tính toán các giá trị cuối cùng
+        //Tính toán các giá trị cuối cùng
         $adjustedDiscount = min($invoiceDiscount, $subtotalAmount);
         $totalAmount = $subtotalAmount - $adjustedDiscount;
 
-        // 5. Hợp nhất các giá trị đã tính vào request để validation
+        //Hợp nhất các giá trị đã tính vào request để validation
         $this->merge([
             'subtotal_amount' => $subtotalAmount,
             'total_amount' => $totalAmount,
