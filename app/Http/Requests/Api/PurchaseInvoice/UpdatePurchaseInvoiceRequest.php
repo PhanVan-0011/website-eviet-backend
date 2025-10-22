@@ -84,7 +84,6 @@ class UpdatePurchaseInvoiceRequest extends FormRequest
             'details.*.unit_price' => 'required_with:details|numeric|min:0',
             'details.*.unit_of_measure' => 'required_with:details|string|max:50',
 
-
         ];
     }
     public function messages(): array
