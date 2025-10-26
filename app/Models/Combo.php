@@ -5,25 +5,34 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\ComboItem;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 use App\Models\OrderDetail;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 
 class Combo extends Model
 {
     use HasFactory;
     protected $fillable = [
+        'combo_code',
         'name',
         'description',
-        'slug',
+        'base_store_price',
+        'base_app_price',
         'start_date',
         'end_date',
-        'is_active'
+        'is_active',
+        'applies_to_all_branches',
     ];
     protected $casts = [
         'start_date' => 'datetime',
         'end_date' => 'datetime',
         'is_active' => 'boolean',
+        'applies_to_all_branches' => 'boolean', 
+        'base_store_price' => 'decimal:2',
+        'base_app_price' => 'decimal:2',
     ];
     /**
      * Các thuộc tính ảo sẽ được thêm vào khi model được chuyển đổi thành mảng/JSON.
@@ -31,53 +40,14 @@ class Combo extends Model
      * @var array
      */
 
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($combo) {
-            // Nếu slug chưa được đặt, tạo nó từ name
-            if (empty($combo->slug)) {
-                $combo->slug = Str::slug($combo->name);
-            }
-
-            // Kiểm tra và đảm bảo slug là duy nhất
-            $originalSlug = $combo->slug;
-            $counter = 1;
-            while (static::where('slug', $combo->slug)->exists()) {
-                $combo->slug = $originalSlug . '-' . $counter++;
-            }
-        });
-
-        static::updating(function ($combo) {
-            // Nếu name thay đổi, tạo lại slug
-            if ($combo->isDirty('name')) {
-                $combo->slug = Str::slug($combo->name);
-
-                // Kiểm tra và đảm bảo slug là duy nhất khi cập nhật
-                $originalSlug = $combo->slug;
-                $counter = 1;
-                // Bỏ qua chính nó khi kiểm tra
-                while (static::where('slug', $combo->slug)->where('id', '!=', $combo->id)->exists()) {
-                    $combo->slug = $originalSlug . '-' . $counter++;
-                }
-            }
-        });
-    }
-    public function items()
-    {
-        return $this->hasMany(ComboItem::class);
-    }
-    public function images()
-    {
-        return $this->morphMany(Image::class, 'imageable');
-    }
-
-    public function products()
+    /**
+     * Mối quan hệ: Một combo bao gồm nhiều sản phẩm (items).
+     */
+    public function items(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'combo_items')
-            ->withPivot('quantity')
-            ->withTimestamps();
+                    ->withPivot('quantity')
+                    ->withTimestamps();
     }
 
     public function promotions()
@@ -85,25 +55,35 @@ class Combo extends Model
         return $this->belongsToMany(Promotion::class, 'promotion_combos')->withTimestamps();
     }
 
-    public function orderDetails()
+    public function orderDetails(): HasMany
     {
         return $this->hasMany(OrderDetail::class, 'combo_id');
     }
-
-    /**
-     * Một combo có nhiều mức giá
+     /**
+     * Mối quan hệ: Một combo có thể được áp dụng ở nhiều chi nhánh.
      */
-    public function prices()
+    public function branches(): BelongsToMany
     {
-        return $this->hasMany(ComboPrice::class);
+        return $this->belongsToMany(Branch::class, 'branch_combo')
+                    ->withPivot('is_active') // Có thể lấy trạng thái active tại chi nhánh
+                    ->withTimestamps();
     }
 
     /**
-     * Mối quan hệ đa hình: Lấy ảnh của combo.h.
+     * Quan hệ đa hình: Một combo có nhiều ảnh (Gallery).
      */
-    public function image()
+    public function images(): MorphMany
     {
-        return $this->morphOne(Image::class, 'imageable');
+        return $this->morphMany(Image::class, 'imageable');
+    }
+
+    /**
+     * Quan hệ đa hình: Một combo có một ảnh đại diện (ảnh duy nhất).
+     */
+    public function image(): MorphOne
+    {
+        // Giả định ảnh duy nhất cũng là ảnh đại diện
+        return $this->morphOne(Image::class, 'imageable')->where('is_featured', true);
     }
 
     /**

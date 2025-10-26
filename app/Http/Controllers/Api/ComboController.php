@@ -139,7 +139,7 @@ class ComboController extends Controller
     public function multiDelete(MultiDeleteComboRequest $request)
     {
         try {
-            $deletedCount = $this->comboService->deleteMultiple($request->validated()['ids']);
+            $deletedCount = $this->comboService->multiDeleteCombos($request->validated()['ids']);
             return response()->json([
                 'success' => true,
                 'message' => "Đã xóa thành công {$deletedCount} combo",

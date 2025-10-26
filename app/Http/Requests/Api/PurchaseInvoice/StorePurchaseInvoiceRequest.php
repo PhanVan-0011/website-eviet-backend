@@ -79,7 +79,7 @@ class StorePurchaseInvoiceRequest extends FormRequest
                 return [
             // Các trường chính của hóa đơn
             'supplier_id' => 'required|integer|exists:suppliers,id',
-            'branch_id' => 'required|integer|exists:branches,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
             'user_id' => 'required|integer|exists:users,id',
             'invoice_date' => 'required|date',
             'status' => 'required|string|in:draft,received,cancelled',

@@ -18,9 +18,15 @@ class UpdateComboRequest extends FormRequest
     {
         return true;
     }
+     protected function prepareForValidation(): void
+    {
 
-
-
+        if ($this->has('applies_to_all_branches')) {
+            $this->merge([
+                'applies_to_all_branches' => filter_var($this->input('applies_to_all_branches'), FILTER_VALIDATE_BOOLEAN),
+            ]);
+        }
+    }
     /**
      * Get the validation rules that apply to the request.
      *
@@ -32,44 +38,29 @@ class UpdateComboRequest extends FormRequest
         $comboId = $this->route('id');
         return [
             'name'                  => ['sometimes', 'required', 'string', 'max:255', Rule::unique('combos', 'name')->ignore($comboId)],
-            'slug'                  => ['sometimes', 'required', 'string', 'max:255', Rule::unique('combos', 'slug')->ignore($comboId)],
+            'combo_code'            => ['sometimes', 'nullable', 'string', 'max:50', Rule::unique('combos', 'combo_code')->ignore($comboId)],
             'description'           => 'sometimes|nullable|string|max:255',
-            //'price'                 => 'sometimes|required|numeric|min:0',
-
-            'image_url'             => [
-                'sometimes',
-                function ($attribute, $value, $fail) {
-                    // Cho phép null hoặc empty để xóa ảnh
-                    if (is_null($value) || $value === '') {
-                        return;
-                    }
-
-                    // Kiểm tra là UploadedFile và upload thành công
-                    if (!($value instanceof \Illuminate\Http\UploadedFile) || !$value->isValid()) {
-                        $fail('File tải lên không hợp lệ.');
-                        return;
-                    }
-
-                    // Kiểm tra kích thước (2MB)
-                    if ($value->getSize() > 2048 * 1024) {
-                        $fail('Kích thước ảnh không được vượt quá 2MB.');
-                        return;
-                    }
-
-                    // Kiểm tra có phải ảnh hợp lệ (JPEG, PNG, GIF)
-                    $imageInfo = @getimagesize($value->getPathname());
-                    if (!$imageInfo || !in_array($imageInfo[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF])) {
-                        $fail('File phải là ảnh định dạng JPEG, PNG hoặc GIF.');
-                        return;
-                    }
-                }
-            ],
+            'base_store_price'      => 'sometimes|required|numeric|min:0',
+            'base_app_price'        => 'sometimes|required|numeric|min:0', 
+            'image_url'             => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'start_date'            => 'sometimes|nullable|date',
             'end_date'              => 'sometimes|nullable|date|after_or_equal:start_date',
             'is_active'             => 'sometimes|boolean',
-            'items'                 => 'sometimes|required|array|min:1',
+            'items'                 => 'sometimes|array|min:1',
             'items.*.product_id'    => 'required_with:items|integer|exists:products,id',
             'items.*.quantity'      => 'required_with:items|integer|min:1',
+            'applies_to_all_branches' => 'sometimes|boolean', // Dùng sometimes
+            'branch_ids' => [
+                 // Chỉ bắt buộc nếu applies_to_all_branches được gửi lên VÀ là false
+                Rule::requiredIf(function () {
+                     return $this->has('applies_to_all_branches') && !$this->input('applies_to_all_branches');
+                }),
+                'nullable',
+                'array',
+                // Chỉ kiểm tra min khi applies_to_all_branches là false
+                Rule::when($this->input('applies_to_all_branches') === false, ['min:1'], []),
+            ],
+            'branch_ids.*' => 'integer|exists:branches,id',
         ];
     }
     public function messages()
@@ -83,15 +74,6 @@ class UpdateComboRequest extends FormRequest
             'description.string' => 'Mô tả phải là chuỗi.',
             'description.max' => 'Tên combo không được vượt quá 255 ký tự.',
 
-            // 'price.required' => 'Giá combo là bắt buộc.',
-            // 'price.numeric' => 'Giá combo phải là số.',
-            // 'price.min' => 'Giá combo không được âm.',
-
-            'slug.string' => 'Slug phải là chuỗi.',
-            'slug.unique' => 'Slug này đã tồn tại.',
-
-            // Các message cho image_url đã được xử lý trong custom validation
-
             'start_date.date' => 'Ngày bắt đầu phải đúng định dạng ngày.',
             'end_date.date' => 'Ngày kết thúc phải đúng định dạng ngày.',
             'end_date.after_or_equal' => 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.',
@@ -103,12 +85,15 @@ class UpdateComboRequest extends FormRequest
             'items.min' => 'Phải có ít nhất một sản phẩm trong combo.',
 
             'items.*.product_id.required' => 'ID sản phẩm là bắt buộc.',
-            'items.*.product_id.integer' => 'ID sản phẩm phải là số nguyên.',
             'items.*.product_id.exists' => 'Sản phẩm không tồn tại trong hệ thống.',
 
             'items.*.quantity.required' => 'Số lượng là bắt buộc.',
             'items.*.quantity.integer' => 'Số lượng phải là số nguyên.',
             'items.*.quantity.min' => 'Số lượng phải lớn hơn 0.',
+
+            'branch_ids.required_if' => 'Vui lòng chọn ít nhất một chi nhánh áp dụng.',
+            'branch_ids.min' => 'Vui lòng chọn ít nhất một chi nhánh áp dụng.',
+            'branch_ids.*.exists' => 'Chi nhánh không hợp lệ.',
         ];
     }
     protected function failedValidation(Validator $validator)

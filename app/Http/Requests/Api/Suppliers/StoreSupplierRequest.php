@@ -48,7 +48,6 @@ class StoreSupplierRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'code.required' => 'Mã nhà cung cấp là bắt buộc.',
             'code.unique' => 'Mã nhà cung cấp đã tồn tại.',
             'name.required' => 'Tên nhà cung cấp là bắt buộc.',
             'name.unique' => 'Tên nhà cung cấp đã tồn tại.',
