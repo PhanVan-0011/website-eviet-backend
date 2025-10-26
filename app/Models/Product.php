@@ -8,15 +8,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
-     use HasFactory;
+    use HasFactory;
     protected $fillable = [
-        'product_code', 
-        'name', 
-        'description', 
-        'status', 
-        'base_unit', 
-        'cost_price', 
-        'base_store_price', 
+        'product_code',
+        'name',
+        'description',
+        'status',
+        'base_unit',
+        'cost_price',
+        'base_store_price',
         'base_app_price',
         'is_sales_unit',
         'applies_to_all_branches'
@@ -34,7 +34,7 @@ class Product extends Model
     //     });
     // }
 
-      /**
+    /**
      * Quan hệ đa hình: Một sản phẩm có nhiều ảnh.
      */
     public function images()
@@ -58,7 +58,7 @@ class Product extends Model
         return $this->morphMany(Image::class, 'imageable')->where('is_featured', false);
     }
 
-    public function categories() 
+    public function categories()
     {
         return $this->belongsToMany(Category::class, 'category_product')->withTimestamps();
     }
@@ -81,11 +81,11 @@ class Product extends Model
         return $this->hasMany(OrderDetail::class, 'product_id');
     }
     //Tùy chọn thuộc tính thêm món ăn  ví dụ: đường ít nhiều....
-     public function attributes(): HasMany
+    public function attributes(): HasMany
     {
         return $this->hasMany(ProductAttribute::class);
     }
-     // Một sản phẩm có nhiều mức giá
+    // Một sản phẩm có nhiều mức giá
     public function prices()
     {
         return $this->hasMany(ProductPrice::class);
@@ -95,8 +95,8 @@ class Product extends Model
     public function branches()
     {
         return $this->belongsToMany(Branch::class, 'branch_product_stocks')
-                    ->withPivot('quantity')
-                    ->withTimestamps();
+            ->withPivot('quantity')
+            ->withTimestamps();
     }
     /**
      * Lấy tất cả các quy tắc chuyển đổi đơn vị của sản phẩm.

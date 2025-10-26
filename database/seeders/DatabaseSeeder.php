@@ -64,10 +64,13 @@ class DatabaseSeeder extends Seeder
             // 8. Seeder cho đơn hàng (cần có sản phẩm trước)
             OrderSeeder::class,
 
-            // 9. Seeder cho giỏ hàng (cần có sản phẩm và combo trước)
+            // 9. Seeder cho lịch sử nhập hàng từ nhà cung cấp (xây dựng lịch sử mua hàng)
+            SupplierPurchaseHistorySeeder::class,
+
+            // 10. Seeder cho giỏ hàng (cần có sản phẩm và combo trước)
             CartSeeder::class,
 
-            // 10. Seeder demo cuối cùng
+            // 11. Seeder demo cuối cùng
             DashboardDemoSeeder::class,
         ]);
 
