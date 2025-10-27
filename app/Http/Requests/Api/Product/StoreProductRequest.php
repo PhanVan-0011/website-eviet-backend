@@ -62,15 +62,36 @@ class StoreProductRequest extends FormRequest
                 $factor = (float) ($unit['conversion_factor'] ?? 1);
                 $minPrice = $costPrice * $factor;
 
-                if (isset($unit['store_price']) && (float) $unit['store_price'] < $minPrice) {
-                    $validator->errors()->add("unit_conversions.{$index}.store_price", "Giá bán tại cửa hàng của đơn vị quy đổi phải lớn hơn hoặc bằng giá vốn quy đổi ({$minPrice}).");
+                // ---- Làm sạch dữ liệu đầu vào ----
+                $storePrice = $unit['store_price'] ?? null;
+                $appPrice   = $unit['app_price'] ?? null;
+
+                // nếu chuỗi rỗng "" thì chuyển thành null
+                if ($storePrice === '') {
+                    $storePrice = null;
                 }
-                if (isset($unit['app_price']) && (float) $unit['app_price'] < $minPrice) {
-                    $validator->errors()->add("unit_conversions.{$index}.app_price", "Giá bán trên app của đơn vị quy đổi phải lớn hơn hoặc bằng giá vốn quy đổi ({$minPrice}).");
+                if ($appPrice === '') {
+                    $appPrice = null;
+                }
+
+                // ---- Chỉ validate nếu người dùng có nhập giá ----
+                if ($storePrice !== null && (float) $storePrice < $minPrice) {
+                    $validator->errors()->add(
+                        "unit_conversions.{$index}.store_price",
+                        "Giá bán tại cửa hàng của đơn vị quy đổi phải lớn hơn hoặc bằng giá vốn quy đổi ({$minPrice})."
+                    );
+                }
+
+                if ($appPrice !== null && (float) $appPrice < $minPrice) {
+                    $validator->errors()->add(
+                        "unit_conversions.{$index}.app_price",
+                        "Giá bán trên app của đơn vị quy đổi phải lớn hơn hoặc bằng giá vốn quy đổi ({$minPrice})."
+                    );
                 }
             }
         });
     }
+
 
     /**
      * Get the validation rules that apply to the request.

@@ -32,7 +32,7 @@ class ProductService
             $perPage = max(1, min(100, (int) $request->input('limit', 25)));
             $currentPage = max(1, (int) $request->input('page', 1));
 
-            $query = Product::query()->with(['categories.icon', 'featuredImage','unitConversions', 'branches']);
+            $query = Product::query()->with(['categories.icon', 'featuredImage', 'unitConversions', 'branches']);
 
             // // Tìm kiếm theo từ khóa (giữ nguyên)
             // if ($request->filled('keyword')) {
@@ -42,16 +42,16 @@ class ProductService
             //             ->orWhere('name', 'like', "%{$keyword}%");
             //     });
             // }
-             // Tìm kiếm theo từ khóa
+            // Tìm kiếm theo từ khóa
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
                 $query->where(function ($q) use ($keyword) {
                     $q->where('product_code', 'like', "%{$keyword}%")
-                      ->orWhere('name', 'like', "%{$keyword}%")
-                      // Thêm điều kiện tìm kiếm trong mã đơn vị quy đổi
-                      ->orWhereHas('unitConversions', function ($subQuery) use ($keyword) {
-                          $subQuery->where('unit_code', 'like', "%{$keyword}%");
-                      });
+                        ->orWhere('name', 'like', "%{$keyword}%")
+                        // Thêm điều kiện tìm kiếm trong mã đơn vị quy đổi
+                        ->orWhereHas('unitConversions', function ($subQuery) use ($keyword) {
+                            $subQuery->where('unit_code', 'like', "%{$keyword}%");
+                        });
                 });
             }
 
@@ -184,6 +184,24 @@ class ProductService
                 }
 
                 $factor = (float) ($unitData['conversion_factor'] ?? 1);
+
+                // Chuyển chuỗi rỗng "" thành null để logic tự tính hoạt động
+                $storePrice = $unitData['store_price'] ?? null;
+                $appPrice   = $unitData['app_price'] ?? null;
+
+                if ($storePrice === '') {
+                    $storePrice = null;
+                }
+                if ($appPrice === '') {
+                    $appPrice = null;
+                }
+
+                // Gán lại vào mảng để đảm bảo đồng nhất
+                $unitConversionsData[$key]['store_price'] = $storePrice;
+                $unitConversionsData[$key]['app_price']   = $appPrice;
+
+                // Tính giá tự động nếu null
+
                 if (!isset($unitData['store_price']) || $unitData['store_price'] === null) {
                     $unitConversionsData[$key]['store_price'] = (float) $data['base_store_price'] * $factor;
                 }
@@ -342,7 +360,7 @@ class ProductService
                     'deleted_image_ids',
                     'featured_image_index'
                 ]));
-                
+
 
                 // Xử lý ảnh (logic không đổi)
                 $newImageFiles = Arr::get($data, 'image_url', []);
