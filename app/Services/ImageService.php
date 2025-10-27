@@ -41,7 +41,7 @@ class ImageService
             'thumb' => [400, 200]
         ],
         'categories' => [
-            'main' => [100, 100],
+            'main' => [200, 200],
             //'thumb' => [50, 50],
         ],
     ];
