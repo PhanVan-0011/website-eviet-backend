@@ -143,7 +143,7 @@ class StoreProductRequest extends FormRequest
 
             //===CHI NHÁNH ===
             'applies_to_all_branches' => 'nullable|boolean',
-            //'branch_ids' => 'required_unless:apply_to_all_branches,true|nullable|array',
+            'branch_ids' => 'required_unless:apply_to_all_branches,true|nullable|array',
             'branch_ids.*' => 'integer|exists:branches,id',
             // GIÁ KHÁC NHAU THEO CHI NHÁNH
             // 'branch_prices' => 'sometimes|array',
