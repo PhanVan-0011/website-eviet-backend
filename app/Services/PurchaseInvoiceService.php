@@ -37,9 +37,12 @@ class PurchaseInvoiceService
                 $query->where('branch_id', $request->branch_id);
             }
 
-            // Lọc theo Trạng thái
-            if ($request->filled('status') && $request->status !== 'all') {
-                $query->where('status', $request->status);
+            $status = $request->input('status');
+
+            if ($request->filled('status') && $status !== 'all') {
+                $query->where('status', $status);
+            } elseif (!$request->filled('status')) {
+                $query->whereIn('status', ['draft', 'received']);
             }
             
             // Lọc theo Người tạo
