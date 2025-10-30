@@ -30,9 +30,7 @@ class StoreSupplierRequest extends FormRequest
             'phone_number' => [
                 'nullable',
                 'string',
-                'max:20',
-                'unique:branches,phone_number',
-                'regex:#^(0|\+84)[3-9][0-9]{8}$#',
+                'max:20'
             ],
             'address' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255|unique:suppliers,email',

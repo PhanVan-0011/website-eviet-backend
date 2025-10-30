@@ -12,11 +12,12 @@ use App\Services\PurchaseInvoiceService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Exception;
 use Illuminate\Support\Facades\Log;
-use App\Models\Supplier; 
+use App\Models\Supplier;
+use App\Models\PurchaseInvoice;
 
 class PurchaseInvoiceController extends Controller
 {
-     protected PurchaseInvoiceService $invoiceService;
+    protected PurchaseInvoiceService $invoiceService;
 
     public function __construct(PurchaseInvoiceService $invoiceService)
     {
@@ -94,14 +95,14 @@ class PurchaseInvoiceController extends Controller
     {
         try {
             // Kiểm tra xem nhà cung cấp có tồn tại không
-            Supplier::findOrFail($supplierId); 
-            
+            Supplier::findOrFail($supplierId);
+
             // Tạo một request mới và thêm supplier_id vào để tái sử dụng hàm getAllInvoices
             $filterRequest = new Request($request->query()); // Lấy các tham số query (page, limit, start_date...)
             $filterRequest->merge(['supplier_id' => $supplierId]); // Ép bộ lọc theo nhà cung cấp
 
             // Gọi hàm lấy danh sách với bộ lọc đã được thêm vào
-            $data = $this->invoiceService->getAllInvoices($filterRequest); 
+            $data = $this->invoiceService->getAllInvoices($filterRequest);
 
             return response()->json([
                 'success' => true,
@@ -119,6 +120,29 @@ class PurchaseInvoiceController extends Controller
             return response()->json(['success' => false, 'message' => 'Không tìm thấy nhà cung cấp'], 404);
         } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => 'Lỗi khi lấy lịch sử nhập hàng', 'error' => $e->getMessage()], 500);
+        }
+    }
+    /**
+     * HÀM MỚI: Hủy một phiếu nhập đã hoàn thành
+     */
+    public function cancel(string $id)
+    {
+        try {
+            $invoice = PurchaseInvoice::findOrFail($id);
+            if ($invoice->status == 'cancelled') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Phiếu nhập này đã được hủy trước đó'
+                ], 400);
+            }
+            $data = ['status' => 'cancelled'];
+            $invoice = $this->invoiceService->updateInvoice($id, $data);
+
+            return response()->json(['success' => true, 'data' => new PurchaseInvoiceResource($invoice), 'message' => 'Hủy phiếu nhập thành công'], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy hóa đơn nhập'], 404);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Lỗi khi hủy phiếu nhập', 'error' => $e->getMessage()], 500);
         }
     }
 

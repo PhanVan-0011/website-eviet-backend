@@ -161,13 +161,13 @@ class PurchaseInvoiceService
     public function deleteInvoice(string $id): bool
     {
         return DB::transaction(function () use ($id) {
-            $invoice = PurchaseInvoice::with('details')->findOrFail($id);
+            $invoice = PurchaseInvoice::findOrFail($id);
             
-            if ($invoice->status === 'received') {
-                $this->_updateStockAndCostPrice($invoice, $invoice->details->toArray(), -1);
+            if ($invoice->status !== 'draft') {
+                throw new Exception("Không thể xóa phiếu đã hoàn thành hoặc đã hủy. Bạn chỉ có thể xóa phiếu nháp.");
             }
-            $invoice->details()->delete();
-            return $invoice->delete();
+            $invoice->details()->delete(); 
+            return $invoice->delete(); 
         });
     }
 
@@ -176,10 +176,18 @@ class PurchaseInvoiceService
      */
     public function multiDelete(array $ids): int
     {
+        $nonDraftInvoices = PurchaseInvoice::whereIn('id', $ids)
+                                          ->where('status', '!=', 'draft')
+                                          ->count();
+
+        if ($nonDraftInvoices > 0) {
+            throw new Exception("Lỗi: Một hoặc nhiều phiếu không phải là phiếu nháp và không thể bị xóa.");
+        }
+        
         $deletedCount = 0;
         foreach ($ids as $id) {
             try {
-                if ($this->deleteInvoice($id)) {
+                if ($this->deleteInvoice($id)) { 
                     $deletedCount++;
                 }
             } catch (Exception $e) {

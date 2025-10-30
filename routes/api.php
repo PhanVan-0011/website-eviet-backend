@@ -101,10 +101,12 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::prefix('purchase-invoices')->group(function () {
         Route::get('/', [PurchaseInvoiceController::class, 'index']);
         Route::get('/{id}', [PurchaseInvoiceController::class, 'show']);
+        Route::put('/{id}/cancel', [PurchaseInvoiceController::class, 'cancel']);
         Route::post('/', [PurchaseInvoiceController::class, 'store']);
         Route::put('/{id}', [PurchaseInvoiceController::class, 'update']);
         Route::delete('/multi-delete', [PurchaseInvoiceController::class, 'multiDelete']);
         Route::delete('/{id}', [PurchaseInvoiceController::class, 'destroy']);
+        
     });
      // --- Supplier Groups ---
     Route::prefix('supplier-groups')->group(function () {
