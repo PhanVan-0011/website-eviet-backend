@@ -99,7 +99,7 @@ class UpdateProductRequest extends FormRequest
             // === PHÂN BỔ CHI NHÁNH ===
             'applies_to_all_branches' => 'sometimes|boolean',
             'branch_ids' => ['sometimes', 'nullable', 'array', Rule::requiredIf(function () {
-                return $this->has('apply_to_all_branches') && !$this->input('apply_to_all_branches');
+                return $this->has('applies_to_all_branches') && !$this->input('applies_to_all_branches');
             })],
             'branch_ids.*' => 'integer|exists:branches,id',
             // GIÁ THEO CHI NHÁNH
