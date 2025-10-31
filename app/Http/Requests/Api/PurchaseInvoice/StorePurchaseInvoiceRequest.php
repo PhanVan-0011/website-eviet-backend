@@ -76,7 +76,7 @@ class StorePurchaseInvoiceRequest extends FormRequest
     }
     public function rules(): array
     {
-                return [
+        return [
             // Các trường chính của hóa đơn
             'supplier_id' => 'required|integer|exists:suppliers,id',
             'branch_id' => 'nullable|integer|exists:branches,id',
