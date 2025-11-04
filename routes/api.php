@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\PurchaseInvoiceController;
 use App\Http\Controllers\Api\Client\ClientSliderController;
 use App\Http\Controllers\Api\ProductUnitConversionController;
+use App\Http\Controllers\Api\TimeSlotController;
 use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 use App\Http\Controllers\Api\Client\ProductController as ClientProductController;
 use App\Http\Controllers\Api\Client\PromotionController as ClientPromotionController;
@@ -138,6 +139,15 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/{id}', [BranchController::class, 'update']);
         Route::delete('/{id}', [BranchController::class, 'destroy']);
  
+    });
+    // --- Time Slots (Khung Giờ Bán Hàng) ---
+    Route::prefix('time-slots')->middleware('check.permission:timeslots.manage')->group(function () {
+        Route::get('/', [TimeSlotController::class, 'index']);
+        Route::get('/{id}', [TimeSlotController::class, 'show']);
+        Route::post('/', [TimeSlotController::class, 'store']);
+        Route::put('/{id}', [TimeSlotController::class, 'update']); // <-- Đã sửa thành PUT
+        Route::delete('/multi-delete', [TimeSlotController::class, 'multiDelete']);
+        Route::delete('/{id}', [TimeSlotController::class, 'destroy']);
     });
 
     // ---Slider---
