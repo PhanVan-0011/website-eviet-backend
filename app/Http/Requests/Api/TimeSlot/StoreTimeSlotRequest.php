@@ -3,40 +3,7 @@
 namespace App\Http\Requests\Api\TimeSlot;
 
 use Illuminate\Foundation\Http\FormRequest;
-
-class StoreTimeSlotRequest extends FormRequest
-{
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        return true;
-    }
-
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
-    public function rules(): array
-    {
-        Đã hiểu. Chúng ta sẽ tạo 3 file Request cho module TimeSlot, và sẽ dùng file MultiDeleteProductRequest của bạn làm mẫu cho MultiDeleteTimeSlotRequest (truyền ID qua URL).
-
-Dưới đây là code cho 3 file Request bạn cần:
-
-1. StoreTimeSlotRequest
-Đây là file để validate khi tạo mới một khung giờ.
-
-Tạo file: app/Http/Requests/Api/TimeSlot/StoreTimeSlotRequest.php
-
-PHP
-
-<?php
-
-namespace App\Http\Requests\Api\TimeSlot;
-
-use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
@@ -47,9 +14,8 @@ class StoreTimeSlotRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true; // (Giả sử admin đã đăng nhập)
+        return true;
     }
-
     /**
      * Get the validation rules that apply to the request.
      *
