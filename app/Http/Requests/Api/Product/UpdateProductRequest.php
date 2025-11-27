@@ -31,6 +31,18 @@ class UpdateProductRequest extends FormRequest
         if ($this->has('applies_to_all_branches')) {
             $this->merge(['applies_to_all_branches' => filter_var($this->applies_to_all_branches, FILTER_VALIDATE_BOOLEAN)]);
         }
+        //Time
+        if ($this->has('time_slot_ids') || $this->has('is_flexible_time')) {
+            
+            if ($this->has('time_slot_ids') && !empty($this->input('time_slot_ids'))) {
+                $this->merge(['is_flexible_time' => false]);
+            } 
+            else {
+                // Tự hiểu là 'true' (Linh hoạt)
+                $this->merge(['is_flexible_time' => true]);
+                $this->merge(['time_slot_ids' => []]); 
+            }
+        }
     }
 
     /**
@@ -102,12 +114,13 @@ class UpdateProductRequest extends FormRequest
                 return $this->has('applies_to_all_branches') && !$this->input('applies_to_all_branches');
             })],
             'branch_ids.*' => 'integer|exists:branches,id',
-            // GIÁ THEO CHI NHÁNH
-            // 'branch_prices' => 'sometimes|array',
-            // 'branch_prices.*.branch_id' => 'required|integer|exists:branches,id',
-            // 'branch_prices.*.price_type' => 'required|string|in:store_price,app_price',
-            // 'branch_prices.*.price' => 'required|numeric|min:0',
-            // 'branch_prices.*.unit_of_measure' => 'required|string|max:50',
+
+            'is_flexible_time' => 'sometimes|boolean', 
+            'time_slot_ids' => 'sometimes|nullable|array', // Phải định nghĩa là 'array'
+            'time_slot_ids.*' => 'required|integer|exists:order_time_slots,id',
+
+            'time_slot_ids.array' => 'Định dạng danh sách khung giờ không hợp lệ.',
+            'time_slot_ids.*.exists' => 'Một trong các khung giờ được chọn không tồn tại.'
         ];
     }
     public function withValidator(Validator $validator): void
@@ -201,10 +214,14 @@ class UpdateProductRequest extends FormRequest
             'attributes.*.type.in' => 'Loại thuộc tính không hợp lệ.',
             'attributes.*.values.*.value.required_unless' => 'Tên giá trị thuộc tính không được để trống.',
             'attributes.*.values.*.price_adjustment.required_unless' => 'Giá trị điều chỉnh là bắt buộc.',
-
             // Chi nhánh
             'branch_ids.*.exists' => 'Chi nhánh được chọn không hợp lệ.',
-            'branch_ids.required_unless' => 'Vui lòng chọn chi nhánh nếu không áp dụng cho tất cả.'
+            'branch_ids.required_unless' => 'Vui lòng chọn chi nhánh nếu không áp dụng cho tất cả.',
+            // Khung giờ
+            'time_slot_ids.array' => 'Định dạng danh sách khung giờ không hợp lệ.',
+            'time_slot_ids.requiredIf' => 'Vui lòng chọn ít nhất một khung giờ cố định (vì "Bán linh hoạt" đang tắt).',
+            'time_slot_ids.*.exists' => 'Một trong các khung giờ được chọn không tồn tại.'
+
         ];
     }
     protected function failedValidation(Validator $validator)

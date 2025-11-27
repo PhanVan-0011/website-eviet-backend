@@ -109,7 +109,8 @@ class ComboService
                 'items.featuredImage',
                 'items.attributes.values',
                 'branches',
-                'image'
+                'image',
+                'timeSlots'
             ])->findOrFail($id);
         } catch (ModelNotFoundException $e) {
             throw $e;
@@ -130,15 +131,17 @@ class ComboService
                     $data['combo_code'] = $this->_generateUniqueComboCode();
                 }
 
-                // SỬA LỖI: Đảm bảo $itemsData luôn là một mảng
                 $itemsData = Arr::pull($data, 'items', []); 
                 $branchIds = Arr::pull($data, 'branch_ids', []);
                 $imageFile = Arr::pull($data, 'image_url', null);
 
+                $isFlexibleTime = Arr::pull($data, 'is_flexible_time', true);
+                $timeSlotIds = Arr::pull($data, 'time_slot_ids', []);
+                $data['is_flexible_time'] = $isFlexibleTime;
+
                 $combo = Combo::create($data);
 
-                // Dùng sync() cho BelongsToMany
-                // Kiểm tra $itemsData không rỗng trước khi sync
+
                 if (!empty($itemsData)) {
                     $syncData = [];
                     foreach ($itemsData as $item) {
@@ -152,6 +155,10 @@ class ComboService
                     $combo->branches()->sync([]); 
                 } else {
                     $combo->branches()->sync($branchIds); 
+                }
+
+                if (!$isFlexibleTime) {
+                    $combo->timeSlots()->sync($timeSlotIds);
                 }
 
                 // Xử lý ảnh
@@ -168,7 +175,7 @@ class ComboService
                 }
 
                 Log::info("Đã tạo combo mới [ID: {$combo->id}, Code: {$combo->combo_code}]");
-                return $combo->load(['items.featuredImage', 'items.attributes.values', 'branches', 'image']);
+                return $combo->load(['items.featuredImage', 'items.attributes.values', 'branches', 'image','timeSlots']);
 
             } catch (Exception $e) {
                 Log::error('Lỗi khi tạo combo: ' . $e->getMessage(), ['data' => Arr::except($data, ['image_url', 'items'])]); 
@@ -190,6 +197,10 @@ class ComboService
                 $branchIds = Arr::pull($data, 'branch_ids', null); 
                 $imageFile = Arr::pull($data, 'image_url'); 
 
+                $timeLogicHasBeenSent = Arr::has($data, 'is_flexible_time') || Arr::has($data, 'time_slot_ids');
+                $isFlexibleTime = $data['is_flexible_time'] ?? $combo->is_flexible_time;
+                $timeSlotIds = Arr::pull($data, 'time_slot_ids', null);
+
                 $combo->update($data);
 
                 // Xử lý cập nhật ảnh với logic kiểm tra key
@@ -210,10 +221,17 @@ class ComboService
                         $combo->branches()->sync($branchIds);
                     }
                 }
+                if ($timeLogicHasBeenSent) {
+                    if ($isFlexibleTime === true) {
+                        $combo->timeSlots()->sync([]);
+                    } else {
+                        $combo->timeSlots()->sync($timeSlotIds ?? []);
+                    }
+                }
 
                 Log::info("Đã cập nhật combo [ID: {$combo->id}, Code: {$combo->combo_code}]");
                 
-                return $combo->refresh()->load(['items.featuredImage', 'items.attributes.values', 'branches', 'image']);
+                return $combo->refresh()->load(['items.featuredImage', 'items.attributes.values', 'branches', 'image','timeSlots']);
 
             } catch (Exception $e) {
                 Log::error("Lỗi khi cập nhật combo ID {$id}: " . $e->getMessage(), ['data' => Arr::except($data, ['image_url', 'items'])]);
@@ -265,7 +283,11 @@ class ComboService
                     $this->imageService->delete($combo->image->image_url, 'combos');
                     $combo->image()->delete(); 
                 }
-                
+                $combo->timeSlots()->detach();
+                $combo->branches()->detach();
+                $combo->items()->detach();
+
+
                 $isDeleted = $combo->delete();
 
                 if ($isDeleted) {
@@ -287,6 +309,12 @@ class ComboService
      */
     public function multiDeleteCombos(array $ids): int 
     {
+        $usedInOrders = DB::table('order_details')->whereIn('combo_id', $ids)->exists();
+        if ($usedInOrders) {
+            throw new Exception("Một hoặc nhiều combo đã phát sinh đơn hàng và không thể xóa.");
+        }
+
+        DB::table('item_time_slots')->whereIn('combo_id', $ids)->whereNull('product_id')->delete();
         $deletedCount = 0;
         foreach ($ids as $id) {
             try {
@@ -309,11 +337,7 @@ class ComboService
         $lastCombo = Combo::where('combo_code', 'LIKE', "{$prefix}%")
             ->orderByRaw('CAST(SUBSTRING(combo_code, ' . (strlen($prefix) + 1) . ') AS UNSIGNED) DESC')
             ->first();
-
-        // Xác định số tiếp theo
         $nextId = $lastCombo ? ((int)substr($lastCombo->combo_code, strlen($prefix)) + 1) : 1;
-
-        // Tạo mã mới với 6 chữ số (ví dụ: CB000001)
         return $prefix . str_pad($nextId, 6, '0', STR_PAD_LEFT);
     }
 }

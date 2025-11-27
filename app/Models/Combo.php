@@ -25,12 +25,14 @@ class Combo extends Model
         'end_date',
         'is_active',
         'applies_to_all_branches',
+        'is_flexible_time',
     ];
     protected $casts = [
         'start_date' => 'datetime',
         'end_date' => 'datetime',
         'is_active' => 'boolean',
-        'applies_to_all_branches' => 'boolean', 
+        'applies_to_all_branches' => 'boolean',
+        'is_flexible_time' => 'boolean', 
         'base_store_price' => 'decimal:2',
         'base_app_price' => 'decimal:2',
     ];
@@ -65,7 +67,7 @@ class Combo extends Model
     public function branches(): BelongsToMany
     {
         return $this->belongsToMany(Branch::class, 'branch_combo')
-                    ->withPivot('is_active') // Có thể lấy trạng thái active tại chi nhánh
+                    ->withPivot('is_active') 
                     ->withTimestamps();
     }
 
@@ -107,5 +109,13 @@ class Combo extends Model
             $q->where('end_date', '>=', $now)
                 ->orWhereNull('end_date');
         });
+    }
+    /**
+     * Mối quan hệ: Một combo có thể thuộc nhiều Khung Giờ.
+     */
+    public function timeSlots(): BelongsToMany
+    {
+        return $this->belongsToMany(OrderTimeSlot::class, 'item_time_slots', 'combo_id', 'time_slot_id')
+                    ->withTimestamps();
     }
 }

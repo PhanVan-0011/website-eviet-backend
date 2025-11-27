@@ -32,6 +32,12 @@ class ComboResource extends JsonResource
 
             'applies_to_all_branches' => (bool) $this->applies_to_all_branches,
             'branches'    => BranchResource::collection($this->whenLoaded('branches')),
+            'is_flexible_time' => (bool) $this->is_flexible_time,
+            
+            'time_slots' => $this->when(
+                !$this->is_flexible_time,
+                fn() => TimeSlotResource::collection($this->whenLoaded('timeSlots'))
+            ),
             
             'created_at'  => optional($this->created_at)->format('Y-m-d H:i:s'),
             'updated_at'  => optional($this->updated_at)->format('Y-m-d H:i:s'),

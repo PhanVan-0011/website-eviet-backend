@@ -18,10 +18,18 @@ class StoreComboRequest extends FormRequest
     }
 
     protected function prepareForValidation(): void
-        {
-            $this->merge([
-                'applies_to_all_branches' => filter_var($this->input('applies_to_all_branches', false), FILTER_VALIDATE_BOOLEAN),
-            ]);
+    {
+        $this->merge([
+            'applies_to_all_branches' => filter_var($this->input('applies_to_all_branches', false), FILTER_VALIDATE_BOOLEAN),
+        ]);
+        if ($this->has('time_slot_ids') && !empty($this->input('time_slot_ids'))) {
+            $this->merge(['is_flexible_time' => false]);
+        }
+        else {
+            // Tự hiểu là 'true' (Linh hoạt)
+            $this->merge(['is_flexible_time' => true]);
+            $this->merge(['time_slot_ids' => []]);
+        }
     }
     /**
      * Get the validation rules that apply to the request.
@@ -41,7 +49,7 @@ class StoreComboRequest extends FormRequest
             'start_date'            => 'nullable|date',
             'end_date'              => 'nullable|date|after_or_equal:start_date',
             'is_active'             => 'boolean',
-            'items'                 => 'required|array|min:1', 
+            'items'                 => 'required|array|min:1',
             'items.*.product_id'    => 'required|integer|exists:products,id',
             'items.*.quantity'      => 'required|integer|min:1',
 
@@ -49,11 +57,14 @@ class StoreComboRequest extends FormRequest
             'applies_to_all_branches' => 'required|boolean',
             'branch_ids' => [
                 // Chỉ bắt buộc khi applies_to_all_branches là false
-                Rule::requiredIf(!$this->input('applies_to_all_branches')), 
+                Rule::requiredIf(!$this->input('applies_to_all_branches')),
                 'nullable',
-                Rule::when($this->input('applies_to_all_branches') === false, ['min:1'], []), 
+                Rule::when($this->input('applies_to_all_branches') === false, ['min:1'], []),
             ],
             'branch_ids.*' => 'integer|exists:branches,id',
+            'is_flexible_time' => 'nullable|boolean',
+            'time_slot_ids' => 'nullable|array',
+            'time_slot_ids.*' => 'required|integer|exists:order_time_slots,id'
         ];
     }
     public function messages()
@@ -69,7 +80,7 @@ class StoreComboRequest extends FormRequest
 
             'description.string' => 'Mô tả phải là chuỗi.',
             'description.max' => 'Mô tả không được vượt quá 255 ký tự.',
-            
+
             'image_url.image' => 'File tải lên phải là hình ảnh.',
             'image_url.mimes' => 'Ảnh phải có định dạng: jpeg, png, jpg, gif.',
             'image_url.max' => 'Kích thước ảnh không được vượt quá 2MB.',
@@ -90,6 +101,9 @@ class StoreComboRequest extends FormRequest
             'branch_ids.required_if' => 'Vui lòng chọn ít nhất một chi nhánh áp dụng.',
             'branch_ids.min' => 'Vui lòng chọn ít nhất một chi nhánh áp dụng.',
             'branch_ids.*.exists' => 'Chi nhánh không hợp lệ.',
+
+            'time_slot_ids.array' => 'Định dạng danh sách khung giờ không hợp lệ.',
+            'time_slot_ids.*.exists' => 'Một trong các khung giờ được chọn không tồn tại.'
         ];
     }
     protected function failedValidation(Validator $validator)

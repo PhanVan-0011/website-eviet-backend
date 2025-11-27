@@ -11,7 +11,8 @@ use App\Http\Requests\Api\TimeSlot\UpdateTimeSlotRequest;
 use App\Http\Requests\Api\TimeSlot\MultiDeleteTimeSlotRequest;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Exception;
-class TimeSlotConttroller extends Controller
+
+class TimeSlotController extends Controller
 {
     protected $timeSlotService;
 
@@ -36,7 +37,7 @@ class TimeSlotConttroller extends Controller
                     'total' => $data['total'],
                     'last_page' => $data['last_page'],
                     'next_page' => $data['next_page'],
-                    'pre_page' => $data['pre_page'], // (Giống format của bạn)
+                    'pre_page' => $data['pre_page'],
                 ],
             ], 200);
         } catch (Exception $e) {
@@ -142,7 +143,6 @@ class TimeSlotConttroller extends Controller
                 'message' => "Đã xóa thành công {$deletedCount} khung giờ",
             ]);
         } catch (Exception $e) {
-            // Trả về lỗi 422 (lỗi nghiệp vụ)
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }

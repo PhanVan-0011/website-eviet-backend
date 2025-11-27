@@ -55,6 +55,8 @@ class UpdateBranchRequest extends FormRequest
                 Rule::unique('branches', 'email')->ignore($this->route('id')),
             ],
             'active' => 'sometimes|nullable|boolean',
+            'time_slot_ids' => 'sometimes|nullable|array',
+            'time_slot_ids.*' => 'required|integer|exists:order_time_slots,id'
         ];
     }
     
@@ -88,6 +90,9 @@ class UpdateBranchRequest extends FormRequest
             'email.unique' => 'Email đã tồn tại.',
             
             'active.boolean' => 'Trạng thái hoạt động phải là hoạt động hoặc không.',
+            
+            'time_slot_ids.array' => 'Định dạng danh sách khung giờ không hợp lệ.',
+            'time_slot_ids.*.exists' => 'Một trong các khung giờ được chọn không tồn tại.'
         ];
     }
     

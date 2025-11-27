@@ -14,6 +14,7 @@ use App\Models\ProductUnitConversion;
 use App\Models\Branch;
 use App\Models\PurchaseInvoiceDetail;
 
+
 class ProductService
 {
     protected ImageService $imageService;
@@ -34,14 +35,6 @@ class ProductService
 
             $query = Product::query()->with(['categories.icon', 'featuredImage', 'unitConversions', 'branches']);
 
-            // // Tìm kiếm theo từ khóa (giữ nguyên)
-            // if ($request->filled('keyword')) {
-            //     $keyword = $request->input('keyword');
-            //     $query->where(function ($q) use ($keyword) {
-            //         $q->where('product_code', 'like', "%{$keyword}%")
-            //             ->orWhere('name', 'like', "%{$keyword}%");
-            //     });
-            // }
             // Tìm kiếm theo từ khóa
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
@@ -68,8 +61,6 @@ class ProductService
                     $q->where('supplier_id', $request->input('supplier_id'));
                 });
             }
-
-
             // Lọc theo khoảng ngày tạo
             if ($request->filled('start_date')) {
                 $query->whereDate('created_at', '>=', $request->input('start_date'));
@@ -123,6 +114,7 @@ class ProductService
                 'attributes.values',
                 'unitConversions',
                 'branches',
+                'timeSlots'
 
             ])->findOrFail($id);
         } catch (ModelNotFoundException $e) {
@@ -168,6 +160,9 @@ class ProductService
             $branchIds = Arr::pull($data, 'branch_ids', []);
             $unitConversionsData = Arr::pull($data, 'unit_conversions', []);
             //$specialPricesData = Arr::pull($data, 'branch_prices', []);
+
+            $isFlexibleTime = Arr::pull($data, 'is_flexible_time', true); 
+            $timeSlotIds = Arr::pull($data, 'time_slot_ids', []);
 
             //Bắt đầu logic tự động sinh mã và tính giá.
             if (empty($data['product_code'])) {
@@ -215,26 +210,23 @@ class ProductService
                 $attributesData = Arr::pull($data, 'attributes', []);
                 $images = Arr::pull($data, 'image_url', []);
                 $featuredImageIndex = Arr::pull($data, 'featured_image_index', 0);
-
-                // Thêm 'applies_to_all_branches' vào $data để lưu
+                $data['is_flexible_time'] = $isFlexibleTime;
                 $product = Product::create($data);
 
 
                 if (!empty($categoryIds)) {
                     $product->categories()->attach($categoryIds);
                 }
-
+                if (!$isFlexibleTime) {
+                    // Nếu không linh hoạt -> gán các ca cố định
+                    $product->timeSlots()->sync($timeSlotIds);
+                }
                 if ($product->applies_to_all_branches) {
                     $allBranchIds = Branch::where('active', true)->pluck('id')->all();
                     $product->branches()->sync($allBranchIds);
                 } elseif (!empty($branchIds)) {
                     $product->branches()->attach(array_unique($branchIds));
                 }
-
-                // //Lưu các giá đặc biệt theo chi nhánh (nếu có).
-                // if (!empty($specialPricesData)) {
-                //     $product->prices()->createMany($specialPricesData);
-                // }
 
                 if (!empty($unitConversionsData)) {
                     $product->unitConversions()->createMany($unitConversionsData);
@@ -263,7 +255,7 @@ class ProductService
                 }
 
                 Log::info("Đã tạo sản phẩm mới [ID: {$product->id}]");
-                return $product->load(['images', 'categories.icon', 'attributes.values', 'unitConversions', 'branches']);
+                return $product->load(['images', 'categories.icon', 'attributes.values', 'unitConversions', 'branches','timeSlots']);
             } catch (Exception $e) {
                 Log::error('Lỗi khi tạo sản phẩm: ' . $e->getMessage());
                 throw $e;
@@ -277,26 +269,28 @@ class ProductService
         return DB::transaction(function () use ($id, $data) {
             try {
                 $product = Product::findOrFail($id);
+
+                $timeLogicHasBeenSent = Arr::has($data, 'is_flexible_time') || Arr::has($data, 'time_slot_ids');
+                $timeSlotIds = Arr::pull($data, 'time_slot_ids', null);
+
                 // Đồng bộ Danh mục
                 if (Arr::has($data, 'category_ids')) {
                     $product->categories()->sync(Arr::get($data, 'category_ids', []));
+                }   
+                // Logic Sync Time
+                if ($timeLogicHasBeenSent) { 
+                    if ($data['is_flexible_time'] === true) {
+                        $product->timeSlots()->sync([]);
+                    } else {
+                        $product->timeSlots()->sync($timeSlotIds ?? []);
+                    }
                 }
-
                 // Đồng bộ Chi nhánh
                 if (Arr::get($data, 'applies_to_all_branches')) {
                     $product->branches()->sync(Branch::where('active', true)->pluck('id')->all());
                 } elseif (Arr::has($data, 'branch_ids')) {
                     $product->branches()->sync(Arr::get($data, 'branch_ids', []));
                 }
-
-                // // Đồng bộ Giá đặc biệt
-                // if (Arr::has($data, 'branch_prices')) {
-                //     $product->prices()->delete();
-                //     $specialPricesData = Arr::get($data, 'branch_prices', []);
-                //     if (!empty($specialPricesData)) {
-                //         $product->prices()->createMany($specialPricesData);
-                //     }
-                // }
 
                 // Đồng bộ Đơn vị quy đổi
                 if (Arr::has($data, 'unit_conversions')) {
@@ -398,7 +392,7 @@ class ProductService
                 }
 
                 Log::info("Đã cập nhật sản phẩm [ID: {$product->id}]");
-                return $product->refresh()->load(['images', 'categories.icon', 'featuredImage', 'attributes.values', 'unitConversions', 'branches']);
+                return $product->refresh()->load(['images', 'categories.icon', 'featuredImage', 'attributes.values', 'unitConversions', 'branches','timeSlots']);
             } catch (ModelNotFoundException $e) {
                 Log::warning("Không tìm thấy sản phẩm để cập nhật. ID: {$id}");
                 throw $e;
@@ -433,9 +427,9 @@ class ProductService
                     $attribute->delete();
                 });
                 $product->unitConversions()->delete();
-                $product->prices()->delete();
                 $product->categories()->detach();
                 $product->branches()->detach();
+                $product->timeSlots()->detach();
 
                 $isDeleted = $product->delete();
                 Log::warning("Đã xóa sản phẩm [ID: {$id}]");
@@ -461,14 +455,6 @@ class ProductService
             $missingIds = array_diff($ids, $foundIds);
             throw new ModelNotFoundException('Một hoặc nhiều sản phẩm không tồn tại: ' . implode(', ', $missingIds));
         }
-        // $usedProducts = $products->filter(function ($product) {
-        //     return $product->orderDetails()->exists();
-        // });
-
-        // if ($usedProducts->isNotEmpty()) {
-        //     $productIds = $usedProducts->pluck('id')->implode(', ');
-        //     throw new Exception("Không thể xóa các sản phẩm {$productIds} vì đã phát sinh đơn hàng.");
-        // }
         $usedInOrders = OrderDetail::whereIn('product_id', $ids)->pluck('product_id')->unique();
         if ($usedInOrders->isNotEmpty()) {
             throw new Exception("Không thể xóa các sản phẩm (ID: " . $usedInOrders->implode(', ') . ") vì đã phát sinh đơn hàng bán ra.");
@@ -479,9 +465,12 @@ class ProductService
             throw new Exception("Không thể xóa các sản phẩm (ID: " . $usedInPurchases->implode(', ') . ") vì đã phát sinh lịch sử nhập hàng.");
         }
 
-        return DB::transaction(function () use ($products) {
+        return DB::transaction(function () use ($products, $ids) {
             $deletedCount = 0;
-
+            DB::table('item_time_slots')
+                ->whereIn('product_id', $ids)
+                ->whereNull('combo_id') 
+                ->delete();
             foreach ($products as $product) {
                 foreach ($product->images as $image) {
                     $this->imageService->delete($image->image_url, 'products');

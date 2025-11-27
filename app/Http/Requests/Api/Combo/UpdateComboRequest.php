@@ -26,6 +26,16 @@ class UpdateComboRequest extends FormRequest
                 'applies_to_all_branches' => filter_var($this->input('applies_to_all_branches'), FILTER_VALIDATE_BOOLEAN),
             ]);
         }
+        if ($this->has('time_slot_ids') || $this->has('is_flexible_time')) {
+            
+            if ($this->has('time_slot_ids') && !empty($this->input('time_slot_ids'))) {
+                $this->merge(['is_flexible_time' => false]);
+            } 
+            else {
+                $this->merge(['is_flexible_time' => true]);
+                $this->merge(['time_slot_ids' => []]); 
+            }
+        }
     }
     /**
      * Get the validation rules that apply to the request.
@@ -61,6 +71,9 @@ class UpdateComboRequest extends FormRequest
                 Rule::when($this->input('applies_to_all_branches') === false, ['min:1'], []),
             ],
             'branch_ids.*' => 'integer|exists:branches,id',
+            'is_flexible_time' => 'sometimes|boolean',
+            'time_slot_ids' => 'sometimes|nullable|array',
+            'time_slot_ids.*' => 'required|integer|exists:order_time_slots,id'
         ];
     }
     public function messages()

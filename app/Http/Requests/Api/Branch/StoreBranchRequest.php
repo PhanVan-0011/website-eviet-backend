@@ -32,6 +32,8 @@ class StoreBranchRequest extends FormRequest
                 ],
                 'email' => 'nullable|email|max:255|unique:branches,email',
                 'active' => 'boolean',
+                'time_slot_ids' => 'nullable|array',
+                'time_slot_ids.*' => 'required|integer|exists:order_time_slots,id'
         ];
     }
     /**
@@ -66,6 +68,9 @@ class StoreBranchRequest extends FormRequest
             'email.email' => 'Email không đúng định dạng.',
             
             'active.boolean' => 'Trạng thái hoạt động phải là đúng hoặc sai.',
+            
+            'time_slot_ids.array' => 'Định dạng danh sách khung giờ không hợp lệ.',
+            'time_slot_ids.*.exists' => 'Một trong các khung giờ được chọn không tồn tại.'
         ];
     }
     

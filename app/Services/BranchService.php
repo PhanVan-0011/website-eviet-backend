@@ -1,16 +1,18 @@
 <?php
 
 namespace App\Services;
+
 use App\Models\Branch;
 use App\Models\BranchProductStock;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Arr;
 
 class BranchService
 {
-     /**
+    /**
      * Lấy danh sách tất cả chi nhánh với phân trang thủ công, tìm kiếm và sắp xếp.
      */
     public function getAllBranches($request)
@@ -36,7 +38,7 @@ class BranchService
             if (!empty($keyword)) {
                 $query->where(function ($q) use ($keyword) {
                     $q->where('name', 'like', "%{$keyword}%")
-                      ->orWhere('code', 'like', "%{$keyword}%");
+                        ->orWhere('code', 'like', "%{$keyword}%");
                 });
             }
 
@@ -50,8 +52,8 @@ class BranchService
             }
 
             $query->orderBy('id', 'desc');
-             $query->with('products');  
-            
+            $query->with('products');
+
             $total = $query->count();
 
             $offset = ($currentPage - 1) * $perPage;
@@ -69,18 +71,17 @@ class BranchService
                 'next_page' => $nextPage,
                 'pre_page' => $prevPage,
             ];
-
         } catch (Exception $e) {
             Log::error('Lỗi khi lấy danh sách chi nhánh: ' . $e->getMessage());
             throw $e;
         }
     }
-     /**
+    /**
      * Lấy một chi nhánh theo ID.
      */
     public function getBranchById(string $id): Branch
     {
-        return Branch::with('products')->findOrFail($id);
+        return Branch::with('products', 'timeSlots')->findOrFail($id);
     }
 
     /**
@@ -89,7 +90,18 @@ class BranchService
     public function createBranch(array $data): Branch
     {
         try {
-            return Branch::create($data);
+            $timeSlotIds = Arr::pull($data, 'time_slot_ids', []);
+
+            $branch = Branch::create($data);
+
+            if (!empty($timeSlotIds)) {
+
+                $syncData = array_fill_keys($timeSlotIds, ['is_enabled' => true]);
+                $branch->timeSlots()->sync($syncData);
+            }
+
+            // Load lại quan hệ để trả về
+            return $branch->load('timeSlots');
         } catch (Exception $e) {
             Log::error('Lỗi khi tạo chi nhánh: ' . $e->getMessage());
             throw $e;
@@ -102,9 +114,20 @@ class BranchService
     public function updateBranch(string $id, array $data): Branch
     {
         try {
+            $timeSlotIds = Arr::pull($data, 'time_slot_ids', null);
+
+            // Dùng getBranchById() để đảm bảo đã load 'timeSlots'
             $branch = $this->getBranchById($id);
             $branch->update($data);
-            return $branch;
+
+            // Chỉ sync nếu 'time_slot_ids' được gửi lên (kể cả là mảng rỗng [])
+            if ($timeSlotIds !== null) {
+                $syncData = array_fill_keys($timeSlotIds, ['is_enabled' => true]);
+                $branch->timeSlots()->sync($syncData);
+            }
+
+            // Dùng refresh() để đảm bảo dữ liệu (kể cả 'timeSlots') là mới nhất
+            return $branch->refresh()->load(['products', 'timeSlots']);
         } catch (ModelNotFoundException $e) {
             throw $e;
         } catch (Exception $e) {
@@ -120,12 +143,14 @@ class BranchService
     {
         try {
             return DB::transaction(function () use ($id) {
-                $branch = Branch::with('products')->findOrFail($id);
-                
+                // Dùng getBranchById để load luôn timeSlots
+                $branch = $this->getBranchById($id);
+
                 // Kiểm tra tồn kho trước khi xóa
                 if ($branch->products->isNotEmpty()) {
                     throw new Exception('Không thể xóa chi nhánh có tồn kho sản phẩm.');
                 }
+                $branch->timeSlots()->detach();
 
                 return $branch->delete();
             });
@@ -137,7 +162,7 @@ class BranchService
         }
     }
 
-     /**
+    /**
      * Xóa nhiều chi nhánh cùng lúc.
      *
      * @param array $ids Danh sách ID chi nhánh
@@ -160,9 +185,11 @@ class BranchService
                         $productCount = $branch->products->count();
                         return "Chi nhánh '{$branch->name}' đang có {$productCount} sản phẩm tồn kho, không thể xóa.";
                     })->all();
-                    
+
                     throw new Exception(implode(' ', $errors));
                 }
+
+                DB::table('branch_time_slot_pivot')->whereIn('branch_id', $ids)->delete();
 
                 $count = 0;
                 foreach ($branchesToDelete as $branch) {
@@ -177,5 +204,4 @@ class BranchService
             throw $e;
         }
     }
-
 }

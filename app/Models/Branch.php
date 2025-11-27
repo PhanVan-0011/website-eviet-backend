@@ -28,6 +28,16 @@ class Branch extends Model
                     ->withPivot('quantity')
                     ->withTimestamps();
     }
+    /**
+     * Mối quan hệ: Một chi nhánh có thể áp dụng nhiều Khung Giờ.
+     */
+    public function timeSlots(): BelongsToMany
+    {
+        // Bảng trung gian là 'branch_time_slot_pivot'
+        return $this->belongsToMany(OrderTimeSlot::class, 'branch_time_slot_pivot', 'branch_id', 'time_slot_id')
+                    ->withPivot('is_enabled') // Lấy thêm cột 'is_enabled' từ bảng pivot
+                    ->withTimestamps();
+    }
 
     /**
      * Lấy tất cả người dùng thuộc chi nhánh này.

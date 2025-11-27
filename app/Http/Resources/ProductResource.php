@@ -49,6 +49,21 @@ class ProductResource extends JsonResource
             //Chi nhánh
             'branches' => BranchResource::collection($this->whenLoaded('branches')), 
             'applies_to_all_branches' => $this->applies_to_all_branches,
+            
+            'is_flexible_time' => (bool) $this->is_flexible_time,
+            //thời gian cố định
+            'time_slots' => $this->when(
+                !$this->is_flexible_time,
+                fn() => TimeSlotResource::collection($this->whenLoaded('timeSlots'))
+            ),
+            // Chỉ trả về 'time_slot_ids' NẾU is_flexible_time = false
+            // 'time_slot_ids' => $this->when(
+            //     !$this->is_flexible_time,
+            //     fn() => $this->whenLoaded('timeSlots', fn() => $this->timeSlots->pluck('id'))
+            // ),
+
+
+
 
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),

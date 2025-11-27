@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\PurchaseInvoiceController;
 use App\Http\Controllers\Api\Client\ClientSliderController;
 use App\Http\Controllers\Api\ProductUnitConversionController;
 use App\Http\Controllers\Api\TimeSlotController;
+use App\Http\Controllers\Api\MenuController; 
 use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 use App\Http\Controllers\Api\Client\ProductController as ClientProductController;
 use App\Http\Controllers\Api\Client\PromotionController as ClientPromotionController;
@@ -33,6 +34,7 @@ use App\Http\Controllers\Api\Client\ComboController as ClientComboController;
 use App\Http\Controllers\Api\Client\PostController as ClientPostController;
 use App\Http\Controllers\Api\Client\SearchController as ClientSearchController;
 use App\Http\Controllers\Api\Client\CategoryController as ClientCategoryController;
+
  
 
 // ===  ROUTE PUBLIC ===
@@ -93,12 +95,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/profile/update', [AuthController::class, 'update_profile']);
     Route::get('/payment-methods', [PaymentMethodController::class, 'index'])->middleware('check.permission:orders.view,orders.update,payment_methods.view');
+    Route::get('/menu', [MenuController::class, 'getMenu']);
 });
 
 
 //Admin
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
-     // --- Purchase Invoices (Hóa đơn nhập hàng) ---
+     // --- Purchase Invoices ---
     Route::prefix('purchase-invoices')->group(function () {
         Route::get('/', [PurchaseInvoiceController::class, 'index']);
         Route::get('/{id}', [PurchaseInvoiceController::class, 'show']);
@@ -130,7 +133,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/{id}', [SupplierController::class, 'destroy']);
         
     });
-    // ---Branch---
+    // --- Branch ---
     Route::prefix('branches')->group(function () {
         Route::get('/', [BranchController::class, 'index']);
         Route::delete('/multi-delete', [BranchController::class, 'multiDelete']);
@@ -143,9 +146,9 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // --- Time Slots (Khung Giờ Bán Hàng) ---
     Route::prefix('time-slots')->middleware('check.permission:timeslots.manage')->group(function () {
         Route::get('/', [TimeSlotController::class, 'index']);
+        Route::put('/{id}', [TimeSlotController::class, 'update']);
         Route::get('/{id}', [TimeSlotController::class, 'show']);
         Route::post('/', [TimeSlotController::class, 'store']);
-        Route::put('/{id}', [TimeSlotController::class, 'update']); // <-- Đã sửa thành PUT
         Route::delete('/multi-delete', [TimeSlotController::class, 'multiDelete']);
         Route::delete('/{id}', [TimeSlotController::class, 'destroy']);
     });

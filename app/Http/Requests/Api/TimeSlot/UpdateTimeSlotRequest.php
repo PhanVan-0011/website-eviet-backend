@@ -39,7 +39,7 @@ class UpdateTimeSlotRequest extends FormRequest
                 'sometimes',
                 'required',
                 'date_format:H:i:s',
-                // Chỉ kiểm tra 'after' nếu 'start_time' cũng được gửi
+                
                 Rule::when($this->filled('start_time'), 'after:start_time'),
             ],
             'delivery_time' => 'sometimes|required|date_format:H:i:s',

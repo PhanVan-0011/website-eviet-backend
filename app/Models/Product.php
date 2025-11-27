@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Product extends Model
 {
@@ -19,21 +20,15 @@ class Product extends Model
         'base_store_price',
         'base_app_price',
         'is_sales_unit',
-        'applies_to_all_branches'
+        'applies_to_all_branches',
+        'is_flexible_time',
     ];
-    // /**
-    //  * Ghi đè phương thức boot của model để đăng ký event.
-    //  */
-    // protected static function booted(): void
-    // {      
-    //     static::created(function ($product) {
-    //         if (is_null($product->product_code)) {
-    //             $product->product_code = 'SP' . str_pad($product->id, 6, '0', STR_PAD_LEFT);
-    //             $product->saveQuietly();
-    //         }
-    //     });
-    // }
-
+    protected $casts = [
+        'status' => 'boolean',
+        'is_sales_unit' => 'boolean',
+        'applies_to_all_branches' => 'boolean',
+        'is_flexible_time' => 'boolean', 
+    ];
     /**
      * Quan hệ đa hình: Một sản phẩm có nhiều ảnh.
      */
@@ -111,5 +106,11 @@ class Product extends Model
     public function purchaseInvoiceDetails(): HasMany
     {
         return $this->hasMany(PurchaseInvoiceDetail::class);
+    }
+    public function timeSlots(): BelongsToMany
+    {
+        // Bảng trung gian là 'item_time_slots'
+        return $this->belongsToMany(OrderTimeSlot::class, 'item_time_slots', 'product_id', 'time_slot_id')
+                    ->withTimestamps();
     }
 }
