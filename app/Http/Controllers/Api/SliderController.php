@@ -11,6 +11,7 @@ use App\Services\SliderService;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use App\Models\Slider;
+use Illuminate\Support\Facades\Log;
 
 class SliderController extends Controller
 {
@@ -25,21 +26,21 @@ class SliderController extends Controller
     public function index(Request $request)
     {
         try {
-           
-                $data = $this->sliderService->getAllSliders($request);
-                return response()->json([
-                    'success' => true,
-                    'data' => SliderResource::collection($data['data']),
-                    'pagination' => [
-                        'page' => $data['page'],
-                        'total' => $data['total'],
-                        'last_page' => $data['last_page'],
-                        'next_page' => $data['next_page'],
-                        'prev_page' => $data['prev_page'],
-                    ],
-                    'message' => 'Lấy danh sách slider thành công',
-                    'timestamp' => now()->format('Y-m-d H:i:s'),
-                ], 200);
+
+            $data = $this->sliderService->getAllSliders($request);
+            return response()->json([
+                'success' => true,
+                'data' => SliderResource::collection($data['data']),
+                'pagination' => [
+                    'page' => $data['page'],
+                    'total' => $data['total'],
+                    'last_page' => $data['last_page'],
+                    'next_page' => $data['next_page'],
+                    'prev_page' => $data['prev_page'],
+                ],
+                'message' => 'Lấy danh sách slider thành công',
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -59,9 +60,14 @@ class SliderController extends Controller
                 'data' => new SliderResource($slider),
             ], 201);
         } catch (\Exception $e) {
+            Log::error('Lỗi khi tạo slider: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'data' => $request->all()
+            ]);
             return response()->json([
                 'success' => false,
-                 'message' => 'Lỗi khi tạo slider'
+                'message' => 'Lỗi khi tạo slider',
+                'error' => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
     }
@@ -91,7 +97,7 @@ class SliderController extends Controller
     public function update(UpdateSliderRequest $request, int $id)
     {
         try {
-           $slider = $this->sliderService->updateSlider($id, $request->validated());
+            $slider = $this->sliderService->updateSlider($id, $request->validated());
 
             return response()->json([
                 'success' => true,

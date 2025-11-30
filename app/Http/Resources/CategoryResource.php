@@ -20,9 +20,18 @@ class CategoryResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'icon' => $this->whenLoaded('icon', function () {
-                return $this->icon ? asset($this->icon->image_url) : null;
+                if (!$this->icon) {
+                    return null;
+                }
+                // Tách đường dẫn gốc thành thư mục và tên file
+                $directory = dirname($this->icon->image_url);
+                $fileName = basename($this->icon->image_url);
+                // Trả về URL với /main/ giống như ImageResource
+                $mainPath = "{$directory}/main/{$fileName}";
+                return asset($mainPath);
             }),
             'status' => $this->status,
+            'type' => $this->type, // Loại danh mục: product, post, all
             'parent_id' => $this->parent_id,
 
             'parent' => $this->whenLoaded('parent', fn() => new CategoryResource($this->parent)),

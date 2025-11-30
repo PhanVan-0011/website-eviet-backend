@@ -184,4 +184,42 @@ class CategoryController extends Controller
             ], 400);
         }
     }
+
+    /**
+     * Lấy danh sách danh mục theo loại (dùng cho dropdown khi thêm/sửa sản phẩm hoặc bài viết)
+     * 
+     * Logic:
+     * - for=product → trả về categories có type='product' + type='all'
+     * - for=post → trả về categories có type='post' + type='all'
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getForType(Request $request)
+    {
+        try {
+            $forType = $request->input('for', 'product'); // Mặc định là product
+
+            if (!in_array($forType, ['product', 'post'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Loại không hợp lệ. Chỉ chấp nhận: product, post.',
+                ], 422);
+            }
+
+            $categories = $this->categoryService->getCategoriesForType($forType);
+
+            return response()->json([
+                'success' => true,
+                'data' => CategoryResource::collection($categories),
+                'message' => "Lấy danh sách danh mục cho {$forType} thành công (bao gồm type='{$forType}' và type='all')",
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi lấy danh sách danh mục',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

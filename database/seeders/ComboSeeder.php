@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class ComboSeeder extends Seeder
 {
@@ -18,7 +17,6 @@ class ComboSeeder extends Seeder
             [
                 'name' => 'Combo Mùa Hè Sôi Động',
                 'description' => 'Bộ sưu tập các sản phẩm mùa hè với giá ưu đãi',
-                'slug' => Str::slug('Combo Mùa Hè Sôi Động'),
                 'start_date' => now(),
                 'end_date' => now()->addMonths(2),
                 'is_active' => true,
@@ -28,7 +26,6 @@ class ComboSeeder extends Seeder
             [
                 'name' => 'Combo Khởi Đầu Mới',
                 'description' => 'Dành cho khách hàng mới với nhiều ưu đãi hấp dẫn',
-                'slug' => Str::slug('Combo Khởi Đầu Mới'),
                 'start_date' => now(),
                 'end_date' => now()->addMonths(1),
                 'is_active' => true,
@@ -38,7 +35,6 @@ class ComboSeeder extends Seeder
             [
                 'name' => 'Combo Cao Cấp',
                 'description' => 'Bộ sưu tập các sản phẩm cao cấp với giá đặc biệt',
-                'slug' => Str::slug('Combo Cao Cấp'),
                 'start_date' => now(),
                 'end_date' => now()->addMonths(3),
                 'is_active' => true,
@@ -48,7 +44,6 @@ class ComboSeeder extends Seeder
             [
                 'name' => 'Combo Tiết Kiệm',
                 'description' => 'Các sản phẩm tiết kiệm với giá tốt nhất',
-                'slug' => Str::slug('Combo Tiết Kiệm'),
                 'start_date' => now(),
                 'end_date' => now()->addMonths(1),
                 'is_active' => true,
@@ -58,7 +53,6 @@ class ComboSeeder extends Seeder
             [
                 'name' => 'Combo Đặc Biệt Cuối Tuần',
                 'description' => 'Ưu đãi đặc biệt chỉ có vào cuối tuần',
-                'slug' => Str::slug('Combo Đặc Biệt Cuối Tuần'),
                 'start_date' => now(),
                 'end_date' => now()->addDays(7),
                 'is_active' => true,

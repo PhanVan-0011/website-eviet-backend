@@ -86,7 +86,7 @@ class ImageService
                 $resizedImage = $image->scale($dimensions[0], $dimensions[1])->encode();
                 Storage::disk('public')->put($fullPath, $resizedImage);
             }
-            
+
             return $basePath;
         } catch (\Exception $e) {
             Log::error("Lỗi khi xử lý ảnh: " . $e->getMessage());
@@ -100,7 +100,7 @@ class ImageService
      */
     public function delete(?string $basePath, string $folder): void
     {
-         if (!$basePath) {
+        if (!$basePath) {
             return;
         }
 
@@ -124,13 +124,13 @@ class ImageService
             // }
             $directory = dirname($basePath);
             $filename = basename($basePath);
-            
+
             $imageSizes = $this->sizes[$folder] ?? [];
             // Đoạn code này đảm bảo file SVG cũng được thêm vào vòng lặp xóa bên dưới
             if (pathinfo($filename, PATHINFO_EXTENSION) === 'svg') {
-                $imageSizes['main'] = true; 
+                $imageSizes['main'] = true;
             }
-            
+
             // // Xóa tất cả biến thể (main, thumb,...)
             // foreach (array_keys($imageSizes) as $sizeName) {
             //     $fullPath = "{$baseDir}/{$sizeName}/{$baseFileName}.{$ext}";

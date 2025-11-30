@@ -16,41 +16,41 @@ class StorePurchaseInvoiceRequest extends FormRequest
     {
         return true;
     }
-     
-    
-      /**
+
+
+    /**
      * Tính toán tổng tiền hóa đơn trước khi validation chạy.
      */
     protected function prepareForValidation(): void
     {
         $grossSubtotal = 0.00; // Tổng tiền trước mọi chiết khấu
         $totalItemDiscount = 0.00; // Tổng chiết khấu mặt hàng
-        
+
         // Lấy chiết khấu HĐ từ input field (Chỉ Chiết khấu HĐ)
-        $invoiceDiscountOnly = (float) $this->input('discount_amount', 0.00); 
+        $invoiceDiscountOnly = (float) $this->input('discount_amount', 0.00);
 
         if ($this->has('details') && is_array($this->details)) {
             // Sử dụng tham chiếu (&) để có thể cập nhật giá trị item_discount đã giới hạn
             // Tuy nhiên, đối với Store Request, ta chỉ cần tính toán tổng ở đây, việc
             // giới hạn Item Discount để lưu vào DB sẽ do Service đảm nhận.
-            foreach ($this->details as $detail) { 
+            foreach ($this->details as $detail) {
 
                 $quantity = (float) ($detail['quantity'] ?? 0.00);
                 $unitPrice = (float) ($detail['unit_price'] ?? 0.00);
-                $itemDiscount = (float) ($detail['item_discount'] ?? 0.00); 
-                
+                $itemDiscount = (float) ($detail['item_discount'] ?? 0.00);
+
                 // Tính Gross Line Total
                 $lineGross = round($quantity * $unitPrice, 2);
 
                 // Cộng dồn Gross Subtotal
                 $grossSubtotal += $lineGross;
-                
+
                 //Giới hạn Item Discount không vượt quá giá trị dòng khi tính tổng Net Subtotal.
                 $adjustedItemDiscount = round(min($itemDiscount, $lineGross), 2);
-                $totalItemDiscount += $adjustedItemDiscount; 
+                $totalItemDiscount += $adjustedItemDiscount;
             }
         }
-    
+
         // Net Subtotal (Đã trừ CK Item)
         $subtotalAmount = max(0.00, round($grossSubtotal - $totalItemDiscount, 2));
 
@@ -58,20 +58,20 @@ class StorePurchaseInvoiceRequest extends FormRequest
         $adjustedInvoiceDiscount = min(round(max(0.00, $invoiceDiscountOnly), 2), $subtotalAmount);
 
         // Total Amount CUỐI CÙNG: Net Subtotal - Adjusted Invoice Discount
-        $totalAmount = max(0.00, round($subtotalAmount - $adjustedInvoiceDiscount, 2)); 
-        
+        $totalAmount = max(0.00, round($subtotalAmount - $adjustedInvoiceDiscount, 2));
+
         // Cột discount_amount trong DB CHỈ LƯU CK HEADER ĐÃ ĐIỀU CHỈNH.
-        
+
         $paidAmount = (float) $this->input('paid_amount', 0.00);
 
         // Merge các giá trị đã tính toán và chuẩn hóa
         $this->merge([
-            'total_amount' => $totalAmount, 
-            'subtotal_amount' => $subtotalAmount, 
+            'total_amount' => $totalAmount,
+            'subtotal_amount' => $subtotalAmount,
             'discount_amount' => $adjustedInvoiceDiscount, // Lưu CK Header đã điều chỉnh
-            'invoice_discount_only' => $adjustedInvoiceDiscount, 
-            'paid_amount' => $paidAmount, 
-            
+            'invoice_discount_only' => $adjustedInvoiceDiscount,
+            'paid_amount' => $paidAmount,
+
         ]);
     }
     public function rules(): array
@@ -83,14 +83,14 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'user_id' => 'required|integer|exists:users,id',
             'invoice_date' => 'required|date',
             'status' => 'required|string|in:draft,received,cancelled',
-            
+
             'invoice_discount_only' => 'nullable|numeric|min:0', // Trường được merge
 
             // Các trường giá trị tiền tệ/số lượng (Đã được merge)
             'subtotal_amount' => 'nullable|numeric|min:0',
             'discount_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'nullable|numeric|min:0',
-            'paid_amount' => 'nullable|numeric|min:0|lte:total_amount', 
+            'paid_amount' => 'nullable|numeric|min:0|lte:total_amount',
             'notes' => 'nullable|string',
 
             // Chi tiết sản phẩm (Mảng)
@@ -99,10 +99,10 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'details.*.quantity' => 'required|integer|min:1',
             'details.*.unit_price' => 'required|numeric|min:0',
             'details.*.unit_of_measure' => 'required|string|max:50',
-            'details.*.item_discount' => 'nullable|numeric|min:0',  
+            'details.*.item_discount' => 'nullable|numeric|min:0',
         ];
     }
-    
+
 
     public function messages(): array
     {

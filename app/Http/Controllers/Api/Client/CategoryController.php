@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 class CategoryController extends Controller
 {
-   protected $categoryService;
+    protected $categoryService;
 
     public function __construct(CategoryService $categoryService)
     {

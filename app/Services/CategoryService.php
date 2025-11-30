@@ -37,12 +37,18 @@ class CategoryService
             $parentId = $request->input('parent_id');
             $startDate = $request->input('start_date');
             $endDate = $request->input('end_date');
+            $type = $request->input('type'); // Lọc theo loại danh mục: product, post, all
 
             $query = Category::query();
 
             // Lọc theo trạng thái
             if (isset($status)) {
                 $query->where('status', (int) $status);
+            }
+
+            // Lọc theo loại danh mục
+            if (!empty($type)) {
+                $query->where('type', $type);
             }
 
             // Lọc theo danh mục cha
@@ -68,7 +74,7 @@ class CategoryService
             if (!empty($endDate)) {
                 $query->whereDate('created_at', '<=', $endDate);
             }
-            
+
             $query->orderBy('id', 'desc');
 
             $query->with(['parent', 'children', 'icon'])->withCount('products');
@@ -192,11 +198,18 @@ class CategoryService
         try {
             // Sử dụng DB::transaction để đảm bảo tính toàn vẹn
             return DB::transaction(function () use ($id) {
-                $category = Category::with('products', 'icon')->findOrFail($id);
+                $category = Category::with('products', 'posts', 'icon')->findOrFail($id);
 
                 if ($category->products->isNotEmpty()) {
                     $productCount = $category->products->count();
                     $message = "Danh mục '{$category->name}' đang được sử dụng bởi $productCount sản phẩm, không thể xóa.";
+                    Log::warning("Đã chặn xóa danh mục (ID: $id): " . $message);
+                    throw new Exception($message);
+                }
+
+                if ($category->posts->isNotEmpty()) {
+                    $postCount = $category->posts->count();
+                    $message = "Danh mục '{$category->name}' đang được sử dụng bởi $postCount bài viết, không thể xóa.";
                     Log::warning("Đã chặn xóa danh mục (ID: $id): " . $message);
                     throw new Exception($message);
                 }
@@ -229,20 +242,26 @@ class CategoryService
     {
         try {
             return DB::transaction(function () use ($ids) {
-                // Tải các danh mục cần xóa cùng với mối quan hệ products và icon
+                // Tải các danh mục cần xóa cùng với mối quan hệ products, posts và icon
                 $categoriesToDelete = Category::whereIn('id', $ids)
-                    ->with(['products', 'icon'])
+                    ->with(['products', 'posts', 'icon'])
                     ->get();
 
-                // Kiểm tra xem có danh mục nào đang có sản phẩm không
-                $categoriesWithProducts = $categoriesToDelete->filter(function ($category) {
-                    return $category->products->isNotEmpty();
+                // Kiểm tra xem có danh mục nào đang có sản phẩm hoặc bài viết không
+                $categoriesInUse = $categoriesToDelete->filter(function ($category) {
+                    return $category->products->isNotEmpty() || $category->posts->isNotEmpty();
                 });
 
-                if ($categoriesWithProducts->isNotEmpty()) {
-                    $errors = $categoriesWithProducts->map(function ($category) {
-                        $productCount = $category->products->count();
-                        return "Danh mục '{$category->name}' đang được sử dụng bởi $productCount sản phẩm, không thể xóa.";
+                if ($categoriesInUse->isNotEmpty()) {
+                    $errors = $categoriesInUse->map(function ($category) {
+                        $messages = [];
+                        if ($category->products->isNotEmpty()) {
+                            $messages[] = "{$category->products->count()} sản phẩm";
+                        }
+                        if ($category->posts->isNotEmpty()) {
+                            $messages[] = "{$category->posts->count()} bài viết";
+                        }
+                        return "Danh mục '{$category->name}' đang được sử dụng bởi " . implode(' và ', $messages) . ", không thể xóa.";
                     })->all();
 
                     throw new Exception(implode(' ', $errors));
@@ -263,6 +282,36 @@ class CategoryService
             });
         } catch (Exception $e) {
             Log::error("Lỗi khi xóa nhiều danh mục: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Lấy danh sách danh mục theo loại (dùng cho dropdown khi thêm/sửa sản phẩm hoặc bài viết)
+     * 
+     * Logic:
+     * - Khi forType = 'product': lấy categories có type='product' + type='all'
+     * - Khi forType = 'post': lấy categories có type='post' + type='all'
+     * 
+     * @param string $forType Loại: 'product' hoặc 'post'
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getCategoriesForType(string $forType)
+    {
+        try {
+            // Chỉ lấy categories đang active
+            // Lấy categories có type = $forType HOẶC type = 'all'
+            // Ví dụ: forType='product' → lấy type='product' + type='all'
+            return Category::where('status', 1)
+                ->where(function ($query) use ($forType) {
+                    $query->where('type', $forType)
+                        ->orWhere('type', Category::TYPE_ALL);
+                })
+                ->with(['parent', 'icon'])
+                ->orderBy('name', 'asc')
+                ->get();
+        } catch (Exception $e) {
+            Log::error('Lỗi khi lấy danh mục theo loại: ' . $e->getMessage());
             throw $e;
         }
     }

@@ -9,7 +9,13 @@ use App\Models\Product;
 class Category extends Model
 {
     use HasFactory;
-    protected $fillable = ['name', 'status', 'parent_id', 'description'];
+
+    // Constants cho loại danh mục
+    const TYPE_PRODUCT = 'product';
+    const TYPE_POST = 'post';
+    const TYPE_ALL = 'all';
+
+    protected $fillable = ['name', 'status', 'parent_id', 'description', 'type'];
     // Quan hệ: nhiều nhiều
     public function products()
     {

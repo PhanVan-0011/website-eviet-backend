@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\ProductAttributeController; 
+use App\Http\Controllers\Api\ProductAttributeController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ImageController;
@@ -26,7 +26,7 @@ use App\Http\Controllers\Api\PurchaseInvoiceController;
 use App\Http\Controllers\Api\Client\ClientSliderController;
 use App\Http\Controllers\Api\ProductUnitConversionController;
 use App\Http\Controllers\Api\TimeSlotController;
-use App\Http\Controllers\Api\MenuController; 
+use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 use App\Http\Controllers\Api\Client\ProductController as ClientProductController;
 use App\Http\Controllers\Api\Client\PromotionController as ClientPromotionController;
@@ -35,12 +35,14 @@ use App\Http\Controllers\Api\Client\PostController as ClientPostController;
 use App\Http\Controllers\Api\Client\SearchController as ClientSearchController;
 use App\Http\Controllers\Api\Client\CategoryController as ClientCategoryController;
 
- 
+
 
 // ===  ROUTE PUBLIC ===
 Route::prefix('public')->group(function () {
     Route::get('/search', [ClientSearchController::class, 'search']);
     Route::get('/sliders', [ClientSliderController::class, 'index']);
+    // slider hiển thị trang chủ
+    Route::get('/sliders/without-linkable', [ClientSliderController::class, 'withoutLinkable']);
     Route::get('/categories', [ClientCategoryController::class, 'index']);
 
     Route::prefix('products')->group(function () {
@@ -101,7 +103,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 //Admin
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
-     // --- Purchase Invoices ---
+    // --- Purchase Invoices ---
     Route::prefix('purchase-invoices')->group(function () {
         Route::get('/', [PurchaseInvoiceController::class, 'index']);
         Route::get('/{id}', [PurchaseInvoiceController::class, 'show']);
@@ -110,9 +112,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::put('/{id}', [PurchaseInvoiceController::class, 'update']);
         Route::delete('/multi-delete', [PurchaseInvoiceController::class, 'multiDelete']);
         Route::delete('/{id}', [PurchaseInvoiceController::class, 'destroy']);
-        
     });
-     // --- Supplier Groups ---
+    // --- Supplier Groups ---
     Route::prefix('supplier-groups')->group(function () {
         Route::get('/', [SupplierGroupController::class, 'index']);
         Route::get('/{id}', [SupplierGroupController::class, 'show']);
@@ -131,7 +132,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/', [SupplierController::class, 'store']);
         Route::put('/{id}', [SupplierController::class, 'update']);
         Route::delete('/{id}', [SupplierController::class, 'destroy']);
-        
     });
     // --- Branch ---
     Route::prefix('branches')->group(function () {
@@ -141,7 +141,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/', [BranchController::class, 'store']);
         Route::post('/{id}', [BranchController::class, 'update']);
         Route::delete('/{id}', [BranchController::class, 'destroy']);
- 
     });
     // --- Time Slots (Khung Giờ Bán Hàng) ---
     Route::prefix('time-slots')->middleware('check.permission:timeslots.manage')->group(function () {
@@ -176,6 +175,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // ---Category---
     Route::prefix('categories')->middleware('check.permission:categories.view,promotions.create, promotions.update,products.view,products.create,products.update,posts.manage')->group(function () {
         Route::get('/', [CategoryController::class, 'index']);
+        // Lấy danh mục theo loại (product hoặc post) - dùng cho dropdown
+        Route::get('/for-type', [CategoryController::class, 'getForType']);
         Route::get('/{id}', [CategoryController::class, 'show']);
         Route::post('/', [CategoryController::class, 'store'])->middleware('check.permission:categories.manage');
         Route::post('/{id}', [CategoryController::class, 'update'])->middleware('check.permission:categories.manage');
@@ -211,7 +212,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/{id}', [ProductAttributeController::class, 'destroy']);
         Route::delete('attribute-values/{id}', [ProductAttributeController::class, 'destroyValue']);
     });
-     // ---Attributes values---
+    // ---Attributes values---
     Route::prefix('attribute-values')->middleware('check.permission:products.manage')->group(function () {
         Route::delete('/{id}', [ProductAttributeController::class, 'deleteAttributeValue']);
     });
@@ -223,7 +224,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/{id}', [PostController::class, 'update'])->middleware('check.permission:posts.manage');
         Route::delete('/multi-delete', [PostController::class, 'multiDelete'])->middleware('check.permission:posts.manage');
         Route::delete('/{id}', [PostController::class, 'destroy'])->middleware('check.permission:posts.manage');
-        
     });
 
     // ---Promotion---

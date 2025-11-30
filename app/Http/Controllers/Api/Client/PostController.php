@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\Client;
 
 use App\Http\Controllers\Controller;
 use App\Services\Client\PostService;
-use App\Http\Resources\PostResource;
+use App\Http\Resources\ClientPostResource;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
@@ -19,7 +19,7 @@ class PostController extends Controller
     }
 
     /**
-     * Lấy danh sách tin tức công khai.
+     * Lấy danh sách bài viết công khai.
      */
     public function index(Request $request)
     {
@@ -28,21 +28,21 @@ class PostController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Lấy danh sách tin tức thành công.',
-                'data' => PostResource::collection($result['data']),
+                'message' => 'Lấy danh sách bài viết thành công.',
+                'data' => ClientPostResource::collection($result['data']),
                 'pagination' => $result['pagination']
             ]);
         } catch (\Exception $e) {
-            Log::error('Lỗi khi lấy danh sách tin tức công khai: ' . $e->getMessage());
+            Log::error('Lỗi khi lấy danh sách bài viết công khai: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Không thể lấy danh sách tin tức.'
+                'message' => 'Không thể lấy danh sách bài viết.'
             ], 500);
         }
     }
 
     /**
-     * Lấy thông tin chi tiết một tin tức công khai.
+     * Lấy thông tin chi tiết một bài viết công khai.
      */
     public function show(string $slug)
     {
@@ -51,15 +51,16 @@ class PostController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => new PostResource($post)
+                'message' => 'Lấy thông tin bài viết thành công.',
+                'data' => new ClientPostResource($post)
             ]);
         } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không tìm thấy tin tức hoặc tin tức chưa được xuất bản.'
+                'message' => 'Không tìm thấy bài viết hoặc bài viết chưa được xuất bản.'
             ], 404);
         } catch (\Exception $e) {
-            Log::error("Lỗi khi lấy chi tiết tin tức công khai #{$slug}: " . $e->getMessage());
+            Log::error("Lỗi khi lấy chi tiết bài viết công khai #{$slug}: " . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Đã có lỗi xảy ra.'

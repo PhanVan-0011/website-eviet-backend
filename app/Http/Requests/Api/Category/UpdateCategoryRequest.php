@@ -38,6 +38,7 @@ class UpdateCategoryRequest extends FormRequest
             'status'      => 'sometimes|required|boolean',
             'parent_id'   => 'sometimes|nullable|exists:categories,id',
             'icon'        => 'sometimes|nullable|file|mimes:jpeg,png,jpg,svg|max:2048',
+            'type'        => 'sometimes|in:product,post,all', // Loại danh mục
         ];
     }
     /**
@@ -57,6 +58,8 @@ class UpdateCategoryRequest extends FormRequest
             'icon.file' => 'Icon phải là một file ảnh.',
             'icon.mimes' => 'Icon phải thuộc định dạng: jpeg, png, jpg hoặc svg.',
             'icon.max' => 'Dung lượng file icon không được vượt quá 2MB.',
+
+            'type.in' => 'Loại danh mục không hợp lệ. Chỉ chấp nhận: product, post, all.',
         ];
     }
     /**

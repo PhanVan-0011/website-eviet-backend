@@ -28,7 +28,8 @@ class StoreCategoryRequest extends FormRequest
             'icon' => 'nullable|file|mimes:jpeg,png,jpg,svg|max:2048',
             'description' => 'nullable|string',
             'status' => 'required|boolean',
-            'parent_id' => 'nullable|exists:categories,id', // Thêm validation cho parent_id
+            'parent_id' => 'nullable|exists:categories,id',
+            'type' => 'sometimes|in:product,post,all', // Loại danh mục: product, post, all
         ];
     }
     public function messages(): array
@@ -50,6 +51,8 @@ class StoreCategoryRequest extends FormRequest
             'status.boolean' => 'Trạng thái phải là true hoặc false.',
 
             'parent_id.exists' => 'Danh mục cha không tồn tại.',
+
+            'type.in' => 'Loại danh mục không hợp lệ. Chỉ chấp nhận: product, post, all.',
         ];
     }
     protected function failedValidation(Validator $validator)

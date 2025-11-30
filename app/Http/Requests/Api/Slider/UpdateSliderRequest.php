@@ -36,6 +36,19 @@ class UpdateSliderRequest extends FormRequest
         };
 
         $sliderId = $this->route('id');
+        
+        $linkableIdRules = [
+            'sometimes',
+            'nullable',
+            'required_with:linkable_type',
+            'integer',
+        ];
+        
+        // Chỉ thêm rule exists nếu có linkable_type hợp lệ
+        if ($tableName) {
+            $linkableIdRules[] = Rule::exists($tableName, 'id');
+        }
+        
         return [
             'title' => 'sometimes|required|string|max:200',
             'description' => 'sometimes|nullable|string|max:255',
@@ -52,17 +65,11 @@ class UpdateSliderRequest extends FormRequest
 
             'linkable_type' => [
                 'sometimes',
-                'required',
+                'nullable',
                 'string',
                 Rule::in(['product', 'combo', 'post']),
             ],
-            'linkable_id' => [
-                'sometimes',
-                'required_with:linkable_type',
-                'integer',
-                // Rule 'exists' sẽ kiểm tra ID trong bảng tương ứng
-                $tableName ? Rule::exists($tableName, 'id') : 'prohibited',
-            ],
+            'linkable_id' => $linkableIdRules,
         ];
     }
     public function messages()
@@ -80,7 +87,6 @@ class UpdateSliderRequest extends FormRequest
             'display_order.integer' => 'Thứ tự hiển thị phải là số nguyên.',
             'display_order.unique' => 'Thứ tự hiển thị không được trùng nhau.',
 
-            'linkable_type.required' => 'Loại liên kết là bắt buộc.',
             'linkable_type.in' => 'Loại liên kết không hợp lệ. Chỉ chấp nhận: product, combo, post.',
             'linkable_id.required_with' => 'ID đối tượng liên kết là bắt buộc khi có loại liên kết.',
             'linkable_id.integer' => 'ID đối tượng liên kết phải là số nguyên.',

@@ -15,7 +15,9 @@ class CategoryService
     public function getPublicCategories(): Collection
     {
         // Chỉ lấy các danh mục đang hoạt động và sắp xếp theo tên
+        // Load icon để trả về trong response (giống như API admin)
         return Category::where('status', 1)
+            ->with(['icon'])
             ->orderBy('name', 'asc')
             ->get();
     }
