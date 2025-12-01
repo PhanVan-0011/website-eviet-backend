@@ -45,24 +45,24 @@ Route::prefix('public')->group(function () {
     Route::get('/sliders/without-linkable', [ClientSliderController::class, 'withoutLinkable']);
     Route::get('/categories', [ClientCategoryController::class, 'index']);
 
-    Route::prefix('products')->group(function () {
-        Route::get('/', [ClientProductController::class, 'index']);
-        Route::get('/best-sellers', [ClientProductController::class, 'bestSellers']);
-        Route::get('/recommendations', [ClientProductController::class, 'recommendations']);
-        Route::get('/{id}', [ClientProductController::class, 'show']);
-    });
-    Route::prefix('promotions')->group(function () {
-        Route::get('/', [ClientPromotionController::class, 'index']);
-        Route::get('/{id}', [ClientPromotionController::class, 'show']);
-    });
-    Route::prefix('combos')->group(function () {
-        Route::get('/', [ClientComboController::class, 'index']);
-        Route::get('/{id}', [ClientComboController::class, 'show']);
-    });
-    Route::prefix('posts')->group(function () {
-        Route::get('/', [ClientPostController::class, 'index']);
-        Route::get('/{slug}', [ClientPostController::class, 'show']);
-    });
+//     Route::prefix('products')->group(function () {
+//         Route::get('/', [ClientProductController::class, 'index']);
+//         Route::get('/best-sellers', [ClientProductController::class, 'bestSellers']);
+//         Route::get('/recommendations', [ClientProductController::class, 'recommendations']);
+//         Route::get('/{id}', [ClientProductController::class, 'show']);
+//     });
+//     Route::prefix('promotions')->group(function () {
+//         Route::get('/', [ClientPromotionController::class, 'index']);
+//         Route::get('/{id}', [ClientPromotionController::class, 'show']);
+//     });
+//     Route::prefix('combos')->group(function () {
+//         Route::get('/', [ClientComboController::class, 'index']);
+//         Route::get('/{id}', [ClientComboController::class, 'show']);
+//     });
+//     Route::prefix('posts')->group(function () {
+//         Route::get('/', [ClientPostController::class, 'index']);
+//         Route::get('/{slug}', [ClientPostController::class, 'show']);
+//     });
 });
 // --- Client Authentication ---
 Route::prefix('auth')->group(function () {
@@ -73,11 +73,11 @@ Route::prefix('auth')->group(function () {
     Route::post('/loginApp', [AuthController::class, 'loginApp']);
 });
 //ForgotPassWord
-Route::prefix('password/forgot')->group(function () {
-    Route::post('/initiate', [ForgotPasswordController::class, 'initiate'])->middleware('throttle:3,1');
-    Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
-    Route::post('/complete', [ForgotPasswordController::class, 'complete']);
-});
+// Route::prefix('password/forgot')->group(function () {
+//     Route::post('/initiate', [ForgotPasswordController::class, 'initiate'])->middleware('throttle:3,1');
+//     Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
+//     Route::post('/complete', [ForgotPasswordController::class, 'complete']);
+// });
 //LOGIN ADMIN
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -194,6 +194,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/multi-delete', [ProductController::class, 'multiDelete'])->middleware('check.permission:products.delete');
         Route::delete('/{id}', [ProductController::class, 'destroy'])->middleware('check.permission:products.delete');
     });
+<<<<<<< HEAD
     // ---Product Unit Conversions (Đơn vị chuyển đổi) 
     Route::prefix('product-units')->middleware('check.permission:products.manage')->group(function () {
         Route::get('product/{product_id}', [ProductUnitConversionController::class, 'index']);
@@ -216,6 +217,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::prefix('attribute-values')->middleware('check.permission:products.manage')->group(function () {
         Route::delete('/{id}', [ProductAttributeController::class, 'deleteAttributeValue']);
     });
+=======
+>>>>>>> ae490c3 (update code)
     // ---Post---
     Route::prefix('posts')->middleware('check.permission:posts.manage')->group(function () {
         Route::get('/', [PostController::class, 'index']);

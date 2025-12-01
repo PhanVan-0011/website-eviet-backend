@@ -9,7 +9,7 @@ use App\Models\Product;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use App\Http\Resources\ProductAttributeResource;
-
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
 class MenuService
@@ -93,9 +93,13 @@ class MenuService
             return true; 
         }
 
-        foreach ($combo->items as $item) {
+         foreach ($combo->items as $item) {
+            if (!$item->pivot) return false;
+            
             $requiredQty = $item->pivot->quantity; 
-            $stockQty = $branchStockMap->get($item->product_id, 0); 
+            Log::info("Check Combo {$combo->id} - Item {$item->id}: Cần $requiredQty | Kho có: " . $branchStockMap->get($item->id, "KHÔNG CÓ"));
+            // Đổi từ $item->product_id thành $item->id
+            $stockQty = $branchStockMap->get($item->id, 0); 
 
             if ($stockQty < $requiredQty) {
                 return false; 

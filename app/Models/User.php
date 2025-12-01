@@ -9,6 +9,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class User extends Authenticatable
 {
     use HasApiTokens, Notifiable, HasFactory, HasRoles,SoftDeletes;
@@ -60,5 +61,26 @@ class User extends Authenticatable
     public function image(): MorphOne
     {
         return $this->morphOne(Image::class, 'imageable');
+    }
+    /**
+     * Lấy danh sách chi nhánh mà user này quản lý/thuộc về
+     */
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class, 'branch_user', 'user_id', 'branch_id')
+                    ->withPivot('role_in_branch', 'is_primary')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Kiểm tra user có quyền truy cập branchId không
+     */
+    public function hasBranchAccess($branchId): bool
+    {
+        // Super Admin có quyền với mọi chi nhánh
+        if ($this->hasRole('super-admin')) {
+            return true;
+        }
+        return $this->branches()->where('branches.id', $branchId)->exists();
     }
 }

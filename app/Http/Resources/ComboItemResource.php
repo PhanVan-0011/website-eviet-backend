@@ -32,8 +32,7 @@ class ComboItemResource extends JsonResource
             'base_unit' => $this->base_unit,
             'base_store_price' => (float) $this->base_store_price, // Bổ sung giá
             'base_app_price' => (float) $this->base_app_price,   // Bổ sung giá
-
-            // BỔ SUNG: Tải các thuộc tính của sản phẩm
+ 
             'attributes' => ProductAttributeResource::collection($this->whenLoaded('attributes')),
         ];
     }
