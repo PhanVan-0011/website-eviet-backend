@@ -44,6 +44,10 @@ Route::prefix('public')->group(function () {
     // slider hiển thị trang chủ
     Route::get('/sliders/without-linkable', [ClientSliderController::class, 'withoutLinkable']);
     Route::get('/categories', [ClientCategoryController::class, 'index']);
+// Route::prefix('public')->group(function () {
+//     Route::get('/search', [ClientSearchController::class, 'search']);
+//     Route::get('/sliders', [ClientSliderController::class, 'index']);
+//     Route::get('/categories', [ClientCategoryController::class, 'index']);
 
 //     Route::prefix('products')->group(function () {
 //         Route::get('/', [ClientProductController::class, 'index']);
@@ -194,31 +198,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/multi-delete', [ProductController::class, 'multiDelete'])->middleware('check.permission:products.delete');
         Route::delete('/{id}', [ProductController::class, 'destroy'])->middleware('check.permission:products.delete');
     });
-<<<<<<< HEAD
-    // ---Product Unit Conversions (Đơn vị chuyển đổi) 
-    Route::prefix('product-units')->middleware('check.permission:products.manage')->group(function () {
-        Route::get('product/{product_id}', [ProductUnitConversionController::class, 'index']);
-        Route::get('/{id}', [ProductUnitConversionController::class, 'show']);
-        Route::post('/', [ProductUnitConversionController::class, 'store']);
-        Route::put('{id}', [ProductUnitConversionController::class, 'update']);
-        Route::delete('/{id}', [ProductUnitConversionController::class, 'destroy']);
-    });
-    // ---Product attributes---
-    Route::prefix('product-attributes')->middleware('check.permission:products.manage')->group(function () {
-        Route::get('/', [ProductAttributeController::class, 'index']);
-        Route::get('/{id}', [ProductAttributeController::class, 'show']);
-        Route::post('/', [ProductAttributeController::class, 'store']);
-        Route::post('/{id}', [ProductAttributeController::class, 'update']);
-        Route::delete('/multi-delete', [ProductAttributeController::class, 'multiDelete']);
-        Route::delete('/{id}', [ProductAttributeController::class, 'destroy']);
-        Route::delete('attribute-values/{id}', [ProductAttributeController::class, 'destroyValue']);
-    });
-    // ---Attributes values---
-    Route::prefix('attribute-values')->middleware('check.permission:products.manage')->group(function () {
-        Route::delete('/{id}', [ProductAttributeController::class, 'deleteAttributeValue']);
-    });
-=======
->>>>>>> ae490c3 (update code)
     // ---Post---
     Route::prefix('posts')->middleware('check.permission:posts.manage')->group(function () {
         Route::get('/', [PostController::class, 'index']);
