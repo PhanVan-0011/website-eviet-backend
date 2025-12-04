@@ -44,29 +44,25 @@ Route::prefix('public')->group(function () {
     // slider hiển thị trang chủ
     Route::get('/sliders/without-linkable', [ClientSliderController::class, 'withoutLinkable']);
     Route::get('/categories', [ClientCategoryController::class, 'index']);
-// Route::prefix('public')->group(function () {
-//     Route::get('/search', [ClientSearchController::class, 'search']);
-//     Route::get('/sliders', [ClientSliderController::class, 'index']);
-//     Route::get('/categories', [ClientCategoryController::class, 'index']);
 
-//     Route::prefix('products')->group(function () {
-//         Route::get('/', [ClientProductController::class, 'index']);
-//         Route::get('/best-sellers', [ClientProductController::class, 'bestSellers']);
-//         Route::get('/recommendations', [ClientProductController::class, 'recommendations']);
-//         Route::get('/{id}', [ClientProductController::class, 'show']);
-//     });
-//     Route::prefix('promotions')->group(function () {
-//         Route::get('/', [ClientPromotionController::class, 'index']);
-//         Route::get('/{id}', [ClientPromotionController::class, 'show']);
-//     });
-//     Route::prefix('combos')->group(function () {
-//         Route::get('/', [ClientComboController::class, 'index']);
-//         Route::get('/{id}', [ClientComboController::class, 'show']);
-//     });
-//     Route::prefix('posts')->group(function () {
-//         Route::get('/', [ClientPostController::class, 'index']);
-//         Route::get('/{slug}', [ClientPostController::class, 'show']);
-//     });
+    Route::prefix('products')->group(function () {
+        Route::get('/', [ClientProductController::class, 'index']);
+        Route::get('/best-sellers', [ClientProductController::class, 'bestSellers']);
+        Route::get('/recommendations', [ClientProductController::class, 'recommendations']);
+        Route::get('/{id}', [ClientProductController::class, 'show']);
+    });
+    Route::prefix('promotions')->group(function () {
+        Route::get('/', [ClientPromotionController::class, 'index']);
+        Route::get('/{id}', [ClientPromotionController::class, 'show']);
+    });
+    Route::prefix('combos')->group(function () {
+        Route::get('/', [ClientComboController::class, 'index']);
+        Route::get('/{id}', [ClientComboController::class, 'show']);
+    });
+    Route::prefix('posts')->group(function () {
+        Route::get('/', [ClientPostController::class, 'index']);
+        Route::get('/{slug}', [ClientPostController::class, 'show']);
+    });
 });
 // --- Client Authentication ---
 Route::prefix('auth')->group(function () {
