@@ -10,9 +10,10 @@ use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 class User extends Authenticatable
 {
-    use HasApiTokens, Notifiable, HasFactory, HasRoles,SoftDeletes;
+    use HasApiTokens, Notifiable, HasFactory, HasRoles, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -55,7 +56,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'phone_verified_at' => 'datetime',
         'last_login_at' => 'datetime',
-        'date_of_birth' => 'date', 
+        'date_of_birth' => 'date',
         'is_active' => 'boolean',
         'is_verified' => 'boolean',
     ];

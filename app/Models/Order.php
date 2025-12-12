@@ -13,24 +13,37 @@ class Order extends Model
     protected $fillable = [
         'order_code',
         'order_date',
-        'total_amount',
-        'status',
+        'status', // draf, pending, processing, delivered, cancelled
+        
+        // Thông tin khách
         'client_name',
         'client_phone',
+        'notes', // MỚI: Ghi chú đơn hàng
+        
+        // Thông tin giao nhận (MỚI)
         'shipping_address',
         'shipping_fee',
+        'pickup_time', // MỚI: Giờ hẹn lấy (cho Takeaway)
+        'order_method', // MỚI: delivery, takeaway, dine_in
+        'branch_id', // MỚI: Định danh chi nhánh
+        
+        // Tài chính
+        'total_amount',
+        'discount_amount',
+        'grand_total',
+        
         'cancelled_at',
         'user_id',
-        'discount_amount',
-        'grand_total'
     ];
 
     protected $casts = [
         'order_date' => 'datetime',
+        'pickup_time' => 'datetime',
         'cancelled_at' => 'datetime',
         'total_amount' => 'decimal:2',
         'shipping_fee' => 'decimal:2',
         'grand_total' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
     ];
 
     /**

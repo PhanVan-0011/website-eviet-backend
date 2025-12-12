@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\ProductAttributeController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ImageController;
@@ -18,15 +17,14 @@ use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\Client\RegistrationController;
-use App\Http\Controllers\Api\Client\ForgotPasswordController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\SupplierGroupController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\PurchaseInvoiceController;
 use App\Http\Controllers\Api\Client\ClientSliderController;
-use App\Http\Controllers\Api\ProductUnitConversionController;
 use App\Http\Controllers\Api\TimeSlotController;
 use App\Http\Controllers\Api\MenuController;
+use App\Http\Controllers\Api\PickupLocationController; 
 use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 use App\Http\Controllers\Api\Client\ProductController as ClientProductController;
 use App\Http\Controllers\Api\Client\PromotionController as ClientPromotionController;
@@ -73,11 +71,11 @@ Route::prefix('auth')->group(function () {
     Route::post('/loginApp', [AuthController::class, 'loginApp']);
 });
 //ForgotPassWord
-Route::prefix('password/forgot')->group(function () {
-    Route::post('/initiate', [ForgotPasswordController::class, 'initiate'])->middleware('throttle:3,1');
-    Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
-    Route::post('/complete', [ForgotPasswordController::class, 'complete']);
-});
+// Route::prefix('password/forgot')->group(function () {
+//     Route::post('/initiate', [ForgotPasswordController::class, 'initiate'])->middleware('throttle:3,1');
+//     Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
+//     Route::post('/complete', [ForgotPasswordController::class, 'complete']);
+// });
 //LOGIN ADMIN
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -142,6 +140,15 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/{id}', [BranchController::class, 'update']);
         Route::delete('/{id}', [BranchController::class, 'destroy']);
     });
+    // --- Pickup Location (Nơi nhận hàng) ---
+    Route::prefix('pickup-locations')->group(function () {
+        Route::get('/', [PickupLocationController::class, 'index']);
+        Route::post('/', [PickupLocationController::class, 'store']);
+        Route::get('/{id}', [PickupLocationController::class, 'show']);
+        Route::put('/{id}', [PickupLocationController::class, 'update']);
+        Route::delete('/multi-delete', [PickupLocationController::class, 'multiDelete']);
+        Route::delete('/{id}', [PickupLocationController::class, 'destroy']);
+    });
     // --- Time Slots (Khung Giờ Bán Hàng) ---
     Route::prefix('time-slots')->middleware('check.permission:timeslots.manage')->group(function () {
         Route::get('/', [TimeSlotController::class, 'index']);
@@ -193,28 +200,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/{id}', [ProductController::class, 'update'])->middleware('check.permission:products.update');
         Route::delete('/multi-delete', [ProductController::class, 'multiDelete'])->middleware('check.permission:products.delete');
         Route::delete('/{id}', [ProductController::class, 'destroy'])->middleware('check.permission:products.delete');
-    });
-    // ---Product Unit Conversions (Đơn vị chuyển đổi) 
-    Route::prefix('product-units')->middleware('check.permission:products.manage')->group(function () {
-        Route::get('product/{product_id}', [ProductUnitConversionController::class, 'index']);
-        Route::get('/{id}', [ProductUnitConversionController::class, 'show']);
-        Route::post('/', [ProductUnitConversionController::class, 'store']);
-        Route::put('{id}', [ProductUnitConversionController::class, 'update']);
-        Route::delete('/{id}', [ProductUnitConversionController::class, 'destroy']);
-    });
-    // ---Product attributes---
-    Route::prefix('product-attributes')->middleware('check.permission:products.manage')->group(function () {
-        Route::get('/', [ProductAttributeController::class, 'index']);
-        Route::get('/{id}', [ProductAttributeController::class, 'show']);
-        Route::post('/', [ProductAttributeController::class, 'store']);
-        Route::post('/{id}', [ProductAttributeController::class, 'update']);
-        Route::delete('/multi-delete', [ProductAttributeController::class, 'multiDelete']);
-        Route::delete('/{id}', [ProductAttributeController::class, 'destroy']);
-        Route::delete('attribute-values/{id}', [ProductAttributeController::class, 'destroyValue']);
-    });
-    // ---Attributes values---
-    Route::prefix('attribute-values')->middleware('check.permission:products.manage')->group(function () {
-        Route::delete('/{id}', [ProductAttributeController::class, 'deleteAttributeValue']);
     });
     // ---Post---
     Route::prefix('posts')->middleware('check.permission:posts.manage')->group(function () {

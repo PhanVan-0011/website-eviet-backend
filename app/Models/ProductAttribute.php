@@ -14,6 +14,6 @@ class ProductAttribute extends Model
 
     public function values(): HasMany
     {
-        return $this->hasMany(AttributeValue::class);
+        return $this->hasMany(AttributeValue::class)->orderBy('display_order', 'asc');
     }
 }
