@@ -46,7 +46,10 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    public function show(int $id): JsonResponse
+   /**
+      * Xem chi tiết đơn hàng
+     */
+    public function show(int $id)
     {
         try {
             $order = $this->orderService->getOrderById($id);
@@ -62,18 +65,22 @@ class OrderController extends Controller
             ], 404);
         } catch (\Exception $e) {
             Log::error("Lỗi khi lấy chi tiết đơn hàng #{$id}: " . $e->getMessage());
-
             return response()->json([
                 'success' => false,
-                'message' => 'Đã có lỗi xảy ra, không thể lấy chi tiết đơn hàng.',
+                'message' => 'Lỗi hệ thống khi lấy chi tiết đơn hàng.',
                 'error' => $e->getMessage()
             ], 500);
         }
     }
+        /**
+     * Tạo đơn hàng mới (Dành cho Admin/POS)
+     */
     public function store(StoreOrderRequest $request)
     {
         try {
-            $order = $this->orderService->createOrder($request->validated(), $request->user());
+
+            $order = $this->orderService->createOrder($request->validated(), null, true);
+            
             return response()->json([
                 'success' => true,
                 'message' => 'Tạo đơn hàng thành công',
@@ -82,16 +89,16 @@ class OrderController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' =>  $e->getMessage()
-            ], 400);
+                'message' => $e->getMessage() 
+            ], 500);
         }
     }
     public function updateStatus(UpdateOrderRequest $request, Order $order)
     {
         try {
-            $updatedOrder = $this->orderService->updateOrder(
+            $updatedOrder = $this->orderService->updateOrderStatus(
                 $order,
-                $request->validated()
+                $request->status
             );
             return response()->json([
                 'success' => true,
@@ -106,10 +113,19 @@ class OrderController extends Controller
             ], 500);
         }
     }
+    /**
+     * Cập nhật trạng thái thanh toán
+     */
     public function updatePaymentStatus(UpdatePaymentStatusRequest $request, Order $order)
     {
         try {
-            $updatedOrder = $this->orderService->updateOrderPaymentStatus($order, $request->validated());
+           
+            $updatedOrder = $this->orderService->updatePaymentStatus(
+                $order, 
+                $request->status, 
+                $request->paid_at
+            );
+            
             return response()->json([
                 'success' => true,
                 'message' => 'Cập nhật trạng thái thanh toán thành công.',
@@ -123,13 +139,17 @@ class OrderController extends Controller
         }
     }
 
+     /**
+     * Hủy nhiều đơn hàng cùng lúc
+     */
     public function multiCancel(MultiDeleteOrderRequest $request)
     {
         try {
-
             $result = $this->orderService->cancelMultipleOrders($request->validated()['order_ids']);
+            
             $successCount = $result['success_count'];
             $failedCount = count($result['failed_orders']);
+            
             $message = "Đã hủy thành công {$successCount} đơn hàng.";
             if ($failedCount > 0) {
                 $message .= " Thất bại {$failedCount} đơn hàng.";

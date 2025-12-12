@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\ProductAttributeController;
 use App\Http\Controllers\Api\PostController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ImageController;
@@ -18,15 +17,14 @@ use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\Client\RegistrationController;
-use App\Http\Controllers\Api\Client\ForgotPasswordController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\SupplierGroupController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\PurchaseInvoiceController;
 use App\Http\Controllers\Api\Client\ClientSliderController;
-use App\Http\Controllers\Api\ProductUnitConversionController;
 use App\Http\Controllers\Api\TimeSlotController;
 use App\Http\Controllers\Api\MenuController;
+use App\Http\Controllers\Api\PickupLocationController; 
 use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 use App\Http\Controllers\Api\Client\ProductController as ClientProductController;
 use App\Http\Controllers\Api\Client\PromotionController as ClientPromotionController;
@@ -141,6 +139,15 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::post('/', [BranchController::class, 'store']);
         Route::post('/{id}', [BranchController::class, 'update']);
         Route::delete('/{id}', [BranchController::class, 'destroy']);
+    });
+    // --- Pickup Location (Nơi nhận hàng) ---
+    Route::prefix('pickup-locations')->group(function () {
+        Route::get('/', [PickupLocationController::class, 'index']);
+        Route::post('/', [PickupLocationController::class, 'store']);
+        Route::get('/{id}', [PickupLocationController::class, 'show']);
+        Route::put('/{id}', [PickupLocationController::class, 'update']);
+        Route::delete('/multi-delete', [PickupLocationController::class, 'multiDelete']);
+        Route::delete('/{id}', [PickupLocationController::class, 'destroy']);
     });
     // --- Time Slots (Khung Giờ Bán Hàng) ---
     Route::prefix('time-slots')->middleware('check.permission:timeslots.manage')->group(function () {
