@@ -55,7 +55,7 @@ class OrderService
             if ($request->filled('end_date')) {
                 $query->whereDate('order_date', '<=', $request->input('end_date'));
             }
-            $query->orderByRaw("FIELD(status, 'pending', 'processing', 'shipped', 'delivered', 'cancelled')")
+            $query->orderByRaw("FIELD(status, 'draft', 'pending', 'processing', 'delivered', 'cancelled')")
                 ->orderByDesc('order_date');
 
             $total = $query->count();

@@ -22,7 +22,7 @@ class DashboardDemoSeeder extends Seeder
         $products = Product::factory()->count(20)->create();
 
         // 3. Tạo đơn hàng với nhiều trạng thái
-        $statuses = ['delivered', 'pending', 'shipped', 'cancelled', 'processing'];
+        $statuses = ['delivered', 'pending', 'draft', 'cancelled', 'processing'];
         $users = User::all();
 
         for ($i = 1; $i <= 100; $i++) {

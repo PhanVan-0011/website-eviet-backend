@@ -219,7 +219,7 @@ class DashboardService
         $statusMap = [
             'delivered' => 'Đã giao',
             'pending' => 'Chờ xử lý',
-            'shipped' => 'Đang giao',
+            'draft' => 'Nháp',
             'cancelled' => 'Đã hủy',
             'processing' => 'Đang xử lý',
         ];

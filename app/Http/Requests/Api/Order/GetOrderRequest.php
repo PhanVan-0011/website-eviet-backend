@@ -24,7 +24,7 @@ class GetOrderRequest extends FormRequest
      */
     public function rules(): array
     {
-        $orderStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+        $orderStatuses = ['draft', 'pending', 'processing', 'delivered', 'cancelled'];
         return [
             'keyword' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'string', Rule::in($orderStatuses)],

@@ -112,7 +112,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'product-manager', 'guard_name' => $guardName],
             ['display_name' => 'Quản lý Sản phẩm']
         );
-        $productManagerRole->syncPermissions(['products.view', 'products.create', 'products.update', 'products.delete','product-attributes.manage', 'categories.manage', 'combos.manage']);
+        $productManagerRole->syncPermissions(['products.view', 'products.create', 'products.update', 'products.delete', 'product-attributes.manage', 'categories.manage', 'combos.manage']);
 
         $salesManagerRole = Role::updateOrCreate(
             ['name' => 'sales-manager', 'guard_name' => $guardName],
@@ -139,8 +139,17 @@ class RolesAndPermissionsSeeder extends Seeder
         );
         $superAdminRole->syncPermissions(Permission::where('guard_name', $guardName)->get());
 
+        // Tạo role Branch Admin với quyền tương tự Super Admin nhưng không có quyền quản lý Users và Roles
+        $branchAdminRole = Role::updateOrCreate(
+            ['name' => 'branch-admin', 'guard_name' => $guardName],
+            ['display_name' => 'Quản lý Chi nhánh']
+        );
+        $branchAdminPermissions = Permission::where('guard_name', $guardName)->get();
+        $branchAdminRole->syncPermissions($branchAdminPermissions);
+
         // --- TẠO TÀI KHOẢN MẪU VÀ GÁN VAI TRÒ --- 
         $this->createUser('Super Admin', 'superadmin@example.com', '0912345675', $superAdminRole);
+        $this->createUser('Branch Admin', 'branchadmin@example.com', '0912345680', $branchAdminRole);
         $this->createUser('Sales Manager', 'sales@example.com', '0912345676', $salesManagerRole);
         $this->createUser('Product Manager', 'product@example.com', '0912345677', $productManagerRole);
         $this->createUser('Content Editor', 'editor@example.com', '0912345678', $editorRole);

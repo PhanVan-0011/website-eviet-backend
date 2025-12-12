@@ -24,7 +24,7 @@ use App\Http\Controllers\Api\PurchaseInvoiceController;
 use App\Http\Controllers\Api\Client\ClientSliderController;
 use App\Http\Controllers\Api\TimeSlotController;
 use App\Http\Controllers\Api\MenuController;
-use App\Http\Controllers\Api\PickupLocationController; 
+use App\Http\Controllers\Api\PickupLocationController;
 use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
 use App\Http\Controllers\Api\Client\ProductController as ClientProductController;
 use App\Http\Controllers\Api\Client\PromotionController as ClientPromotionController;

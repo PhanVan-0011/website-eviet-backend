@@ -25,7 +25,7 @@ class UpdateOrderRequest extends FormRequest
     public function rules(): array
     {
         // Lấy các giá trị trạng thái hợp lệ từ ENUM của CSDL
-         $allowedStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+         $allowedStatuses = ['draft', 'pending', 'processing', 'delivered', 'cancelled'];
         return [
             'client_name' => ['sometimes', 'required', 'string', 'max:50'],
             'client_phone' => ['sometimes', 'required', 'string', 'max:11'],
