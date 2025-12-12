@@ -38,6 +38,7 @@ class StoreAdminUserRequest extends FormRequest
             'gender' => ['nullable', 'string', Rule::in(['male', 'female', 'other'])],
             'date_of_birth' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
             'address' => ['nullable', 'string', 'max:255'],
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')],
             // Thêm validation cho ảnh
             'image_url' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ];

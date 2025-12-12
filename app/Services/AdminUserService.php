@@ -36,7 +36,7 @@ class AdminUserService
                 ->whereHas('roles') 
                 ->whereDoesntHave('roles', function (Builder $q) {
                     $q->where('name', 'super-admin');
-                })->with(['roles', 'image']);
+                })->with(['roles', 'image', 'branch']);
             
 
             // Lọc
@@ -57,6 +57,10 @@ class AdminUserService
 
             if ($request->filled('is_active')) {
                 $query->where('is_active', $request->input('is_active') === 'true');
+            }
+
+            if ($request->filled('branch_id')) {
+                $query->where('branch_id', $request->input('branch_id'));
             }
 
             // Sắp xếp
@@ -99,7 +103,7 @@ class AdminUserService
                 ->whereHas('roles')
                 ->whereDoesntHave('roles', function (Builder $q) {
                     $q->where('name', 'super-admin');
-                })->with(['roles', 'image']);
+                })->with(['roles', 'image', 'branch']);
 
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
@@ -116,6 +120,10 @@ class AdminUserService
             }
             if ($request->filled('is_active')) {
                 $query->where('is_active', $request->input('is_active') === 'true');
+            }
+
+            if ($request->filled('branch_id')) {
+                $query->where('branch_id', $request->input('branch_id'));
             }
 
             $query->orderBy('deleted_at', 'desc');
@@ -147,8 +155,8 @@ class AdminUserService
     public function restoreAdminUser(int $id): User
     {
         try {
-            // Tải kèm cả quan hệ 'image' để trả về đầy đủ thông tin
-            $user = User::onlyTrashed()->with(['roles', 'image'])->findOrFail($id);
+            // Tải kèm cả quan hệ 'image' và 'branch' để trả về đầy đủ thông tin
+            $user = User::onlyTrashed()->with(['roles', 'image', 'branch'])->findOrFail($id);
             $user->restore();
 
             Log::info(
@@ -169,7 +177,7 @@ class AdminUserService
      */
     public function forceDeleteAdminUser(int $id): void
     {
-        $user = User::onlyTrashed()->with('image')->findOrFail($id);
+        $user = User::onlyTrashed()->with(['image', 'branch'])->findOrFail($id);
         if ($user->hasRole('super-admin')) {
             throw new Exception('Không thể xóa vĩnh viễn tài khoản Super Admin.');
         }
@@ -196,7 +204,7 @@ class AdminUserService
      */
     public function findAdminUserById(int $id)
     {
-        return User::whereHas('roles')->with(['roles', 'permissions', 'image'])->findOrFail($id);
+        return User::whereHas('roles')->with(['roles', 'permissions', 'image', 'branch'])->findOrFail($id);
     }
 
     /**
@@ -217,6 +225,7 @@ class AdminUserService
                 'gender' => $data['gender'] ?? null,
                 'date_of_birth' => $data['date_of_birth'] ?? null,
                 'address' => $data['address'] ?? null,
+                'branch_id' => $data['branch_id'] ?? null,
             ]);
 
             if (!empty($roleIds)) {
@@ -233,7 +242,7 @@ class AdminUserService
             }
 
             Log::info("Tài khoản quản trị [ID: {$user->id}] đã được tạo bởi người dùng [ID: " . auth()->id() . "].");
-            return $user->load(['roles', 'image']);
+            return $user->load(['roles', 'image', 'branch']);
         });
     }
 
@@ -246,7 +255,13 @@ class AdminUserService
 
             $imageFile = Arr::pull($data, 'image_url');
             $roleIds = Arr::pull($data, 'role_ids');
-            //$updatePayload = $data;
+            
+            // Xử lý password nếu có
+            if (isset($data['password']) && !empty($data['password'])) {
+                $data['password'] = Hash::make($data['password']);
+            } else {
+                unset($data['password']);
+            }
 
            // Cập nhật vai trò
             if (!is_null($roleIds)) {
@@ -268,7 +283,7 @@ class AdminUserService
             $user->update($data);
 
             Log::info("Tài khoản quản trị [ID: {$user->id}] đã được cập nhật bởi người dùng [ID: " . auth()->id() . "].");
-            return $user->load(['roles', 'image']);
+            return $user->load(['roles', 'image', 'branch']);
         });
     }
 

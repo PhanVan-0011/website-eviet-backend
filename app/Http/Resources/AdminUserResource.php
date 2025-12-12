@@ -27,6 +27,10 @@ class AdminUserResource extends JsonResource
             'image_url' => $this->whenLoaded('image', function () {
                 return $this->image ? new ImageResource($this->image) : null;
             }),
+            'branch_id' => $this->branch_id,
+            'branch' => $this->whenLoaded('branch', function () {
+                return $this->branch ? new BranchResource($this->branch) : null;
+            }),
 
             'is_verified' => $this->is_verified,
             'last_login_at' => $this->last_login_at ? $this->last_login_at->toIso8601String() : null,

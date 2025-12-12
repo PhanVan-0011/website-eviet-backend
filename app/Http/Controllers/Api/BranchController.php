@@ -37,6 +37,7 @@ class BranchController extends Controller
                     'next_page' => $data['next_page'],
                     'pre_page' => $data['pre_page'],
                 ],
+                'is_admin' => $data['is_admin'] ?? false, // Thêm field is_admin vào response
                 'message' => 'Lấy danh sách chi nhánh thành công',
                 'timestamp' => now()->format('d-m-Y H:i:s'),
             ], 200);

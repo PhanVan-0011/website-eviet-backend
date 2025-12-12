@@ -9,6 +9,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class User extends Authenticatable
 {
     use HasApiTokens, Notifiable, HasFactory, HasRoles,SoftDeletes;
@@ -31,6 +32,7 @@ class User extends Authenticatable
         'date_of_birth',
         'email_verified_at',
         'phone_verified_at',
+        'branch_id',
     ];
 
 
@@ -60,5 +62,13 @@ class User extends Authenticatable
     public function image(): MorphOne
     {
         return $this->morphOne(Image::class, 'imageable');
+    }
+
+    /**
+     * Lấy chi nhánh mà người dùng thuộc về.
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

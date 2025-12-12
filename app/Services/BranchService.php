@@ -23,10 +23,26 @@ class BranchService
             $currentPage = max(1, (int) $request->input('page', 1));
             $keyword = (string) $request->input('keyword', '');
 
+            // Lấy thông tin user hiện tại
+            $user = auth()->user();
+
+            // Xác định is_admin dựa trên branch_id:
+            // - branch_id = null → is_admin = true (Super Admin/Admin)
+            // - branch_id != null → is_admin = false (Nhân viên/Staff)
+            $isAdmin = ($user && is_null($user->branch_id));
+
             $query = Branch::query();
-            // Lọc theo ID chi nhánh (từ select box)
-            if ($request->has('branch_id')) {
-                $query->where('id', $request->branch_id);
+
+            // Nếu user có branch_id cụ thể (Nhân viên/Staff), chỉ trả về branch đó
+            if ($user && $user->branch_id) {
+                $query->where('id', $user->branch_id);
+            } else {
+                // Nếu branch_id = null (Super Admin/Admin), áp dụng các filter như cũ
+
+                // Lọc theo ID chi nhánh (từ select box) - chỉ áp dụng nếu là admin
+                if ($request->has('branch_id')) {
+                    $query->where('id', $request->branch_id);
+                }
             }
 
             // Lọc theo trạng thái hoạt động
@@ -70,6 +86,7 @@ class BranchService
                 'last_page' => $lastPage,
                 'next_page' => $nextPage,
                 'pre_page' => $prevPage,
+                'is_admin' => $isAdmin, // Thêm field để phân biệt admin
             ];
         } catch (Exception $e) {
             Log::error('Lỗi khi lấy danh sách chi nhánh: ' . $e->getMessage());

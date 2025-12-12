@@ -40,7 +40,7 @@ class UpdateAdminUserRequest extends FormRequest
             'gender' => ['sometimes', 'nullable', 'string', Rule::in(['male', 'female', 'other'])],
             'date_of_birth' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
             'address' => ['sometimes', 'nullable', 'string', 'max:255'],
-
+            'branch_id' => ['sometimes', 'nullable', 'integer', Rule::exists('branches', 'id')],
             'image_url' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ];
         
