@@ -45,7 +45,7 @@ return new class extends Migration
                 }
             });
             // Chạy lệnh SQL thuần để sửa cột ENUM (An toàn cho MySQL)
-            DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('draft', 'pending', 'processing', 'delivered', 'cancelled') NOT NULL DEFAULT 'pending'");
+            DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('pending', 'processing', 'delivered', 'cancelled') NOT NULL DEFAULT 'pending'");
         }
 
         //CẬP NHẬT BẢNG ORDER_DETAILS
@@ -70,8 +70,6 @@ return new class extends Migration
     public function down(): void
     {
         if (Schema::hasTable('orders')) {
-            // Revert status: Chuyển 'draft' về 'pending' trước khi quay lại ENUM cũ
-            DB::table('orders')->where('status', 'draft')->update(['status' => 'pending']);
             DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') NOT NULL DEFAULT 'pending'");
 
             Schema::table('orders', function (Blueprint $table) {

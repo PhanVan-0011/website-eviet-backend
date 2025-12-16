@@ -22,100 +22,127 @@ class StoreOrderRequest extends FormRequest
     /**
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
+
     public function rules(): array
     {
         return [
-            // Dữ liệu khách hàng 
+            // --- 1. THÔNG TIN CHUNG & CHI NHÁNH ---
+            'branch_id' => 'required|integer|exists:branches,id',
+            'order_method' => ['required', 'string', Rule::in(['delivery', 'takeaway', 'dine_in'])],
+            'notes' => 'nullable|string|max:500',
+            
+            // --- 2. THÔNG TIN KHÁCH HÀNG ---
             'client_name' => 'required|string|max:50',
-            'client_phone' => 'required|string|max:11',
-            'shipping_address' => 'required|string|max:255',
+            'client_phone' => ['required', 'string', 'regex:/^(0|\+84)(3[2-9]|5[6|8|9]|7[0|6-9]|8[1-9]|9[0-4|6-9])[0-9]{7}$/'],
+            'user_id' => 'nullable|integer|exists:users,id', // Admin có thể chọn khách thành viên
 
-            // Dữ liệu đơn hàng
-            'shipping_fee' => 'required|numeric|min:0',
+            // --- 3. LOGIC GIAO NHẬN ---
+            // Giao hàng: Bắt buộc địa chỉ
+            'shipping_address' => [
+                'nullable', 'string', 'max:255',
+                Rule::requiredIf($this->order_method === 'delivery'),
+            ],
+            'shipping_fee' => ['nullable', 'numeric', 'min:0'],
+            
+            // Mang đi: Bắt buộc giờ lấy & điểm nhận
+            'pickup_time' => [
+                'nullable', 'date_format:Y-m-d H:i:s', 'after:now',
+                Rule::requiredIf($this->order_method === 'takeaway'),
+            ],
+            'pickup_location_id' => [
+                'nullable', 'integer', 'exists:pickup_locations,id',
+                Rule::requiredIf($this->order_method === 'takeaway'),
+            ],
+
+            // --- 4. THANH TOÁN ---
             'payment_method_code' => ['required', 'string', Rule::exists('payment_methods', 'code')->where('is_active', true)],
 
-            // Dữ liệu sản phẩm/combo
+            // --- 5. CHI TIẾT SẢN PHẨM (ITEMS) ---
             'items' => ['required', 'array', 'min:1'],
-            'items.*' => ['array'],
             'items.*.type' => ['required', 'string', Rule::in(['product', 'combo'])],
             'items.*.id' => ['required', 'integer'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
+            
+            // Topping (chỉ dành cho product, gửi lên dạng mảng ID)
+            'items.*.attribute_value_ids' => 'nullable|array',
+            'items.*.attribute_value_ids.*' => 'integer|exists:attribute_values,id',
         ];
     }
     public function messages()
     {
         return [
-            'client_name.required' => 'Tên khách hàng không được để trống',
-            'client_name.string' => 'Tên khách hàng phải là chuỗi',
-            'client_name.max' => 'Tên khách hàng không được vượt quá 50 ký tự',
+           // Thông tin chung
+            'branch_id.required' => 'Vui lòng chọn chi nhánh.',
+            'branch_id.exists' => 'Chi nhánh không hợp lệ.',
+            'order_method.required' => 'Vui lòng chọn phương thức đặt hàng.',
+            'order_method.in' => 'Phương thức đặt hàng không hợp lệ.',
+            
+            // Khách hàng
+            'client_name.required' => 'Tên khách hàng là bắt buộc.',
+            'client_phone.required' => 'Số điện thoại là bắt buộc.',
+            'client_phone.regex' => 'Số điện thoại không đúng định dạng VN.',
 
-            'client_phone.required' => 'Số điện thoại không được để trống',
-            'client_phone.string' => 'Số điện thoại phải là chuỗi',
-            'client_phone.max' => 'Số điện thoại không được vượt quá 11 số',
+            // Giao nhận
+            'shipping_address.required_if' => 'Vui lòng nhập địa chỉ giao hàng.',
+            'pickup_time.required_if' => 'Vui lòng chọn giờ hẹn lấy hàng.',
+            'pickup_time.after' => 'Giờ hẹn lấy phải sau thời điểm hiện tại.',
+            'pickup_location_id.required_if' => 'Vui lòng chọn điểm nhận hàng (Canteen/Xưởng).',
 
-            'shipping_address.required' => 'Địa chỉ giao hàng không được để trống',
-            'shipping_address.max' => 'Địa chỉ không được vượt quá 255 ký tự',
-
-            'shipping_fee.numeric' => 'Phí vận chuyển phải là số',
-
-            'status.required' => 'Trạng thái đơn hàng là bắt buộc',
-            'status.in' => 'Trạng thái đơn hàng không hợp lệ',
-
-            'order_details.required' => 'Đơn hàng phải có ít nhất một sản phẩm',
-            'order_details.array' => 'Chi tiết đơn hàng phải là mảng',
-
-            'order_details.*.product_id.required' => 'Thiếu ID sản phẩm',
-            'order_details.*.product_id.exists' => 'Sản phẩm không tồn tại trong hệ thống',
-
-            'order_details.*.quantity.required' => 'Thiếu số lượng sản phẩm',
-            'order_details.*.quantity.integer' => 'Số lượng phải là số nguyên',
-            'order_details.*.quantity.min' => 'Số lượng tối thiểu là 1',
-
-            'payment.array' => 'Thông tin thanh toán phải là mảng',
-            'payment.paid_at.date' => 'Thời gian thanh toán không hợp lệ',
-
-            'shipping_fee.required' => 'Phí vận chuyển là bắt buộc.',
+            // Thanh toán
             'payment_method_code.required' => 'Vui lòng chọn phương thức thanh toán.',
-            'payment_method_code.exists' => 'Phương thức thanh toán không hợp lệ.',
 
-            'items.required' => 'Đơn hàng phải có ít nhất một sản phẩm.',
-            'items.*.id.required' => 'Thiếu ID của sản phẩm/combo.',
+            // Items (ĐÃ SỬA: Dùng 'items' thay vì 'order_details' để khớp với rules)
+            'items.required' => 'Giỏ hàng không được để trống.',
+            'items.min' => 'Giỏ hàng phải có ít nhất 1 món.',
+            
+            'items.*.type.required' => 'Loại sản phẩm không hợp lệ.',
+            'items.*.id.required' => 'Thiếu ID sản phẩm/combo.',
             'items.*.quantity.min' => 'Số lượng tối thiểu là 1.',
         ];
     }
     /**
-     * Thêm các logic validation kiểm tra.
-     *
-     * @param  \Illuminate\Validation\Validator  $validator
-     * @return void
+     * Thêm logic validation nghiệp vụ (kiểm tra tồn tại & trạng thái kinh doanh).
+     * Đã tối ưu để tránh N+1 Query.
      */
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            foreach ($this->input('items', []) as $key => $item) {
-                if (empty($item['type']) || empty($item['id'])) {
-                    continue;
+            $items = $this->input('items', []);
+            
+            // Gom nhóm ID để query 
+            $productIds = [];
+            $comboIds = [];
+            
+            foreach ($items as $index => $item) {
+                if (empty($item['type']) || empty($item['id'])) continue;
+                
+                if ($item['type'] === 'product') {
+                    $productIds[$item['id']][] = $index; // Lưu index để báo lỗi đúng dòng
+                } elseif ($item['type'] === 'combo') {
+                    $comboIds[$item['id']][] = $index;
                 }
-                $type = $item['type'];
-                $id = $item['id'];
+            }
 
-                if ($type === 'product') {
-                    //kiểm tra sản phẩm
-                    $product = Product::find($id);
-                    if (!$product) {
-                        $validator->errors()->add("items.{$key}.id", "Sản phẩm với ID {$id} không tồn tại.");
-                    } elseif ($product->status != 1) {
-                        $validator->errors()->add("items.{$key}.id", "Sản phẩm '{$product->name}' (ID: {$id}) đã ngừng kinh doanh.");
+            //Kiểm tra danh sách Product (1 Query duy nhất)
+            if (!empty($productIds)) {
+                $products = Product::whereIn('id', array_keys($productIds))->get()->keyBy('id');
+                foreach ($productIds as $id => $indexes) {
+                    if (!isset($products[$id])) {
+                        foreach ($indexes as $index) $validator->errors()->add("items.{$index}.id", "Sản phẩm ID {$id} không tồn tại.");
+                    } elseif ($products[$id]->status != 1) {
+                        foreach ($indexes as $index) $validator->errors()->add("items.{$index}.id", "Sản phẩm '{$products[$id]->name}' đã ngừng kinh doanh.");
                     }
-                } elseif ($type === 'combo') {
-                    $combo = Combo::find($id);
+                }
+            }
 
-                    if (!$combo) {
-                        // Nếu không tìm thấy, báo lỗi ID không tồn tại
-                        $validator->errors()->add("items.{$key}.id", "Combo với ID {$id} không tồn tại.");
-                    } elseif (!$combo->is_active) {
-                        // Nếu tìm thấy, nhưng không active, báo lỗi combo đã ngừng áp dụng
-                        $validator->errors()->add("items.{$key}.id", "Combo '{$combo->name}' (ID: {$id}) đã ngừng áp dụng.");
+            //Kiểm tra danh sách Combo (1 Query duy nhất)
+            if (!empty($comboIds)) {
+                $combos = Combo::whereIn('id', array_keys($comboIds))->get()->keyBy('id');
+                foreach ($comboIds as $id => $indexes) {
+                    if (!isset($combos[$id])) {
+                        foreach ($indexes as $index) $validator->errors()->add("items.{$index}.id", "Combo ID {$id} không tồn tại.");
+                    } elseif (!$combos[$id]->is_active) {
+                        foreach ($indexes as $index) $validator->errors()->add("items.{$index}.id", "Combo '{$combos[$id]->name}' đã ngừng hoạt động.");
                     }
                 }
             }

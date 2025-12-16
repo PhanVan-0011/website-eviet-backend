@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Payment;
 
 class Order extends Model
@@ -14,24 +15,24 @@ class Order extends Model
         'order_code',
         'order_date',
         'status', // draf, pending, processing, delivered, cancelled
-        
+
         // Thông tin khách
         'client_name',
         'client_phone',
-        'notes', // MỚI: Ghi chú đơn hàng
-        
+        'notes',
+
         // Thông tin giao nhận (MỚI)
         'shipping_address',
         'shipping_fee',
-        'pickup_time', // MỚI: Giờ hẹn lấy (cho Takeaway)
-        'order_method', // MỚI: delivery, takeaway, dine_in
-        'branch_id', // MỚI: Định danh chi nhánh
-        
+        'pickup_time',
+        'order_method',
+        'branch_id',
+
         // Tài chính
         'total_amount',
         'discount_amount',
         'grand_total',
-        
+
         'cancelled_at',
         'user_id',
     ];
@@ -62,15 +63,15 @@ class Order extends Model
      * @return void
      */
     protected static function booted(): void
-{
-    static::created(function ($order) {
-        // Nếu chưa có mã đơn hàng, tạo dựa trên ID
-        if (empty($order->order_code)) {
-            $order->order_code = 'DH' . str_pad($order->id, 6, '0', STR_PAD_LEFT);
-            $order->save();
-        }
-    });
-}
+    {
+        static::created(function ($order) {
+            // Nếu chưa có mã đơn hàng, tạo dựa trên ID
+            if (empty($order->order_code)) {
+                $order->order_code = 'DH' . str_pad($order->id, 6, '0', STR_PAD_LEFT);
+                $order->save();
+            }
+        });
+    }
     // Mối quan hệ với User (bảng users)
     public function user()
     {
@@ -86,5 +87,9 @@ class Order extends Model
     public function payment()
     {
         return $this->hasOne(Payment::class);
+    }
+    public function pickupLocation(): BelongsTo
+    {
+        return $this->belongsTo(PickupLocation::class, 'pickup_location_id');
     }
 }

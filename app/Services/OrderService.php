@@ -19,53 +19,59 @@ class OrderService
     public function getAllOrders($request)
     {
         try {
-            // Lấy các tham số đầu vào
             $perPage = max(1, min(100, (int) $request->input('limit', 25)));
             $currentPage = max(1, (int) $request->input('page', 1));
 
-            // Tạo query cơ bản
             $query = Order::query()
-                ->with(['user', 'orderDetails.product', 'payment.method']);
-            // Lọc theo từ khóa (keyword)
+                ->with(['user', 'orderDetails.product', 'orderDetails.combo', 'payment.method', 'branch']);
+
+            // --- FILTER ---
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
                 $query->where(function ($q) use ($keyword) {
                     $q->where('order_code', 'like', "%{$keyword}%")
                         ->orWhere('client_name', 'like', "%{$keyword}%")
-                        ->orWhere('client_phone', 'like', "%{$keyword}%")
-                        ->orWhereHas('user', function ($uq) use ($keyword) {
-                            $uq->where('email', 'like', "%{$keyword}%");
-                        });
+                        ->orWhere('client_phone', 'like', "%{$keyword}%");
                 });
             }
-            // Lọc theo trạng thái đơn hàng
+
             if ($request->filled('status')) {
                 $query->where('status', $request->input('status'));
             }
-            // Lọc theo phương thức thanh toán
+            if ($request->filled('branch_id')) {
+                $query->where('branch_id', $request->input('branch_id'));
+            }
+            if ($request->filled('order_method')) {
+                $query->where('order_method', $request->input('order_method'));
+            }
+            
             if ($request->filled('payment_method_code')) {
                 $query->whereHas('payment.method', function ($q) use ($request) {
                     $q->where('code', $request->input('payment_method_code'));
                 });
             }
-            // Lọc theo khoảng thời gian
+
             if ($request->filled('start_date')) {
                 $query->whereDate('order_date', '>=', $request->input('start_date'));
             }
             if ($request->filled('end_date')) {
                 $query->whereDate('order_date', '<=', $request->input('end_date'));
             }
-            $query->orderByRaw("FIELD(status, 'draft', 'pending', 'processing', 'delivered', 'cancelled')")
+
+            // Sắp xếp: Ưu tiên đơn Nháp/Mới lên đầu
+            $query->orderByRaw("FIELD(status, 'draft', 'pending', 'processing', 'shipped', 'delivered', 'cancelled')")
                 ->orderByDesc('order_date');
 
+            // --- PHÂN TRANG THỦ CÔNG ---
             $total = $query->count();
             $offset = ($currentPage - 1) * $perPage;
+            
             $orders = $query->skip($offset)->take($perPage)->get();
-            // Tính phân trang
+
             $lastPage = (int) ceil($total / $perPage);
             $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;
             $prevPage = $currentPage > 1 ? $currentPage - 1 : null;
-            // Trả kết quả
+
             return [
                 'data' => $orders,
                 'page' => $currentPage,
@@ -74,8 +80,9 @@ class OrderService
                 'next_page' => $nextPage,
                 'prev_page' => $prevPage,
             ];
+
         } catch (\Exception $e) {
-            Log::error('Lỗi lấy danh sách đơn hàng: ' . $e->getMessage());
+            Log::error('OrderService::getAllOrders Error: ' . $e->getMessage());
             throw $e;
         }
     }
