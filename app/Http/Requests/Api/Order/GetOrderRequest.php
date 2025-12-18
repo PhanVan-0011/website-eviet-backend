@@ -22,7 +22,7 @@ class GetOrderRequest extends FormRequest
      */
     public function rules(): array
     {
-        $orderStatuses = ['draft', 'pending', 'processing', 'delivered', 'cancelled'];
+        $orderStatuses = ['pending', 'processing', 'delivered', 'cancelled'];
         $orderMethods = ['delivery', 'takeaway', 'dine_in'];
 
         return [

@@ -2,20 +2,25 @@
 
 namespace App\Services;
 
-use App\Models\Payment;
 use App\Models\Order;
-use App\Models\OrderDetail;
-use App\Models\User;
 use App\Models\Product;
-use App\Models\PaymentMethod;
 use App\Models\Combo;
+use App\Models\BranchProductStock;
+use App\Models\AttributeValue;
+use App\Models\ItemTimeSlot;
+use App\Models\PaymentMethod;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Resources\OrderResource;
+use Exception;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class OrderService
 {
+    /**
+     * Lấy danh sách đơn hàng (Filter Admin & Phân trang thủ công)
+     */
     public function getAllOrders($request)
     {
         try {
@@ -23,18 +28,24 @@ class OrderService
             $currentPage = max(1, (int) $request->input('page', 1));
 
             $query = Order::query()
-                ->with(['user', 'orderDetails.product', 'orderDetails.combo', 'payment.method', 'branch']);
+                ->with(['user', 'orderDetails.product', 'orderDetails.combo', 'payment.method', 'branch', 'pickupLocation']);
 
-            // --- FILTER ---
+            // --- FILTERING ---
+            
+            // Tìm kiếm tổng quát
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
                 $query->where(function ($q) use ($keyword) {
                     $q->where('order_code', 'like', "%{$keyword}%")
                         ->orWhere('client_name', 'like', "%{$keyword}%")
-                        ->orWhere('client_phone', 'like', "%{$keyword}%");
+                        ->orWhere('client_phone', 'like', "%{$keyword}%")
+                        ->orWhereHas('user', function ($uq) use ($keyword) {
+                            $uq->where('email', 'like', "%{$keyword}%");
+                        });
                 });
             }
 
+            // Các bộ lọc chính xác
             if ($request->filled('status')) {
                 $query->where('status', $request->input('status'));
             }
@@ -45,12 +56,12 @@ class OrderService
                 $query->where('order_method', $request->input('order_method'));
             }
             
-            if ($request->filled('payment_method_code')) {
-                $query->whereHas('payment.method', function ($q) use ($request) {
-                    $q->where('code', $request->input('payment_method_code'));
-                });
+            // Lọc theo User (Dành cho Client App)
+            if ($request->filled('user_id')) {
+                $query->where('user_id', $request->input('user_id'));
             }
 
+            // Lọc theo ngày
             if ($request->filled('start_date')) {
                 $query->whereDate('order_date', '>=', $request->input('start_date'));
             }
@@ -58,27 +69,24 @@ class OrderService
                 $query->whereDate('order_date', '<=', $request->input('end_date'));
             }
 
-            // Sắp xếp: Ưu tiên đơn Nháp/Mới lên đầu
-            $query->orderByRaw("FIELD(status, 'draft', 'pending', 'processing', 'shipped', 'delivered', 'cancelled')")
+            // Sắp xếp: Ưu tiên đơn cần xử lý lên đầu
+            $query->orderByRaw("FIELD(status, 'draft', 'pending', 'processing', 'delivered', 'cancelled')")
                 ->orderByDesc('order_date');
 
-            // --- PHÂN TRANG THỦ CÔNG ---
+            // 3. Phân trang thủ công
             $total = $query->count();
             $offset = ($currentPage - 1) * $perPage;
-            
             $orders = $query->skip($offset)->take($perPage)->get();
 
             $lastPage = (int) ceil($total / $perPage);
-            $nextPage = $currentPage < $lastPage ? $currentPage + 1 : null;
-            $prevPage = $currentPage > 1 ? $currentPage - 1 : null;
-
+            
             return [
                 'data' => $orders,
                 'page' => $currentPage,
                 'total' => $total,
                 'last_page' => $lastPage,
-                'next_page' => $nextPage,
-                'prev_page' => $prevPage,
+                'next_page' => $currentPage < $lastPage ? $currentPage + 1 : null,
+                'prev_page' => $currentPage > 1 ? $currentPage - 1 : null,
             ];
 
         } catch (\Exception $e) {
@@ -92,272 +100,356 @@ class OrderService
     public function getOrderById(int $id)
     {
         return Order::with([
-            'orderDetails.combo:id,name',
+            'orderDetails.combo',
             'orderDetails.product.images',
             'payment.method',
-            'user'
+            'user',
+            'branch',
+            'pickupLocation'
         ])->findOrFail($id);
     }
     /**
-     * Tạo một đơn hàng mới
+     * TẠO ĐƠN HÀNG MỚI (Logic hoàn chỉnh: Lock kho, Combo, Topping)
      */
-    public function createOrder(array $data): Order
+    public function createOrder(array $data, $currentUser = null, bool $isAdminCreated = false)
     {
-        return DB::transaction(function () use ($data) {
-            //BƯỚC 1 Kiểm tra tổng số lượng đặt combo+product (Xem có lớn hơn số lượng tồn không)
-            $requiredStock = [];
-            foreach ($data['items'] as $item) {
-                $itemQuantity = $item['quantity'];
-                if ($item['type'] === 'product') {
-                    $productId = $item['id'];
-                    $requiredStock[$productId] = ($requiredStock[$productId] ?? 0) + $itemQuantity;
-                } elseif ($item['type'] === 'combo') {
-                    $combo = Combo::with('items')->findOrFail($item['id']);
-                    foreach ($combo->items as $comboItem) {
-                        $productId = $comboItem->product_id;
-                        $requiredStock[$productId] = ($requiredStock[$productId] ?? 0) + ($comboItem->quantity * $itemQuantity);
-                    }
-                }
-            }
-            // --- BƯỚC 2: Kiểm tra kho tồn
-            $productIds = array_keys($requiredStock);
-            $productsInStock = Product::whereIn('id', $productIds)->get()->keyBy('id');
+        return DB::transaction(function () use ($data, $currentUser, $isAdminCreated) {
+            $branchId = $data['branch_id'];
+            $status = 'pending'; 
 
-            foreach ($requiredStock as $productId => $quantityNeeded) {
-                if (!isset($productsInStock[$productId])) {
-                    throw new \Exception("Sản phẩm với ID {$productId} không tồn tại.");
-                }
-                $product = $productsInStock[$productId];
-                if ($product->stock_quantity < $quantityNeeded) {
-                    throw new \Exception("Sản phẩm '{$product->name}' không đủ hàng trong kho (cần {$quantityNeeded}, còn {$product->stock_quantity}).");
-                }
-            }
-
-            // Nếu ổn thì xử lý
-            $paymentMethod = PaymentMethod::where('code', $data['payment_method_code'])->firstOrFail();
-            $totalAmount = 0;
             $orderDetailsPayload = [];
+            $totalAmount = 0; // Tiền hàng (chưa ship)
 
+            // 1. XỬ LÝ ITEMS
             foreach ($data['items'] as $item) {
-                $itemQuantity = $item['quantity'];
-
                 if ($item['type'] === 'product') {
-                    $product = $productsInStock[$item['id']]; // Lấy từ cache, không query lại
-                    if ($product->status != 1) {
-                        throw new \Exception("Sản phẩm '{$product->name}' hiện không kinh doanh.");
-                    }
+                    $res = $this->processProductItem($item, $branchId);
+                } else {
+                    $res = $this->processComboItem($item, $branchId);
+                }
+                
+                // Merge kết quả vào mảng payload
+                $detailsToAdd = isset($res['details']) ? $res['details'] : [$res['detail']];
+                $orderDetailsPayload = array_merge($orderDetailsPayload, $detailsToAdd);
+                $totalAmount += $res['subtotal'];
+            }
 
-                    $unitPrice = $product->sale_price ?? $product->original_price;
-                    $totalAmount += $unitPrice * $itemQuantity;
+            // 2. TÍNH TỔNG TIỀN
+            $shippingFee = ($data['order_method'] === 'delivery') ? (float)($data['shipping_fee'] ?? 0) : 0;
+            $grandTotal = max(0, $totalAmount + $shippingFee);
 
-                    $orderDetailsPayload[] = [
-                        'product_id' => $product->id,
-                        'quantity' => $itemQuantity,
-                        'unit_price' => $unitPrice,
-                        'unit_of_measure' => $product->base_unit ?? 'cái',
-                        'combo_id' => null,
-                    ];
-                } elseif ($item['type'] === 'combo') {
-                    $combo = Combo::with('items.product')->findOrFail($item['id']);
-                    if (!$combo->is_active) {
-                        throw new \Exception("Combo '{$combo->name}' đã ngừng áp dụng.");
-                    }
-
-                    $totalAmount += $combo->price * $itemQuantity;
-                    //Áp dụng thuật toán chia giá combo làm tròn
-                    $originalComboPrice = $combo->items->sum(fn($ci) => ($ci->product->sale_price ?? $ci->product->original_price) * $ci->quantity);
-                    $discountRatio = ($originalComboPrice > 0) ? ($combo->price / $originalComboPrice) : 0;
-                    $tempDetails = [];
-                    $calculatedComboTotal = 0;
-                    $comboItemsCount = count($combo->items);
-                    foreach ($combo->items as $index => $comboItem) {
-                        $originalItemPrice = $comboItem->product->sale_price ?? $comboItem->product->original_price;
-                        if ($index < $comboItemsCount - 1) {
-                            $discountedUnitPrice = round($originalItemPrice * $discountRatio);
-                            $calculatedComboTotal += $discountedUnitPrice * $comboItem->quantity;
-                        } else {
-                            $remainingAmount = $combo->price - $calculatedComboTotal;
-                            $discountedUnitPrice = $remainingAmount / $comboItem->quantity;
-                        }
-                        $tempDetails[] = [
-                            'product_id' => $comboItem->product->id,
-                            'quantity'   => $comboItem->quantity * $itemQuantity,
-                            'unit_price' => $discountedUnitPrice,
-                            'unit_of_measure' => $comboItem->product->base_unit ?? 'cái',
-                            'combo_id'   => $combo->id,
-                        ];
-                    }
-                    $orderDetailsPayload = array_merge($orderDetailsPayload, $tempDetails);
+            // 3. XÁC ĐỊNH USER (Nullable)
+            $userId = null; 
+            if ($isAdminCreated) {
+                // Admin tạo: Nếu chọn khách -> lấy ID
+                if (!empty($data['user_id'])) {
+                    $userId = $data['user_id'];
+                }
+            } else {
+                // Khách tự tạo
+                if ($currentUser) {
+                    $userId = $currentUser->id;
                 }
             }
 
-            // 3. Tạo bản ghi Order
-            $shippingFee = $data['shipping_fee'] ?? 0;
-            $discountAmount = $data['discount_amount'] ?? 0;
-            $grandTotal = $totalAmount + $shippingFee - $discountAmount;
+            // 4. GIAO NHẬN
+            $pickupTime = null;
+            $pickupLocationId = null;
+            $shippingAddress = null;
 
+            if ($data['order_method'] === 'takeaway') {
+                $pickupTime = $data['pickup_time'] ?? Carbon::now()->addMinutes(15);
+                $pickupLocationId = $data['pickup_location_id'] ?? null;
+            } elseif ($data['order_method'] === 'delivery') {
+                $shippingAddress = $data['shipping_address'];
+            }
+
+            // 5. TẠO ORDER
             $order = Order::create([
-                'order_date' => now(),
-                'total_amount' => $totalAmount,
-                'shipping_fee' => $shippingFee,
-                'discount_amount' => $discountAmount,
-                'grand_total' => $grandTotal,
-                'status' => 'pending',
+                'order_code' => $this->generateOrderCode(),
+                'user_id' => $userId, 
+                'branch_id' => $branchId,
+                'order_method' => $data['order_method'],
+                'status' => $status,
+                
                 'client_name' => $data['client_name'],
                 'client_phone' => $data['client_phone'],
-                'shipping_address' => $data['shipping_address'],
-                'user_id' => auth()->id(),
+                'notes' => $data['notes'] ?? null,
+                
+                'shipping_address' => $shippingAddress,
+                'pickup_time' => $pickupTime,
+                'pickup_location_id' => $pickupLocationId,
+                'shipping_fee' => $shippingFee,
+                'total_amount' => $totalAmount,
+                'grand_total' => $grandTotal,
+                'order_date' => now(),
             ]);
 
-            // 4. Tạo chi tiết đơn hàng
+            // 6. LƯU CHI TIẾT
             $order->orderDetails()->createMany($orderDetailsPayload);
 
-            // 5. Tạo thông tin thanh toán
-            $order->payment()->create([
-                'payment_method_id' => $paymentMethod->id,
-                'status' => 'pending',
-                'amount' => $grandTotal,
-            ]);
+            // 7. TẠO THANH TOÁN
+            $this->createPayment($order, $data['payment_method_code'], $grandTotal);
 
-            // 6. Trừ tồn kho
-            foreach ($requiredStock as $productId => $quantityToDecrement) {
-                Product::where('id', $productId)->decrement('stock_quantity', $quantityToDecrement);
-            }
-
-            return $order->fresh(['orderDetails.product', 'payment.method', 'user']);
+            return $order->load(['orderDetails', 'payment.method']);
         });
     }
+
     /**
-     * Cập nhật thông tin đơn hàng
+     * CẬP NHẬT TRẠNG THÁI (KÈM LOGIC HOÀN KHO)
      */
-    //Bổ sung thông báo khi cấp nhật đơn hàng sau
-    public function updateOrder(Order $order, array $data)
+    public function updateOrderStatus(Order $order, string $newStatus)
     {
-        return DB::transaction(function () use ($order, $data) {
-            $currentStatus = $order->status;
-            //Không cho phép thay đổi bất cứ điều gì nếu đơn hàng đã được giao thành công hoặc đã hủy.
-            if (in_array($currentStatus, ['delivered', 'cancelled'])) {
-                throw new \Exception("Không thể cập nhật đơn hàng đã hoàn thành hoặc đã hủy.");
+        return DB::transaction(function () use ($order, $newStatus) {
+            // Không cho sửa đơn đã hoàn tất
+            if (in_array($order->status, ['delivered', 'cancelled'])) {
+                throw new Exception("Đơn hàng đã hoàn tất hoặc hủy, không thể thay đổi trạng thái.");
             }
-            $order->fill($data);
-            //Xử lý logic nghiệp vụ trạng thái thay đổi sang 'cancelled'
-            if (isset($data['status']) && $data['status'] === 'cancelled' && $order->isDirty('status')) {
-                // Cộng trả lại tồn kho cho các sản phẩm trong đơn hàng
-                foreach ($order->orderDetails as $detail) {
-                    $product = Product::findOrFail($detail->product_id);
-                    $product->increment('stock_quantity', $detail->quantity);
+
+            $oldStatus = $order->status;
+            $order->status = $newStatus;
+
+            // NẾU HỦY ĐƠN -> HOÀN KHO
+            if ($newStatus === 'cancelled') {
+                // Chỉ hoàn kho khi trạng thái cũ chưa phải là cancelled (để tránh hoàn 2 lần)
+                if ($oldStatus !== 'cancelled') {
+                    $this->restockOrderItems($order);
+                    $order->cancelled_at = now();
                 }
-                // Cập nhật thời gian hủy đơn
-                $order->cancelled_at = now();
             }
-            if (isset($data['status']) && $data['status'] === 'delivered' && $order->isDirty('status')) {
-                $this->markPaymentAsPaidIfApplicable($order);
+            
+            // NẾU GIAO XONG -> CẬP NHẬT THANH TOÁN (Nếu chưa)
+            if ($newStatus === 'delivered') {
+                if ($order->payment && $order->payment->status !== 'success') {
+                    $this->updatePaymentStatus($order, 'success', now());
+                }
             }
+
             $order->save();
             return $order;
         });
     }
-    public function updateOrderPaymentStatus(Order $order, array $data)
+
+    /**
+     * CẬP NHẬT THANH TOÁN
+     */
+    public function updatePaymentStatus(Order $order, string $status, $paidAt = null)
     {
-        $payment = $order->payment()->first();
+        $payment = $order->payment;
+        if (!$payment) throw new Exception("Đơn hàng chưa có thông tin thanh toán.");
 
-        // Kiểm tra nếu đơn hàng không có thông tin thanh toán
-        if (!$payment) {
-            throw new \Exception("Đơn hàng này không có thông tin thanh toán để cập nhật.");
-        }
-
-        // Kiểm tra logic nghiệp vụ: không cho cập nhật lại khi đã thành công
-        if ($payment->status === 'success') {
-            throw new \Exception("Thanh toán này đã được xác nhận thành công trước đó.");
-        }
-
-        // Cập nhật trạng thái
-        $payment->status = $data['status'];
-
-        // Nếu trạng thái là 'success', cập nhật ngày thanh toán
-        if ($data['status'] === 'success') {
-            $payment->paid_at = $data['paid_at'] ?? now();
+        $payment->status = $status;
+        if ($status === 'success') {
+            $payment->paid_at = $paidAt ? Carbon::parse($paidAt) : now();
         } else {
             $payment->paid_at = null;
         }
-
         $payment->save();
 
-        // Load lại quan hệ để trả về dữ liệu mới nhất
-        return $order->fresh('payment.method');
+        return $order->fresh();
     }
-    public function cancelMultipleOrders(array $orderIds): array
+    
+    /**
+     * HỦY NHIỀU ĐƠN HÀNG (Soft Cancel)
+     */
+    public function cancelMultipleOrders(array $ids)
     {
-        $cancelledCount = 0;
-        $failedOrders = [];
+        $success = 0;
+        $failed = [];
+        $orders = Order::whereIn('id', $ids)->get();
 
-        // Lấy tất cả các đơn hàng và thông tin thanh toán liên quan để kiểm tra
-        $ordersToProcess = Order::with(['orderDetails', 'payment'])->whereIn('id', $orderIds)->get();
-
-        foreach ($ordersToProcess as $order) {
-            // Kiểm tra trạng thái vận hành
-            if (in_array($order->status, ['delivered', 'cancelled'])) {
-                $failedOrders[] = ['id' => $order->id, 'order_code' => $order->order_code, 'reason' => "Đơn hàng đã ở trạng thái '{$order->status}'."];
-                continue; // Bỏ qua và xử lý đơn hàng tiếp theo
-            }
-
-            // Kiểm tra trạng thái tài chính
-            if ($order->payment && $order->payment->status === 'success') {
-                $failedOrders[] = ['id' => $order->id, 'order_code' => $order->order_code, 'reason' => "Đơn hàng đã được thanh toán, cần xử lý hoàn tiền riêng."];
-                continue; // Bỏ qua và xử lý đơn hàng tiếp theo
-            }
-
-            DB::beginTransaction();
+        foreach ($orders as $order) {
             try {
-                // Kiểm tra nghiệp vụ: Chỉ hủy các đơn hàng chưa ở trạng thái cuối cùng
-                if (!in_array($order->status, ['delivered', 'cancelled'])) {
-
-                    //Cập nhật trạng thái đơn hàng
-                    $order->status = 'cancelled';
-                    $order->cancelled_at = now();
-
-                    if ($order->payment && $order->payment->status === 'pending') {
-                        $order->payment->update([
-                            'status' => 'failed',
-                            'paid_at' => null,
-                        ]);
-                    }
-                    $order->save();
-
-                    //Cộng trả lại tồn kho
-                    foreach ($order->orderDetails as $detail) {
-                        Product::find($detail->product_id)->increment('stock_quantity', $detail->quantity);
-                    }
-                    // Nếu cả 2 hành động trên đều thành công, lưu lại thay đổi vào CSDL
-                    DB::commit();
-                    $cancelledCount++;
-                } else {
-                    // Nếu đơn hàng không đủ điều kiện để hủy, ghi nhận vào danh sách lỗi.
-                    $failedOrders[] = ['id' => $order->id, 'order_code' => $order->order_code, 'reason' => "Đơn hàng đã ở trạng thái '{$order->status}'."];
-                    DB::rollBack();
-                }
-            } catch (\Exception $e) {
-                // tất cả các thay đổi cho đơn hàng NÀY sẽ bị hoàn tác (rollback).
-                DB::rollBack();
-                $failedOrders[] = ['id' => $order->id, 'order_code' => $order->order_code, 'reason' => $e->getMessage()];
+                $this->updateOrderStatus($order, 'cancelled');
+                $success++;
+            } catch (Exception $e) {
+                $failed[] = ['id' => $order->id, 'order_code' => $order->order_code, 'reason' => $e->getMessage()];
             }
         }
+        return ['success_count' => $success, 'failed_orders' => $failed];
+    }
+
+
+    /**
+     * Hoàn kho khi hủy đơn (Sử dụng lockForUpdate)
+     */
+    private function restockOrderItems(Order $order)
+    {
+        foreach ($order->orderDetails as $detail) {
+            // Chỉ hoàn kho nếu có product_id (Combo đã được tách item khi lưu)
+            if ($detail->product_id) { 
+                $stock = BranchProductStock::where('branch_id', $order->branch_id)
+                    ->where('product_id', $detail->product_id)
+                    ->lockForUpdate() // LOCK ROW
+                    ->first();
+                
+                if ($stock) {
+                    $stock->increment('quantity', $detail->quantity);
+                }
+            }
+        }
+    }
+
+    /**
+     * Xử lý Sản phẩm lẻ: Check Giờ, Kho, Tính Topping
+     */
+    private function processProductItem($itemData, $branchId) {
+        $product = Product::findOrFail($itemData['id']);
+        $quantity = $itemData['quantity'];
+
+        // Check Giờ
+        if (!$product->is_flexible_time) {
+            $this->validateSellingTime($product->id, 'product');
+        }
+
+        // Check Kho (Có Lock)
+        if ($product->is_sales_unit) {
+            $stock = BranchProductStock::where('branch_id', $branchId)
+                ->where('product_id', $product->id)
+                ->lockForUpdate() // LOCK
+                ->first();
+
+            if (!$stock || $stock->quantity < $quantity) {
+                throw new Exception("Sản phẩm '{$product->name}' không đủ hàng (Kho: " . ($stock->quantity ?? 0) . ").");
+            }
+            $stock->decrement('quantity', $quantity);
+        }
+
+        // Tính Giá (Ưu tiên giá App)
+        $basePrice = ($product->base_app_price > 0) ? $product->base_app_price : $product->base_store_price;
+        $unitPrice = $basePrice;
+        $attributesSnapshot = [];
+
+        if (!empty($itemData['attribute_value_ids'])) {
+            $attributes = AttributeValue::with('productAttribute')
+                ->whereIn('id', $itemData['attribute_value_ids'])->get();
+            foreach ($attributes as $attr) {
+                $unitPrice += $attr->price_adjustment;
+                $attributesSnapshot[] = [
+                    'name' => $attr->productAttribute->name, 
+                    'value' => $attr->value, 
+                    'price' => (float)$attr->price_adjustment
+                ];
+            }
+        }
+
         return [
-            'success_count' => $cancelledCount,
-            'failed_orders' => $failedOrders
+            'subtotal' => $unitPrice * $quantity, 
+            'detail' => [
+                'product_id' => $product->id, 
+                'combo_id' => null, 
+                'unit_of_measure' => $product->base_unit,
+                'quantity' => $quantity, 
+                'unit_price' => $unitPrice, 
+                'subtotal' => $unitPrice * $quantity,
+                'attributes_snapshot' => json_encode($attributesSnapshot, JSON_UNESCAPED_UNICODE),
+            ]
         ];
     }
-    /**
-     * Gán trạng thái thanh toán thành công nếu chưa có.
-     */
-    private function markPaymentAsPaidIfApplicable(Order $order)
-    {
-        $payment = $order->payment;
 
-        if ($payment && $payment->status !== 'success') {
-            $payment->status = 'success';
-            $payment->paid_at = now();
-            $payment->save();
+    /**
+     * Xử lý Combo: Check Giờ, Chia giá, Trừ kho thành phần
+     */
+    private function processComboItem($itemData, $branchId) {
+        $combo = Combo::with('items')->findOrFail($itemData['id']);
+        $quantity = $itemData['quantity'];
+
+        if (!$combo->is_active) throw new Exception("Combo ngừng hoạt động.");
+        if (!$combo->is_flexible_time) $this->validateSellingTime($combo->id, 'combo');
+
+        $details = [];
+        $comboPrice = ($combo->base_app_price > 0) ? $combo->base_app_price : $combo->base_store_price;
+        $totalSubtotal = $comboPrice * $quantity;
+        
+        // Chia giá combo cho món con theo tỷ lệ
+        $originalTotalValue = $combo->items->sum(fn($i) => ($i->base_app_price ?: $i->base_store_price) * $i->pivot->quantity);
+        $ratio = ($originalTotalValue > 0) ? ($comboPrice / $originalTotalValue) : 0;
+        $distributed = 0;
+
+        foreach ($combo->items as $index => $cItem) {
+            // Trừ kho món con (Có Lock)
+            if ($cItem->is_sales_unit) {
+                $need = $cItem->pivot->quantity * $quantity;
+                $stock = BranchProductStock::where('branch_id', $branchId)
+                    ->where('product_id', $cItem->id)
+                    ->lockForUpdate() // LOCK ROW
+                    ->first();
+
+                if (!$stock || $stock->quantity < $need) {
+                    throw new Exception("Món '{$cItem->name}' trong combo hết hàng.");
+                }
+                $stock->decrement('quantity', $need);
+            }
+            
+            // Tính giá đã chia
+            $itemTotalQty = $cItem->pivot->quantity * $quantity;
+            $base = $cItem->base_app_price ?: $cItem->base_store_price;
+            
+            if ($index < $combo->items->count() - 1) {
+                $lineTotal = round($base * $ratio * $itemTotalQty);
+                $distributed += $lineTotal;
+                $uPrice = ($itemTotalQty > 0) ? $lineTotal / $itemTotalQty : 0;
+            } else {
+                $lineTotal = $totalSubtotal - $distributed;
+                $uPrice = ($itemTotalQty > 0) ? $lineTotal / $itemTotalQty : 0;
+            }
+            
+            $details[] = [
+                'product_id' => $cItem->id, 
+                'combo_id' => $combo->id, 
+                'unit_of_measure' => $cItem->base_unit,
+                'quantity' => $itemTotalQty, 
+                'unit_price' => $uPrice, 
+                'subtotal' => $lineTotal, 
+                'attributes_snapshot' => null // Combo không có topping lẻ ở bước này
+            ];
         }
+        return ['subtotal' => $totalSubtotal, 'details' => $details];
+    }
+
+    private function validateSellingTime($itemId, $type) {
+        $now = Carbon::now()->format('H:i:s');
+        $query = ItemTimeSlot::join('order_time_slots', 'item_time_slots.time_slot_id', '=', 'order_time_slots.id')
+            ->where('order_time_slots.is_active', 1)
+            ->select('order_time_slots.start_time', 'order_time_slots.end_time');
+        
+        if ($type === 'product') {
+            $query->where('item_time_slots.product_id', $itemId);
+        } else {
+            $query->where('item_time_slots.combo_id', $itemId);
+        }
+
+        $slots = $query->get();
+        if ($slots->isEmpty()) return; // Không gán slot -> Bán cả ngày
+
+        $can = false;
+        foreach ($slots as $s) {
+            if ($now >= $s->start_time && $now <= $s->end_time) {
+                $can = true;
+                break;
+            }
+        }
+        if (!$can) throw new Exception(($type === 'product' ? 'Sản phẩm' : 'Combo') . " chưa đến giờ mở bán.");
+    }
+
+    private function createPayment($order, $code, $amount) {
+        $method = PaymentMethod::where('code', $code)->firstOrFail();
+        $order->payment()->create([
+            'payment_method_id' => $method->id, 
+            'status' => 'pending', 
+            'amount' => $amount, 
+            'paid_at' => null
+        ]);
+    }
+private function generateOrderCode(): string
+    {
+        $prefix = 'DH'; 
+        $lastOrder = Order::where('order_code', 'LIKE', "{$prefix}%")
+            ->orderByRaw('CAST(SUBSTRING(order_code, ' . (strlen($prefix) + 1) . ') AS UNSIGNED) DESC')
+            ->lockForUpdate() 
+            ->first();
+
+        $nextId = $lastOrder ? ((int)substr($lastOrder->order_code, strlen($prefix)) + 1) : 1;
+        return $prefix . str_pad($nextId, 6, '0', STR_PAD_LEFT);
     }
 }

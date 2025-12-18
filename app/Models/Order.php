@@ -92,4 +92,8 @@ class Order extends Model
     {
         return $this->belongsTo(PickupLocation::class, 'pickup_location_id');
     }
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
 }
