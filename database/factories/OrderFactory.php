@@ -24,7 +24,7 @@ class OrderFactory extends Factory
         return [
                'order_date' => $this->faker->dateTimeBetween('-1 month', 'now'),
                'total_amount' => 0, // Sẽ được tính sau khi tạo order_details
-               'status' => $this->faker->randomElement(['draft', 'pending', 'processing', 'delivered', 'cancelled']),
+               'status' => $this->faker->randomElement(['pending', 'processing', 'delivered', 'cancelled']),
                'client_name' => $this->faker->name,
                'client_phone' => substr(preg_replace('/\D/', '', $this->faker->phoneNumber), 0, 11),
                'shipping_address' => $this->faker->address,

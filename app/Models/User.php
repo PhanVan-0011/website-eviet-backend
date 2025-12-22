@@ -10,6 +10,7 @@ use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
@@ -66,10 +67,37 @@ class User extends Authenticatable
     }
 
     /**
-     * Lấy chi nhánh mà người dùng thuộc về.
+     * Lấy chi nhánh mà người dùng thuộc về (cho Sales Staff - 1 chi nhánh).
      */
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    /**
+     * Quan hệ nhiều-nhiều với branches (cho Branch Admin - đa chi nhánh).
+     */
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class, 'branch_user')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Kiểm tra user có quyền truy cập branch không.
+     * Sử dụng BranchAccessService để tránh duplicate logic
+     */
+    public function hasAccessToBranch($branchId): bool
+    {
+        return \App\Services\BranchAccessService::hasAccessToBranch($branchId, $this);
+    }
+
+    /**
+     * Lấy danh sách branch IDs mà user có quyền truy cập.
+     * Sử dụng BranchAccessService để tránh duplicate logic
+     */
+    public function getAccessibleBranchIds(): array
+    {
+        return \App\Services\BranchAccessService::getAccessibleBranchIds($this);
     }
 }

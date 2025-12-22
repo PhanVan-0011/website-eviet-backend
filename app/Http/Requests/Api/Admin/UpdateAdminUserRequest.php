@@ -33,14 +33,15 @@ class UpdateAdminUserRequest extends FormRequest
             'phone' => ['sometimes', 'required', 'string', 'regex:/^0[0-9]{9}$/', Rule::unique('users', 'phone')->ignore($userId)],
             'password' => ['sometimes', 'nullable', 'confirmed', Password::min(8)],
  
-            'role_ids' => ['sometimes', 'required', 'array', 'min:1'],
-            'role_ids.*' => ['integer', Rule::exists('roles', 'id')->where('guard_name', 'api')->whereNot('name', 'super-admin')],
+            'role_id' => ['sometimes', 'required', 'integer', Rule::exists('roles', 'id')->where('guard_name', 'api')->whereNot('name', 'super-admin')],
             
             'is_active' => ['sometimes', 'required', 'boolean'],
             'gender' => ['sometimes', 'nullable', 'string', Rule::in(['male', 'female', 'other'])],
             'date_of_birth' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
             'address' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'branch_id' => ['sometimes', 'nullable', 'integer', Rule::exists('branches', 'id')],
+            'branch_id' => ['sometimes', 'nullable', 'integer', Rule::exists('branches', 'id')], // Cho sales-staff
+            'branch_ids' => ['sometimes', 'nullable', 'array'], // Cho branch-admin (đa chi nhánh)
+            'branch_ids.*' => ['integer', Rule::exists('branches', 'id')],
             'image_url' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ];
         
@@ -55,8 +56,8 @@ class UpdateAdminUserRequest extends FormRequest
             'phone.unique' => 'Số điện thoại này đã tồn tại.',
             'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
 
-            'role_ids.required' => 'Vui lòng chọn ít nhất một vai trò.',
-            'role_ids.*.exists' => 'Vai trò được chọn không hợp lệ hoặc không được phép gán.',
+            'role_id.required' => 'Vui lòng chọn vai trò.',
+            'role_id.exists' => 'Vai trò được chọn không hợp lệ hoặc không được phép gán.',
             'date_of_birth.before_or_equal' => 'Ngày sinh không hợp lệ.',
             
             

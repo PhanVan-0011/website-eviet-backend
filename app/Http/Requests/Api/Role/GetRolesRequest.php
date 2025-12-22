@@ -13,7 +13,7 @@ class GetRolesRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('roles.manage');
+        return $this->user()->can('roles.view');
     }
 
     /**

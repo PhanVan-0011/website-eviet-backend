@@ -87,9 +87,13 @@ class AdminUserController extends Controller
                 ->response()
                 ->setStatusCode(201);
         } catch (Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Lỗi khi tạo tài khoản quản trị: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Đã có lỗi xảy ra trong quá trình tạo tài khoản.'
+                'message' => $e->getMessage() ?: 'Đã có lỗi xảy ra trong quá trình tạo tài khoản.'
             ], 500);
         }
     }

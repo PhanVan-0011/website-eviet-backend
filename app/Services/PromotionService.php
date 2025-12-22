@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Exception;
+use App\Services\BranchAccessService;
 
 class PromotionService
 {
@@ -26,6 +27,9 @@ class PromotionService
             $currentPage = max(1, (int) $request->input('page', 1));
 
             $query = Promotion::with('image');
+
+            // Apply branch filter (tự động theo role)
+            BranchAccessService::applyBranchFilter($query);
 
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
@@ -49,6 +53,15 @@ class PromotionService
             if ($request->filled('is_active')) {
                 $query->where('is_active', $request->boolean('is_active'));
             }
+            
+            // Nếu user chọn filter branch_id, chỉ áp dụng nếu user có quyền với branch đó
+            if ($request->filled('branch_id')) {
+                $branchId = $request->input('branch_id');
+                if (BranchAccessService::hasAccessToBranch($branchId)) {
+                    $query->where('branch_id', $branchId);
+                }
+            }
+            
             //Lọc theo khoảng thời gian 
             if ($request->filled('start_date')) {
                 $query->whereDate('start_date', '>=', $request->input('start_date'));

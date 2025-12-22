@@ -25,6 +25,9 @@ class OrderService
             $query = Order::query()
                 ->with(['user', 'orderDetails.product', 'orderDetails.combo', 'payment.method', 'branch']);
 
+            // Apply branch filter (tự động theo role)
+            \App\Services\BranchAccessService::applyBranchFilter($query);
+
             // --- FILTER ---
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');
@@ -38,8 +41,12 @@ class OrderService
             if ($request->filled('status')) {
                 $query->where('status', $request->input('status'));
             }
+            // Nếu user chọn filter branch_id, chỉ áp dụng nếu user có quyền với branch đó
             if ($request->filled('branch_id')) {
-                $query->where('branch_id', $request->input('branch_id'));
+                $branchId = $request->input('branch_id');
+                if (\App\Services\BranchAccessService::hasAccessToBranch($branchId)) {
+                    $query->where('branch_id', $branchId);
+                }
             }
             if ($request->filled('order_method')) {
                 $query->where('order_method', $request->input('order_method'));

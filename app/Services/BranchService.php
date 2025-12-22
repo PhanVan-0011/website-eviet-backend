@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
+use App\Services\BranchAccessService;
 
 class BranchService
 {
@@ -26,22 +27,36 @@ class BranchService
             // Lấy thông tin user hiện tại
             $user = auth()->user();
 
-            // Xác định is_admin dựa trên branch_id:
-            // - branch_id = null → is_admin = true (Super Admin/Admin)
-            // - branch_id != null → is_admin = false (Nhân viên/Staff)
-            $isAdmin = ($user && is_null($user->branch_id));
+            // Xác định is_admin: Sử dụng BranchAccessService để nhất quán với config
+            $isAdmin = BranchAccessService::canViewAllBranches($user);
 
             $query = Branch::query();
 
-            // Nếu user có branch_id cụ thể (Nhân viên/Staff), chỉ trả về branch đó
-            if ($user && $user->branch_id) {
-                $query->where('id', $user->branch_id);
+            // Áp dụng filter theo quyền truy cập của user (đa chi nhánh cho branch-admin)
+            // Nếu user có quyền xem tất cả branches, không cần filter
+            if (!$isAdmin) {
+                $accessibleBranchIds = BranchAccessService::getAccessibleBranchIds($user);
+                
+                if (!empty($accessibleBranchIds)) {
+                    // User có quyền với một số branches cụ thể
+                    $query->whereIn('id', $accessibleBranchIds);
+                    
+                    // Lọc theo ID chi nhánh (từ select box) - chỉ áp dụng nếu user có quyền với branch đó
+                    if ($request->has('branch_id')) {
+                        $branchId = (int) $request->input('branch_id');
+                        if (in_array($branchId, $accessibleBranchIds)) {
+                            $query->where('id', $branchId);
+                        }
+                    }
+                } else {
+                    // User không có quyền với branch nào (không nên xảy ra, nhưng để an toàn)
+                    $query->whereRaw('1 = 0');
+                }
             } else {
-                // Nếu branch_id = null (Super Admin/Admin), áp dụng các filter như cũ
-
-                // Lọc theo ID chi nhánh (từ select box) - chỉ áp dụng nếu là admin
+                // User có quyền xem tất cả branches, vẫn có thể filter theo branch_id nếu cần
                 if ($request->has('branch_id')) {
-                    $query->where('id', $request->branch_id);
+                    $branchId = (int) $request->input('branch_id');
+                    $query->where('id', $branchId);
                 }
             }
 

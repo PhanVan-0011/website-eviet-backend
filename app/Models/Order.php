@@ -92,4 +92,10 @@ class Order extends Model
     {
         return $this->belongsTo(PickupLocation::class, 'pickup_location_id');
     }
+
+    // Mối quan hệ với Branch (bảng branches)
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
 }

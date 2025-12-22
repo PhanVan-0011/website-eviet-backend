@@ -12,7 +12,7 @@ class StoreRoleRequest extends FormRequest
      */
     public function authorize(): bool
     {
-         return $this->user()->can('roles.manage'); //  Super Admin có quyền này
+        return $this->user()->can('roles.create');
     }
 
     /**

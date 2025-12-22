@@ -12,6 +12,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
 use Exception;
+use App\Services\BranchAccessService;
 
 class ComboService
 {
@@ -49,20 +50,39 @@ class ComboService
                 });
             }
 
-            // Lọc theo trạng thái
-            if ($request->filled('is_active')) {
-                $query->where('is_active', $request->boolean('is_active'));
-            }
-            // Lọc theo chi nhánh (tìm combo áp dụng cho chi nhánh cụ thể)
-            if ($request->filled('branch_id')) {
-                $branchId = $request->input('branch_id');
-                $query->where(function ($q) use ($branchId) {
-                    $q->where('applies_to_all_branches', true) // Lấy combo áp dụng cho tất cả
-                        ->orWhereHas('branches', function ($subQuery) use ($branchId) {
-                            // Hoặc combo được gán cụ thể cho chi nhánh này VÀ đang active tại chi nhánh đó
-                            $subQuery->where('branches.id', $branchId)->where('branch_combo.is_active', true);
+            // Apply branch filter tự động (theo role)
+            // Chỉ lấy combos áp dụng cho branches mà user có quyền
+            $branchIds = BranchAccessService::getAccessibleBranchIds();
+            if (!empty($branchIds)) {
+                $query->where(function ($q) use ($branchIds) {
+                    $q->where('applies_to_all_branches', true) // Combos áp dụng cho tất cả branches
+                        ->orWhereHas('branches', function ($subQuery) use ($branchIds) {
+                            // Hoặc combo được gán cho các branches này VÀ đang active tại branch đó
+                            $subQuery->whereIn('branches.id', $branchIds)
+                                ->where('branch_combo.is_active', true);
                         });
                 });
+            } else {
+                // Nếu user không có quyền với branch nào, chỉ lấy combos áp dụng cho tất cả
+                $query->where('applies_to_all_branches', true);
+            }
+            
+            // Mặc định chỉ lấy combos active (hoặc theo filter is_active từ request nếu có)
+            $isActive = $request->filled('is_active') ? $request->boolean('is_active') : true;
+            $query->where('is_active', $isActive);
+            
+            // Nếu user chọn filter branch_id cụ thể (và user có quyền với branch đó)
+            if ($request->filled('branch_id')) {
+                $branchId = $request->input('branch_id');
+                if (BranchAccessService::hasAccessToBranch($branchId)) {
+                $query->where(function ($q) use ($branchId) {
+                        $q->where('applies_to_all_branches', true)
+                        ->orWhereHas('branches', function ($subQuery) use ($branchId) {
+                                $subQuery->where('branches.id', $branchId)
+                                    ->where('branch_combo.is_active', true);
+                        });
+                });
+                }
             }
 
 

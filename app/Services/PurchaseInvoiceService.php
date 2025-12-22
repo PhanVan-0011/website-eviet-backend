@@ -12,6 +12,7 @@ use App\Models\BranchProductStock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Services\BranchAccessService;
 
 class PurchaseInvoiceService
 {
@@ -27,14 +28,20 @@ class PurchaseInvoiceService
             $currentPage = max(1, (int) $request->input('page', 1));
             $query = PurchaseInvoice::query();
 
+            // Apply branch filter (tự động theo role)
+            BranchAccessService::applyBranchFilter($query);
+
             // Lọc theo Nhà cung cấp
             if ($request->filled('supplier_id')) {
                 $query->where('supplier_id', $request->supplier_id);
             }
             
-            // Lọc theo Chi nhánh
+            // Nếu user chọn filter branch_id, chỉ áp dụng nếu user có quyền với branch đó
             if ($request->filled('branch_id')) {
-                $query->where('branch_id', $request->branch_id);
+                $branchId = $request->input('branch_id');
+                if (BranchAccessService::hasAccessToBranch($branchId)) {
+                    $query->where('branch_id', $branchId);
+                }
             }
 
             $status = $request->input('status');

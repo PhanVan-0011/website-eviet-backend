@@ -102,43 +102,43 @@ Route::middleware('auth:sanctum')->group(function () {
 //Admin
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
     // --- Purchase Invoices ---
-    Route::prefix('purchase-invoices')->group(function () {
+    Route::prefix('purchase-invoices')->middleware('check.permission:purchase-invoices.view')->group(function () {
         Route::get('/', [PurchaseInvoiceController::class, 'index']);
         Route::get('/{id}', [PurchaseInvoiceController::class, 'show']);
         Route::put('/{id}/cancel', [PurchaseInvoiceController::class, 'cancel']);
-        Route::post('/', [PurchaseInvoiceController::class, 'store']);
-        Route::put('/{id}', [PurchaseInvoiceController::class, 'update']);
-        Route::delete('/multi-delete', [PurchaseInvoiceController::class, 'multiDelete']);
-        Route::delete('/{id}', [PurchaseInvoiceController::class, 'destroy']);
+        Route::post('/', [PurchaseInvoiceController::class, 'store'])->middleware('check.permission:purchase-invoices.create');
+        Route::put('/{id}', [PurchaseInvoiceController::class, 'update'])->middleware('check.permission:purchase-invoices.update');
+        Route::delete('/multi-delete', [PurchaseInvoiceController::class, 'multiDelete'])->middleware('check.permission:purchase-invoices.delete');
+        Route::delete('/{id}', [PurchaseInvoiceController::class, 'destroy'])->middleware('check.permission:purchase-invoices.delete');
     });
     // --- Supplier Groups ---
-    Route::prefix('supplier-groups')->group(function () {
+    Route::prefix('supplier-groups')->middleware('check.permission:supplier-groups.view')->group(function () {
         Route::get('/', [SupplierGroupController::class, 'index']);
         Route::get('/{id}', [SupplierGroupController::class, 'show']);
-        Route::post('/', [SupplierGroupController::class, 'store']);
-        Route::put('/{id}', [SupplierGroupController::class, 'update']);
-        Route::delete('/multi-delete', [SupplierGroupController::class, 'multiDelete']);
-        Route::delete('/{id}', [SupplierGroupController::class, 'destroy']);
+        Route::post('/', [SupplierGroupController::class, 'store'])->middleware('check.permission:supplier-groups.create');
+        Route::put('/{id}', [SupplierGroupController::class, 'update'])->middleware('check.permission:supplier-groups.update');
+        Route::delete('/multi-delete', [SupplierGroupController::class, 'multiDelete'])->middleware('check.permission:supplier-groups.delete');
+        Route::delete('/{id}', [SupplierGroupController::class, 'destroy'])->middleware('check.permission:supplier-groups.delete');
     });
 
     // --- Suppliers ---
-    Route::prefix('suppliers')->group(function () {
+    Route::prefix('suppliers')->middleware('check.permission:suppliers.view')->group(function () {
         Route::get('/', [SupplierController::class, 'index']);
-        Route::delete('/multi-delete', [SupplierController::class, 'multiDelete']);
         Route::get('/{id}', [SupplierController::class, 'show']);
         Route::get('/{supplierId}/purchase-history', [PurchaseInvoiceController::class, 'getHistoryBySupplier']);
-        Route::post('/', [SupplierController::class, 'store']);
-        Route::put('/{id}', [SupplierController::class, 'update']);
-        Route::delete('/{id}', [SupplierController::class, 'destroy']);
+        Route::post('/', [SupplierController::class, 'store'])->middleware('check.permission:suppliers.create');
+        Route::put('/{id}', [SupplierController::class, 'update'])->middleware('check.permission:suppliers.update');
+        Route::delete('/multi-delete', [SupplierController::class, 'multiDelete'])->middleware('check.permission:suppliers.delete');
+        Route::delete('/{id}', [SupplierController::class, 'destroy'])->middleware('check.permission:suppliers.delete');
     });
     // --- Branch ---
-    Route::prefix('branches')->group(function () {
+    Route::prefix('branches')->middleware('check.permission:branches.view')->group(function () {
         Route::get('/', [BranchController::class, 'index']);
-        Route::delete('/multi-delete', [BranchController::class, 'multiDelete']);
         Route::get('/{id}', [BranchController::class, 'show']);
-        Route::post('/', [BranchController::class, 'store']);
-        Route::post('/{id}', [BranchController::class, 'update']);
-        Route::delete('/{id}', [BranchController::class, 'destroy']);
+        Route::post('/', [BranchController::class, 'store'])->middleware('check.permission:branches.create');
+        Route::post('/{id}', [BranchController::class, 'update'])->middleware('check.permission:branches.update');
+        Route::delete('/multi-delete', [BranchController::class, 'multiDelete'])->middleware('check.permission:branches.delete');
+        Route::delete('/{id}', [BranchController::class, 'destroy'])->middleware('check.permission:branches.delete');
     });
     // --- Pickup Location (Nơi nhận hàng) ---
     Route::prefix('pickup-locations')->group(function () {
@@ -160,39 +160,39 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Slider---
-    Route::prefix('sliders')->middleware('check.permission:sliders.manage')->group(function () {
+    Route::prefix('sliders')->middleware('check.permission:sliders.view')->group(function () {
         Route::get('/', [SliderController::class, 'index']);
         Route::get('/{id}', [SliderController::class, 'show']);
-        Route::post('/', [SliderController::class, 'store'])->middleware('check.permission:sliders.manage');
-        Route::post('/{id}', [SliderController::class, 'update'])->middleware('check.permission:sliders.manage');
-        Route::delete('/multi-delete', [SliderController::class, 'multiDelete'])->middleware('check.permission:sliders.manage');
-        Route::delete('/{id}', [SliderController::class, 'destroy'])->middleware('check.permission:sliders.manage');
+        Route::post('/', [SliderController::class, 'store'])->middleware('check.permission:sliders.create');
+        Route::post('/{id}', [SliderController::class, 'update'])->middleware('check.permission:sliders.update');
+        Route::delete('/multi-delete', [SliderController::class, 'multiDelete'])->middleware('check.permission:sliders.delete');
+        Route::delete('/{id}', [SliderController::class, 'destroy'])->middleware('check.permission:sliders.delete');
     });
 
     // ---Combo---
-    Route::prefix('combos')->middleware('check.permission:combos.manage,orders.create,orders.update,promotions.create,promotions.update,sliders.manage')->group(function () {
+    Route::prefix('combos')->middleware('check.permission:combos.view,orders.create,orders.update,promotions.create,promotions.update,sliders.view')->group(function () {
         Route::get('/', [ComboController::class, 'index']);
         Route::get('/{id}', [ComboController::class, 'show']);
-        Route::post('/', [ComboController::class, 'store'])->middleware('check.permission:combos.manage');
-        Route::post('/{id}', [ComboController::class, 'update'])->middleware('check.permission:combos.manage');
-        Route::delete('/multi-delete', [ComboController::class, 'multiDelete'])->middleware('check.permission:combos.manage');
-        Route::delete('/{id}', [ComboController::class, 'destroy'])->middleware('check.permission:combos.manage');
+        Route::post('/', [ComboController::class, 'store'])->middleware('check.permission:combos.create');
+        Route::post('/{id}', [ComboController::class, 'update'])->middleware('check.permission:combos.update');
+        Route::delete('/multi-delete', [ComboController::class, 'multiDelete'])->middleware('check.permission:combos.delete');
+        Route::delete('/{id}', [ComboController::class, 'destroy'])->middleware('check.permission:combos.delete');
     });
 
     // ---Category---
-    Route::prefix('categories')->middleware('check.permission:categories.view,promotions.create, promotions.update,products.view,products.create,products.update,posts.manage')->group(function () {
+    Route::prefix('categories')->middleware('check.permission:categories.view,promotions.create,promotions.update,products.view,products.create,products.update,posts.view')->group(function () {
         Route::get('/', [CategoryController::class, 'index']);
         // Lấy danh mục theo loại (product hoặc post) - dùng cho dropdown
         Route::get('/for-type', [CategoryController::class, 'getForType']);
         Route::get('/{id}', [CategoryController::class, 'show']);
-        Route::post('/', [CategoryController::class, 'store'])->middleware('check.permission:categories.manage');
-        Route::post('/{id}', [CategoryController::class, 'update'])->middleware('check.permission:categories.manage');
-        Route::delete('/multi-delete', [CategoryController::class, 'multiDelete'])->middleware('check.permission:categories.manage');
-        Route::delete('/{id}', [CategoryController::class, 'destroy'])->middleware('check.permission:categories.manage');
+        Route::post('/', [CategoryController::class, 'store'])->middleware('check.permission:categories.create');
+        Route::post('/{id}', [CategoryController::class, 'update'])->middleware('check.permission:categories.update');
+        Route::delete('/multi-delete', [CategoryController::class, 'multiDelete'])->middleware('check.permission:categories.delete');
+        Route::delete('/{id}', [CategoryController::class, 'destroy'])->middleware('check.permission:categories.delete');
     });
 
     // ---Product---
-    Route::prefix('products')->middleware('check.permission:products.view,orders.create,orders.update,promotions.create,promotions.update,sliders.manage,combos.manage')->group(function () {
+    Route::prefix('products')->middleware('check.permission:products.view,orders.create,orders.update,promotions.create,promotions.update,sliders.view,combos.view')->group(function () {
         Route::get('/search-for-purchase', [ProductController::class, 'searchForPurchase']);
         Route::get('/', [ProductController::class, 'index']);
         Route::get('/{id}', [ProductController::class, 'show']);
@@ -202,44 +202,44 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/{id}', [ProductController::class, 'destroy'])->middleware('check.permission:products.delete');
     });
     // ---Post---
-    Route::prefix('posts')->middleware('check.permission:posts.manage')->group(function () {
+    Route::prefix('posts')->middleware('check.permission:posts.view')->group(function () {
         Route::get('/', [PostController::class, 'index']);
         Route::get('/{id}', [PostController::class, 'show']);
-        Route::post('/', [PostController::class, 'store'])->middleware('check.permission:posts.manage');
-        Route::post('/{id}', [PostController::class, 'update'])->middleware('check.permission:posts.manage');
-        Route::delete('/multi-delete', [PostController::class, 'multiDelete'])->middleware('check.permission:posts.manage');
-        Route::delete('/{id}', [PostController::class, 'destroy'])->middleware('check.permission:posts.manage');
+        Route::post('/', [PostController::class, 'store'])->middleware('check.permission:posts.create');
+        Route::post('/{id}', [PostController::class, 'update'])->middleware('check.permission:posts.update');
+        Route::delete('/multi-delete', [PostController::class, 'multiDelete'])->middleware('check.permission:posts.delete');
+        Route::delete('/{id}', [PostController::class, 'destroy'])->middleware('check.permission:posts.delete');
     });
 
     // ---Promotion---
-    Route::prefix('promotions')->middleware('check.permission:promotions.view,sliders.manage')->group(function () {
+    Route::prefix('promotions')->middleware('check.permission:promotions.view,sliders.view')->group(function () {
         Route::get('/', [PromotionController::class, 'index']);
+        Route::get('/{promotion}', [PromotionController::class, 'show']);
         Route::post('/', [PromotionController::class, 'store'])->middleware('check.permission:promotions.create');
         Route::post('/{promotion}', [PromotionController::class, 'update'])->middleware('check.permission:promotions.update');
-        Route::get('/{promotion}', [PromotionController::class, 'show']);
         Route::delete('/multi-delete', [PromotionController::class, 'multiDelete'])->middleware('check.permission:promotions.delete');
         Route::delete('/{promotion}', [PromotionController::class, 'destroy'])->middleware('check.permission:promotions.delete');
     });
 
-    // ---Customer & Admin Users---
-    Route::prefix('users')->middleware('check.permission:users.manage')->group(function () {
+    // ---Users (Khách hàng)---
+    Route::prefix('users')->middleware('check.permission:users.view')->group(function () {
         Route::get('/', [UserController::class, 'index']);
         Route::get('/{id}', [UserController::class, 'show']);
-        Route::post('/', [UserController::class, 'store']);
-        Route::post('/{id}', [UserController::class, 'update']);
-        Route::delete('/multi-delete', [UserController::class, 'multiDelete']);
-        Route::delete('/{id}', [UserController::class, 'destroy']);
+        Route::post('/', [UserController::class, 'store'])->middleware('check.permission:users.create');
+        Route::post('/{id}', [UserController::class, 'update'])->middleware('check.permission:users.update');
+        Route::delete('/multi-delete', [UserController::class, 'multiDelete'])->middleware('check.permission:users.delete');
+        Route::delete('/{id}', [UserController::class, 'destroy'])->middleware('check.permission:users.delete');
     });
-    Route::prefix('admins')->middleware('check.permission:users.manage')->group(function () {
+    Route::prefix('admins')->middleware('check.permission:admin-users.view')->group(function () {
         Route::get('/', [AdminUserController::class, 'index'])->name('admins.index');
-        Route::post('/', [AdminUserController::class, 'store'])->name('admins.store');
+        Route::post('/', [AdminUserController::class, 'store'])->middleware('check.permission:admin-users.create')->name('admins.store');
         Route::get('/trash', [AdminUserController::class, 'trash'])->name('admins.trash');
-        Route::delete('/multi-delete', [AdminUserController::class, 'multiDelete'])->name('admins.multi-delete');
+        Route::delete('/multi-delete', [AdminUserController::class, 'multiDelete'])->middleware('check.permission:admin-users.delete')->name('admins.multi-delete');
         Route::get('/{id}', [AdminUserController::class, 'show'])->name('admins.show');
-        Route::post('/{id}', [AdminUserController::class, 'update'])->name('admins.update');
-        Route::delete('/{id}', [AdminUserController::class, 'destroy'])->name('admins.destroy');
-        Route::post('/{id}/restore', [AdminUserController::class, 'restore'])->name('admins.restore');
-        Route::delete('/{id}/force-delete', [AdminUserController::class, 'forceDelete'])->name('admins.force-delete');
+        Route::post('/{id}', [AdminUserController::class, 'update'])->middleware('check.permission:admin-users.update')->name('admins.update');
+        Route::delete('/{id}', [AdminUserController::class, 'destroy'])->middleware('check.permission:admin-users.delete')->name('admins.destroy');
+        Route::post('/{id}/restore', [AdminUserController::class, 'restore'])->middleware('check.permission:admin-users.update')->name('admins.restore');
+        Route::delete('/{id}/force-delete', [AdminUserController::class, 'forceDelete'])->middleware('check.permission:admin-users.delete')->name('admins.force-delete');
     });
 
     // ---Order---
@@ -247,23 +247,24 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::get('/', [OrderController::class, 'index']);
         Route::get('/{order}', [OrderController::class, 'show']);
         Route::post('/', [OrderController::class, 'store'])->middleware('check.permission:orders.create');
+        // Note: orders.update được xử lý thông qua updateStatus (duyệt đơn) và có thể thêm route update thông tin đơn sau
         Route::put('/{order}/status', [OrderController::class, 'updateStatus'])->middleware('check.permission:orders.update_status');
         Route::put('/{order}/payment-status', [OrderController::class, 'updatePaymentStatus'])->middleware('check.permission:orders.update_payment');
         Route::post('/multi-cancel', [OrderController::class, 'multiCancel'])->middleware('check.permission:orders.cancel');
     });
 
     // ---Role & Permission---
-    Route::prefix('roles')->middleware('check.permission:roles.manage')->group(function () {
-        Route::get('/', [RoleController::class, 'index'])->name('roles.index');
-        Route::post('/', [RoleController::class, 'store'])->name('roles.store');
-        Route::delete('/multi-delete', [RoleController::class, 'multiDelete'])->name('roles.multi-delete');;
-        Route::get('/{role}', [RoleController::class, 'show'])->name('roles.show');;
-        Route::put('/{id}', [RoleController::class, 'update'])->name('roles.update');;
-        Route::delete('/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
+    Route::prefix('roles')->group(function () {
+        Route::get('/', [RoleController::class, 'index'])->middleware('check.permission:roles.view')->name('roles.index');
+        Route::get('/{role}', [RoleController::class, 'show'])->middleware('check.permission:roles.view')->name('roles.show');
+        Route::post('/', [RoleController::class, 'store'])->middleware('check.permission:roles.create')->name('roles.store');
+        Route::put('/{id}', [RoleController::class, 'update'])->middleware('check.permission:roles.update')->name('roles.update');
+        Route::delete('/{role}', [RoleController::class, 'destroy'])->middleware('check.permission:roles.delete')->name('roles.destroy');
+        Route::delete('/multi-delete', [RoleController::class, 'multiDelete'])->middleware('check.permission:roles.delete')->name('roles.multi-delete');
     });
-    Route::get('/permissions', [PermissionController::class, 'index'])->middleware('check.permission:roles.manage');
-    Route::post('assign-role/{id}', [PermissionController::class, 'assignRolesToUser'])->middleware('check.permission:roles.manage');
-    Route::post('assign-permission/{id}', [PermissionController::class, 'assignPermissionsToUser'])->middleware('check.permission:roles.manage');
+    Route::get('/permissions', [PermissionController::class, 'index'])->middleware('check.permission:roles.view');
+    Route::post('assign-role/{id}', [PermissionController::class, 'assignRolesToUser'])->middleware('check.permission:roles.update');
+    Route::post('assign-permission/{id}', [PermissionController::class, 'assignPermissionsToUser'])->middleware('check.permission:roles.update');
 
 
     //---Dashboard---

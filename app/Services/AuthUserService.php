@@ -38,11 +38,19 @@ class AuthUserService
             $user = $isEmail
                 ? $query->where('email', $login)->first()
                 : $query->where('phone', $login)->first();
-            if (!$user->is_active) {
-                return 'locked'; // Tài khoản bị khóa
+
+            // Kiểm tra user tồn tại trước
+            if (!$user) {
+                return null;
             }
 
-            if (!$user || !Hash::check($password, $user->password) || !$user->is_active) {
+            // Kiểm tra tài khoản bị khóa
+            if (!$user->is_active) {
+                return 'locked';
+            }
+
+            // Kiểm tra password
+            if (!Hash::check($password, $user->password)) {
                 return null;
             }
 

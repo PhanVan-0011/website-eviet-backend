@@ -30,6 +30,10 @@ class UserService
 
         $query = User::whereDoesntHave('roles');
 
+        // Apply branch filter cho customers (nếu user không phải super admin/accountant)
+        // Lưu ý: Customers thường không có branch_id, nhưng có thể filter nếu cần
+        // BranchAccessService::applyBranchFilter($query, 'branch_id');
+
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")

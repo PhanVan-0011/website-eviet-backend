@@ -110,6 +110,14 @@ class RoleController extends Controller
     public function destroy(int $id)
     {
         try {
+            // Kiểm tra quyền xóa (middleware đã check, nhưng để đảm bảo an toàn)
+            if (!auth()->user()->can('roles.delete')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xóa vai trò.'
+                ], 403);
+            }
+
             $role = Role::findOrFail($id);
             $this->roleService->deleteRole($role);
             return response()->json([
@@ -132,6 +140,14 @@ class RoleController extends Controller
     public function multiDelete(MultiDeleteRoleRequest $request)
     {
         try {
+            // Kiểm tra quyền xóa (middleware đã check, nhưng để đảm bảo an toàn)
+            if (!auth()->user()->can('roles.delete')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xóa vai trò.'
+                ], 403);
+            }
+
             $roleIds = $request->validated()['role_ids'];
             $result = $this->roleService->deleteMultipleRoles($roleIds);
 

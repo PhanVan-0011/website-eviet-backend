@@ -64,6 +64,7 @@ class AuthController extends Controller
                         : 'Số điện thoại hoặc mật khẩu không đúng'),
             ], 401);
         } catch (\Throwable $e) {
+            error_log($e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Đã xảy ra lỗi không mong muốn.',

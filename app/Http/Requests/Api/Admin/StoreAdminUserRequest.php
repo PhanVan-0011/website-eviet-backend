@@ -31,14 +31,15 @@ class StoreAdminUserRequest extends FormRequest
             'phone' => ['required', 'string', 'max:11', 'unique:users,phone'],
             'password' => ['required', 'confirmed', Password::min(8)],
 
-            'role_ids' => ['required', 'array', 'min:1'],
-            'role_ids.*' => ['integer', Rule::exists('roles', 'id')->where('guard_name', 'api')->whereNot('name', 'super-admin')],
+            'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where('guard_name', 'api')->whereNot('name', 'super-admin')],
             
             'is_active' => ['required', 'boolean'],
             'gender' => ['nullable', 'string', Rule::in(['male', 'female', 'other'])],
             'date_of_birth' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
             'address' => ['nullable', 'string', 'max:255'],
-            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')],
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')], // Cho sales-staff
+            'branch_ids' => ['nullable', 'array'], // Cho branch-admin (đa chi nhánh)
+            'branch_ids.*' => ['integer', Rule::exists('branches', 'id')],
             // Thêm validation cho ảnh
             'image_url' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ];
@@ -53,8 +54,8 @@ class StoreAdminUserRequest extends FormRequest
             'phone.unique' => 'Số điện thoại này đã tồn tại.',
             'password.required' => 'Mật khẩu không được để trống.',
             'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
-            'role_ids.required' => 'Vui lòng chọn ít nhất một vai trò.',
-            'role_ids.*.exists' => 'Vai trò được chọn không hợp lệ hoặc không được phép gán.',
+            'role_id.required' => 'Vui lòng chọn vai trò.',
+            'role_id.exists' => 'Vai trò được chọn không hợp lệ hoặc không được phép gán.',
             'date_of_birth.before_or_equal' => 'Ngày sinh không hợp lệ.',
 
             // Thêm messages cho ảnh

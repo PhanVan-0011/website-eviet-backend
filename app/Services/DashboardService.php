@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use App\Services\BranchAccessService;
 
 class DashboardService
 {
@@ -69,20 +70,23 @@ class DashboardService
 
         //Doanh thu 
         $baseRevenueQuery = Payment::where('status', 'success')
-            ->whereHas('order', fn($query) => $query->where('status', 'delivered'));
+            ->whereHas('order', function ($query) {
+                $query->where('status', 'delivered');
+                // Apply branch filter cho orders
+                BranchAccessService::applyBranchFilter($query);
+            });
 
         $revenueThisPeriod = (float) (clone $baseRevenueQuery)->whereBetween('paid_at', [$currentPeriodStart, $currentPeriodEnd])->sum('amount');
         $revenuePreviousPeriod = (float) (clone $baseRevenueQuery)->whereBetween('paid_at', [$previousPeriodStart, $previousPeriodEnd])->sum('amount');
         $totalRevenue = (float) (clone $baseRevenueQuery)->sum('amount');
 
-        $ordersThisPeriod = Order::where('status', 'delivered')
-            ->whereBetween('created_at', [$currentPeriodStart, $currentPeriodEnd])
-            ->count();
+        $ordersQuery = Order::where('status', 'delivered');
+        BranchAccessService::applyBranchFilter($ordersQuery);
+        
+        $ordersThisPeriod = (clone $ordersQuery)->whereBetween('created_at', [$currentPeriodStart, $currentPeriodEnd])->count();
         // Đơn hàng 
-        $ordersPreviousPeriod = Order::where('status', 'delivered')
-            ->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])
-            ->count();
-        $totalOrders = Order::where('status', 'delivered')->count();
+        $ordersPreviousPeriod = (clone $ordersQuery)->whereBetween('created_at', [$previousPeriodStart, $previousPeriodEnd])->count();
+        $totalOrders = (clone $ordersQuery)->count();
 
         //Người dùng
         $baseUserQuery = User::whereDoesntHave('roles');
@@ -172,6 +176,8 @@ class DashboardService
             ->whereNotNull('paid_at')
             ->whereHas('order', function ($query) {
                 $query->where('status', 'delivered');
+                // Apply branch filter cho orders
+                BranchAccessService::applyBranchFilter($query);
             })
             ->whereBetween('paid_at', [$startDate, $endDate])
             ->whereRaw('DATE_FORMAT(paid_at, "%Y-%m") = DATE_FORMAT(created_at, "%Y-%m")')
@@ -211,7 +217,11 @@ class DashboardService
      */
     private function getOrderStatusDistribution(): array
     {
-        $statusCounts = Order::select('status', DB::raw('count(*) as count'))
+        $ordersQuery = Order::query();
+        BranchAccessService::applyBranchFilter($ordersQuery);
+        
+        $statusCounts = (clone $ordersQuery)
+            ->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->get()
             ->pluck('count', 'status');
@@ -239,7 +249,9 @@ class DashboardService
      */
     private function getTopSellingProducts(int $days, int $limit): \Illuminate\Support\Collection
     {
-        return DB::table('order_details')
+        $branchIds = BranchAccessService::getAccessibleBranchIds();
+        
+        $query = DB::table('order_details')
             ->join('products', 'order_details.product_id', '=', 'products.id')
             ->join('orders', 'order_details.order_id', '=', 'orders.id')
             ->join('payments', 'payments.order_id', '=', 'orders.id')
@@ -250,8 +262,14 @@ class DashboardService
             )
             ->where('orders.status', 'delivered')
             ->where('payments.status', 'success')
-            ->whereNotNull('payments.paid_at')
-            //->where('payments.paid_at', '>=', Carbon::now()->subDays($days))
+            ->whereNotNull('payments.paid_at');
+            
+        // Apply branch filter nếu không phải super admin/accountant
+        if (!empty($branchIds)) {
+            $query->whereIn('orders.branch_id', $branchIds);
+        }
+        
+        return $query
             ->groupBy('products.id', 'products.name')
             ->orderByDesc('total_sold')
             ->limit($limit)
@@ -263,7 +281,10 @@ class DashboardService
      */
     private function getRecentPendingOrders(int $limit): \Illuminate\Support\Collection
     {
-        return Order::where('status', 'pending')
+        $query = Order::where('status', 'pending');
+        BranchAccessService::applyBranchFilter($query);
+        
+        return $query
             ->select('id as order_id', 'order_code', 'client_name', 'status', 'grand_total', 'created_at')
             ->latest('created_at')
             ->limit($limit)

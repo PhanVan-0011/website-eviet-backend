@@ -13,6 +13,7 @@ use App\Models\Image as ImageModel;
 use App\Models\ProductUnitConversion;
 use App\Models\Branch;
 use App\Models\PurchaseInvoiceDetail;
+use App\Services\BranchAccessService;
 
 
 class ProductService
@@ -34,6 +35,25 @@ class ProductService
             $currentPage = max(1, (int) $request->input('page', 1));
 
             $query = Product::query()->with(['categories.icon', 'featuredImage', 'unitConversions', 'branches']);
+
+            // Apply branch filter (tự động theo role)
+            // Chỉ lấy products áp dụng cho branches mà user có quyền
+            $branchIds = BranchAccessService::getAccessibleBranchIds();
+            if (!empty($branchIds)) {
+                $query->where(function ($q) use ($branchIds) {
+                    $q->where('applies_to_all_branches', true) // Products áp dụng cho tất cả branches
+                        ->orWhereHas('branches', function ($subQuery) use ($branchIds) {
+                            $subQuery->whereIn('branches.id', $branchIds);
+                        });
+                });
+            } else {
+                // Nếu user không có quyền với branch nào, chỉ lấy products áp dụng cho tất cả
+                $query->where('applies_to_all_branches', true);
+            }
+            
+            // Mặc định chỉ lấy products active (hoặc theo filter status từ request nếu có)
+            $status = $request->filled('status') ? $request->boolean('status') : true;
+            $query->where('status', $status);
 
             // Tìm kiếm theo từ khóa
             if ($request->filled('keyword')) {
@@ -72,10 +92,6 @@ class ProductService
             // Lọc theo trạng thái Bán trực tiếp (của đơn vị cơ sở)
             if ($request->filled('is_sales_unit')) {
                 $query->where('is_sales_unit', $request->input('is_sales_unit'));
-            }
-
-            if ($request->filled('status')) {
-                $query->where('status', $request->input('status'));
             }
 
             $query->orderBy('created_at', 'desc');

@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 class Promotion extends Model
 {
     use HasFactory;
@@ -23,6 +25,7 @@ class Promotion extends Model
         'start_date',
         'end_date',
         'is_active',
+        'branch_id',
     ];
     protected $casts = [
         'value' => 'decimal:2',
@@ -75,6 +78,14 @@ class Promotion extends Model
     public function icon()
     {
         return $this->morphOne(Image::class, 'imageable');
+    }
+
+    /**
+     * Mối quan hệ: Một khuyến mãi thuộc về một chi nhánh.
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
 }

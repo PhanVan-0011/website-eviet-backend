@@ -6,6 +6,7 @@ use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Services\BranchAccessService;
 
 class PickupLocationService
 {
@@ -20,10 +21,21 @@ class PickupLocationService
 
             $query = PickupLocation::query()->with('branch');
 
-            // Lọc theo chi nhánh
+            // Apply branch filter (tự động theo role)
+            BranchAccessService::applyBranchFilter($query);
+
+            // Lọc theo chi nhánh (nếu user có quyền)
             if ($request->filled('branch_id')) {
-                $query->where('branch_id', $request->input('branch_id'));
+                $branchId = $request->input('branch_id');
+                if (BranchAccessService::hasAccessToBranch($branchId)) {
+                    $query->where('branch_id', $branchId);
+                }
             }
+
+            // Removed old branch_id filter
+            // if ($request->filled('branch_id')) {
+                $query->where('branch_id', $request->input('branch_id'));
+            
 
             // Tìm kiếm theo tên
             if ($request->filled('keyword')) {
