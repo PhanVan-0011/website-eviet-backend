@@ -41,21 +41,19 @@ class UpdateOrderRequest extends FormRequest
         $allowedStatuses = ['draft', 'pending', 'processing', 'delivered', 'cancelled'];
 
         return [
-            // Thông tin khách hàng (Cho phép cập nhật lẻ tẻ dùng 'sometimes')
+            // Thông tin khách hàng
             'client_name' => ['sometimes', 'required', 'string', 'max:50'],
             
-            // Validate SĐT chuẩn VN giống StoreOrderRequest
             'client_phone' => ['sometimes', 'required', 'string', 'regex:/^(0|\+84)(3[2-9]|5[6|8|9]|7[0|6-9]|8[1-9]|9[0-4|6-9])[0-9]{7}$/'],
             
             // Thông tin giao nhận
             'shipping_address' => ['sometimes', 'nullable', 'string', 'max:255'],
             'shipping_fee' => ['sometimes', 'required', 'numeric', 'min:0'],
             
-            // Các trường bổ sung mới
             'notes' => ['sometimes', 'nullable', 'string', 'max:500'],
             'pickup_time' => ['sometimes', 'nullable', 'date_format:Y-m-d H:i:s'],
 
-            // Trạng thái (Quan trọng cho API updateStatus)
+            // Trạng thái 
             'status' => ['sometimes', 'required', Rule::in($allowedStatuses)],
         ];
     }
