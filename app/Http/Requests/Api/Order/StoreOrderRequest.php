@@ -23,35 +23,37 @@ class StoreOrderRequest extends FormRequest
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
 
+    /**
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+
     public function rules(): array
     {
         return [
             // --- 1. THÔNG TIN CHUNG & CHI NHÁNH ---
             'branch_id' => 'required|integer|exists:branches,id',
+            'time_slot_id' => 'required|integer|exists:order_time_slots,id',
+
             'order_method' => ['required', 'string', Rule::in(['delivery', 'takeaway', 'dine_in'])],
             'notes' => 'nullable|string|max:500',
-            
-            // --- 2. THÔNG TIN KHÁCH HÀNG ---
+
+            'price_type' => ['nullable', 'string', Rule::in(['store', 'app'])],
+
+            // --- THÔNG TIN KHÁCH HÀNG ---
             'client_name' => 'required|string|max:50',
             'client_phone' => ['required', 'string', 'regex:/^(0|\+84)(3[2-9]|5[6|8|9]|7[0|6-9]|8[1-9]|9[0-4|6-9])[0-9]{7}$/'],
             'user_id' => 'nullable|integer|exists:users,id', // Admin có thể chọn khách thành viên
 
-            // --- 3. LOGIC GIAO NHẬN ---
-            // Giao hàng: Bắt buộc địa chỉ
-            'shipping_address' => [
-                'nullable', 'string', 'max:255',
-                Rule::requiredIf($this->order_method === 'delivery'),
-            ],
+            // --- LOGIC GIAO NHẬN ---
+           
             'shipping_fee' => ['nullable', 'numeric', 'min:0'],
-            
-            // Mang đi: Bắt buộc giờ lấy & điểm nhận
-            'pickup_time' => [
-                'nullable', 'date_format:Y-m-d H:i:s', 'after:now',
-                Rule::requiredIf($this->order_method === 'takeaway'),
-            ],
+
+            // Điểm nhận hàng (Canteen/Xưởng) - Bắt buộc nếu là Delivery hoặc Takeaway
             'pickup_location_id' => [
-                'nullable', 'integer', 'exists:pickup_locations,id',
-                Rule::requiredIf($this->order_method === 'takeaway'),
+                'nullable',
+                'integer',
+                'exists:pickup_locations,id',
+                Rule::requiredIf(in_array($this->order_method, ['delivery', 'takeaway'])),
             ],
 
             // --- 4. THANH TOÁN ---
@@ -62,60 +64,72 @@ class StoreOrderRequest extends FormRequest
             'items.*.type' => ['required', 'string', Rule::in(['product', 'combo'])],
             'items.*.id' => ['required', 'integer'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
+
             
+            'items.*.price' => ['nullable', 'numeric', 'min:0'],
+
             // Topping (chỉ dành cho product, gửi lên dạng mảng ID)
             'items.*.attribute_value_ids' => 'nullable|array',
             'items.*.attribute_value_ids.*' => 'integer|exists:attribute_values,id',
         ];
     }
+
     public function messages()
     {
         return [
-           // Thông tin chung
+            // Thông tin chung
             'branch_id.required' => 'Vui lòng chọn chi nhánh.',
             'branch_id.exists' => 'Chi nhánh không hợp lệ.',
+
+            'time_slot_id.required' => 'Vui lòng chọn Ca/Khung giờ đặt hàng.',
+            'time_slot_id.exists' => 'Khung giờ không hợp lệ.',
+
             'order_method.required' => 'Vui lòng chọn phương thức đặt hàng.',
             'order_method.in' => 'Phương thức đặt hàng không hợp lệ.',
-            
+
             // Khách hàng
             'client_name.required' => 'Tên khách hàng là bắt buộc.',
             'client_phone.required' => 'Số điện thoại là bắt buộc.',
             'client_phone.regex' => 'Số điện thoại không đúng định dạng VN.',
 
+            'price_type.in' => 'Loại giá không hợp lệ (chỉ chấp nhận store hoặc app).',
+
             // Giao nhận
             'shipping_address.required_if' => 'Vui lòng nhập địa chỉ giao hàng.',
-            'pickup_time.required_if' => 'Vui lòng chọn giờ hẹn lấy hàng.',
             'pickup_time.after' => 'Giờ hẹn lấy phải sau thời điểm hiện tại.',
             'pickup_location_id.required_if' => 'Vui lòng chọn điểm nhận hàng (Canteen/Xưởng).',
 
             // Thanh toán
             'payment_method_code.required' => 'Vui lòng chọn phương thức thanh toán.',
 
-            // Items (ĐÃ SỬA: Dùng 'items' thay vì 'order_details' để khớp với rules)
+            // Items
             'items.required' => 'Giỏ hàng không được để trống.',
             'items.min' => 'Giỏ hàng phải có ít nhất 1 món.',
-            
+
             'items.*.type.required' => 'Loại sản phẩm không hợp lệ.',
             'items.*.id.required' => 'Thiếu ID sản phẩm/combo.',
             'items.*.quantity.min' => 'Số lượng tối thiểu là 1.',
+
+            'items.*.price.numeric' => 'Giá sản phẩm/combo phải là số.',
+            'items.*.price.min' => 'Giá sản phẩm/combo không được nhỏ hơn 0.',
         ];
     }
+
     /**
      * Thêm logic validation nghiệp vụ (kiểm tra tồn tại & trạng thái kinh doanh).
-     * Đã tối ưu để tránh N+1 Query.
      */
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
             $items = $this->input('items', []);
-            
+
             // Gom nhóm ID để query 
             $productIds = [];
             $comboIds = [];
-            
+
             foreach ($items as $index => $item) {
                 if (empty($item['type']) || empty($item['id'])) continue;
-                
+
                 if ($item['type'] === 'product') {
                     $productIds[$item['id']][] = $index; // Lưu index để báo lỗi đúng dòng
                 } elseif ($item['type'] === 'combo') {

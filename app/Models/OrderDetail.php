@@ -26,10 +26,9 @@ class OrderDetail extends Model
 
     protected $casts = [
         'unit_price' => 'decimal:2',
-        'subtotal' => 'decimal:2', // Cast số tiền
+        'subtotal' => 'decimal:2', 
         'discount_amount' => 'decimal:2',
         'quantity' => 'integer',
-    
         'attributes_snapshot' => 'array', 
     ];
 

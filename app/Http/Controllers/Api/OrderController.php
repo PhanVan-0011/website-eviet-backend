@@ -6,15 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Services\OrderService;
-use Illuminate\Http\Request;
 use App\Http\Requests\Api\Order\StoreOrderRequest;
 use App\Http\Requests\Api\Order\UpdateOrderRequest;
 use App\Http\Requests\Api\Order\UpdatePaymentStatusRequest;
 use App\Http\Requests\Api\Order\MultiDeleteOrderRequest;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\JsonResponse;
-use App\Http\Requests\Api\Order\MultiCancelOrderRequest;
+use App\Http\Requests\Api\Order\GetOrderRequest; 
 
 class OrderController extends Controller
 {
@@ -24,7 +22,7 @@ class OrderController extends Controller
     {
         $this->orderService = $orderService;
     }
-    public function index(Request $request)
+    public function index(GetOrderRequest $request)
     {
         try {
             $result = $this->orderService->getAllOrders($request);
@@ -46,8 +44,9 @@ class OrderController extends Controller
             ], 500);
         }
     }
-   /**
-      * Xem chi tiết đơn hàng
+   
+    /**
+     * Xem chi tiết đơn hàng
      */
     public function show(int $id)
     {
@@ -72,27 +71,67 @@ class OrderController extends Controller
             ], 500);
         }
     }
-        /**
+
+    /**
      * Tạo đơn hàng mới (Dành cho Admin/POS)
      */
     public function store(StoreOrderRequest $request)
     {
         try {
-
-            $order = $this->orderService->createOrder($request->validated(), null, true);
+            // Truyền user hiện tại (Admin/Staff) vào để ghi log hoặc xác định người tạo
+            $currentUser = auth()->user(); 
+            
+            // Tham số thứ 3 là true => isAdminCreated = true
+            $order = $this->orderService->createOrder($request->validated(), $currentUser, true);
             
             return response()->json([
                 'success' => true,
                 'message' => 'Tạo đơn hàng thành công',
-                'data' => new OrderResource($order)
+                // Load các quan hệ cần thiết để hiển thị trên UI (ví dụ tên Ca, tên Điểm nhận)
+                'data' => new OrderResource($order->load(['orderDetails', 'payment.method', 'timeSlot', 'pickupLocation']))
             ], 201);
+        } catch (\Exception $e) {
+            // Trả về 400 Bad Request cho các lỗi nghiệp vụ (hết hàng, sai giờ...)
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage() 
+            ], 400);
+        }
+    }
+
+    /**
+     * Cập nhật thông tin đơn hàng (Full Update: Thông tin chung + Items)
+     */
+    public function update(UpdateOrderRequest $request, int $id)
+    {
+        try {
+            $order = Order::findOrFail($id);
+            $currentUser = auth()->user();
+            
+            // Gọi Service để xử lý update toàn bộ logic (hoàn kho cũ, trừ kho mới nếu đổi items)
+            $updatedOrder = $this->orderService->updateOrder($order, $request->validated(), $currentUser);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật đơn hàng thành công',
+                'data' => new OrderResource($updatedOrder->load(['orderDetails', 'payment.method', 'timeSlot', 'pickupLocation']))
+            ]);
+        } catch (ModelNotFoundException $e) {
+             return response()->json([
+                'success' => false,
+                'message' => "Đơn hàng với ID {$id} không tồn tại.",
+            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage() 
-            ], 500);
+            ], 400);
         }
     }
+
+    /**
+     * Chỉ cập nhật trạng thái đơn hàng (Duyệt/Giao hàng/Hủy)
+     */
     public function updateStatus(UpdateOrderRequest $request, Order $order)
     {
         try {
@@ -102,24 +141,23 @@ class OrderController extends Controller
             );
             return response()->json([
                 'success' => true,
-                'message' => 'Cập nhật đơn hàng thành công.',
+                'message' => 'Cập nhật trạng thái đơn hàng thành công.',
                 'data' => new OrderResource($updatedOrder),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cập nhật đơn hàng thất bại',
-                'error' => $e->getMessage()
-            ], 500);
+                'message' => $e->getMessage()
+            ], 400);
         }
     }
+
     /**
      * Cập nhật trạng thái thanh toán
      */
     public function updatePaymentStatus(UpdatePaymentStatusRequest $request, Order $order)
     {
         try {
-           
             $updatedOrder = $this->orderService->updatePaymentStatus(
                 $order, 
                 $request->status, 
@@ -135,16 +173,17 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-            ], 500);
+            ], 400);
         }
     }
 
-     /**
+    /**
      * Hủy nhiều đơn hàng cùng lúc
      */
     public function multiCancel(MultiDeleteOrderRequest $request)
     {
         try {
+            // Lấy danh sách ID từ request đã validate
             $result = $this->orderService->cancelMultipleOrders($request->validated()['order_ids']);
             
             $successCount = $result['success_count'];
