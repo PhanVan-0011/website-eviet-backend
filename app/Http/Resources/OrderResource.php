@@ -39,7 +39,7 @@ class OrderResource extends JsonResource
             'user'             => new UserResource($this->whenLoaded('user')),
             'payment'          => new PaymentResource($this->whenLoaded('payment')),
 
-            //Hiển thị chi tiết Ca và Điểm nhận
+            // Hiển thị chi tiết Ca và Điểm nhận
             'pickup_location'  => new PickupLocationResource($this->whenLoaded('pickupLocation')),
             'time_slot'        => new TimeSlotResource($this->whenLoaded('timeSlot')),
 
