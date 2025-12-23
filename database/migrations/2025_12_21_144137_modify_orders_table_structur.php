@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            // 1. Xóa các cột không còn cần thiết
+            //Xóa các cột không còn cần thiết
             if (Schema::hasColumn('orders', 'shipping_address')) {
                 $table->dropColumn('shipping_address');
             }
@@ -20,13 +20,13 @@ return new class extends Migration
                 $table->dropColumn('pickup_time');
             }
 
-            // 2. Thêm cột price_type để lưu loại giá (store/app)
+            // Thêm cột price_type để lưu loại giá (store/app)
             if (!Schema::hasColumn('orders', 'price_type')) {
                 $table->string('price_type')->default('app')->after('status')
                     ->comment('app: Giá trên ứng dụng, store: Giá bán tại quầy');
             }
 
-            // 4. Thêm cột & khóa ngoại cho Điểm Nhận Hàng
+            //Thêm cột & khóa ngoại cho Điểm Nhận Hàng
             if (!Schema::hasColumn('orders', 'pickup_location_id')) {
                 $table->unsignedBigInteger('pickup_location_id')->nullable()->after('branch_id');
                 $table->foreign('pickup_location_id')
