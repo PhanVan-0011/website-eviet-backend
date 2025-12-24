@@ -17,24 +17,30 @@ class GetOrderRequest extends FormRequest
         return true;
     }
 
-   /**
+    /**
      * Get the validation rules that apply to the request.
      */
     public function rules(): array
     {
+        // Loại bỏ 'draft' khỏi danh sách tìm kiếm
         $orderStatuses = ['pending', 'processing', 'delivered', 'cancelled'];
         $orderMethods = ['delivery', 'takeaway', 'dine_in'];
 
         return [
             'keyword' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'string', Rule::in($orderStatuses)],
-            'branch_id' => ['nullable', 'integer', 'exists:branches,id'], // Lọc theo chi nhánh
-            'order_method' => ['nullable', 'string', Rule::in($orderMethods)], // Lọc theo phương thức
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+            'order_method' => ['nullable', 'string', Rule::in($orderMethods)],
             'payment_method_code' => ['nullable', 'string', 'exists:payment_methods,code'],
+            
             'start_date' => ['nullable', 'date_format:Y-m-d'],
             'end_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:start_date'],
+            
             'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
             'page' => ['nullable', 'integer', 'min:1'],
+            
+            // Bổ sung user_id nếu admin muốn lọc theo khách hàng cụ thể
+            'user_id' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 

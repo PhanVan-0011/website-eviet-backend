@@ -30,10 +30,6 @@ class OrderDetailResource extends JsonResource
             $imageUrl = (new ImageResource($this->combo->image))->toArray($request)['thumb_url'] ?? null;
         }
 
-        // 3. Lấy Attributes (Topping/Size) từ cột JSON
-        // Model OrderDetail cần có protected $casts = ['attributes_snapshot' => 'array']
-        $attributes = $this->attributes_snapshot;
-
         return [
             'id'              => $this->id,
             'order_id'        => $this->order_id,
@@ -46,6 +42,7 @@ class OrderDetailResource extends JsonResource
             // Thông tin hiển thị
             'item_name'       => $itemName,
             'image_url'       => $imageUrl,
+            'product_code'    => $this->product ? $this->product->product_code : ($this->combo ? $this->combo->combo_code : null),
 
             // Số lượng & Giá
             'unit_of_measure' => $this->unit_of_measure,
@@ -54,7 +51,7 @@ class OrderDetailResource extends JsonResource
             'subtotal'        => (float) $this->subtotal,   // Thành tiền (đơn giá * SL)
             'discount_amount' => (float) $this->discount_amount,
 
-            'selected_attributes' => $attributes ?? [],
+            'selected_attributes' => $this->attributes_snapshot ?? [],
 
             'product'         => new ProductResource($this->whenLoaded('product')),
             'combo'           => new ComboResource($this->whenLoaded('combo')),
