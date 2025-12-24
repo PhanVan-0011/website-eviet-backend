@@ -307,7 +307,6 @@ class RolesAndPermissionsSeeder extends Seeder
         // 4. Nhân viên bán hàng (cần set branch_id sau)
         $banHangUser = $this->createUser('Ms Bán hàng', 'banhang@example.com', '0912345007', $salesStaffRole);
         // Lưu ý: Sau khi tạo, cần gán branch_id cho nhân viên bán hàng
-        // Ví dụ: $banHangUser->update(['branch_id' => 1]);
 
         // Clear cache sau khi hoàn tất để đảm bảo tất cả thay đổi được áp dụng
         $this->clearPermissionsCache();

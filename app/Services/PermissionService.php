@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\Permission;
+use App\Models\Role;
 use App\Http\Resources\PermissionResource;
 use Illuminate\Support\Collection;
 use Exception;
@@ -11,6 +12,12 @@ use Illuminate\Support\Facades\Log;
 
 class PermissionService
 {
+    protected AdminUserService $adminUserService;
+
+    public function __construct(AdminUserService $adminUserService)
+    {
+        $this->adminUserService = $adminUserService;
+    }
     public function getGroupedPermissions(): Collection
     {
         try {
@@ -53,7 +60,24 @@ class PermissionService
     {
         $user = \App\Models\User::findOrFail($userId);
         $user->syncRoles($roles);
-        return $user->fresh('roles');
+        
+        // Reload user với roles để lấy role đầu tiên
+        $user = $user->fresh('roles');
+        
+        // Xử lý branch assignment dựa trên role được gán
+        // Lấy role đầu tiên (hệ thống chỉ hỗ trợ 1 role per user)
+        $role = $user->roles->first();
+        if ($role) {
+            $this->adminUserService->handleBranchAssignmentForRole($user, $role);
+            // Reload lại để có thông tin branches mới nhất
+            $user = $user->fresh(['roles', 'branches']);
+        } else {
+            // Nếu không có role, xóa tất cả branches
+            $this->adminUserService->handleBranchAssignmentForRole($user, null);
+            $user = $user->fresh(['roles', 'branches']);
+        }
+        
+        return $user;
     }
 
     /**

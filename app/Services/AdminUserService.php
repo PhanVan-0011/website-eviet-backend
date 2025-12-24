@@ -501,18 +501,87 @@ class AdminUserService
 
     /**
      * Lấy branch scope từ role name
+     * Sử dụng Role::getBranchScope() để hỗ trợ các role mới được tạo trên giao diện
      * 
      * @param Role $role
      * @return string
      */
     private function getRoleScope(Role $role): string
     {
-        return match($role->name) {
-            'super-admin' => Role::SCOPE_ALL_BRANCHES,
-            'accountant' => Role::SCOPE_ALL_BRANCHES,
-            'sales-staff' => Role::SCOPE_SINGLE_BRANCH,
-            'branch-admin' => Role::SCOPE_MULTIPLE_BRANCHES,
-            default => Role::SCOPE_SINGLE_BRANCH,
-        };
+        // Sử dụng method getBranchScope() của Role model để lấy scope từ config
+        // Điều này cho phép hỗ trợ các role mới được tạo trên giao diện
+        return $role->getBranchScope();
+    }
+
+    /**
+     * Xử lý branch assignment khi gán role cho user (dùng khi gán role qua giao diện)
+     * Method này được gọi từ PermissionService khi assign roles
+     * 
+     * Hỗ trợ các role mới được tạo trên giao diện thông qua config trong config/roles.php
+     * Nếu role không có trong config, sẽ được xử lý như SCOPE_SINGLE_BRANCH (default)
+     * 
+     * @param User $user
+     * @param Role|null $role Role đầu tiên nếu user có nhiều roles
+     * @return void
+     */
+    public function handleBranchAssignmentForRole(User $user, ?Role $role = null): void
+    {
+        // Nếu user không có role nào, xóa tất cả branches
+        if (!$role) {
+            $user->branches()->sync([]);
+            return;
+        }
+
+        // Tính branch scope từ role (sử dụng config, hỗ trợ role mới)
+        $scope = $this->getRoleScope($role);
+        
+        // Log để debug khi có role mới
+        if (!in_array($role->name, ['super-admin', 'accountant', 'sales-staff', 'branch-admin'])) {
+            Log::info("Xử lý branch assignment cho role mới: {$role->name}, scope: {$scope}");
+        }
+
+        switch ($scope) {
+            case Role::SCOPE_ALL_BRANCHES:
+                // Super-admin và Accountant: không cần lưu branches, xóa để tránh confusion
+                $user->branches()->sync([]);
+                break;
+
+            case Role::SCOPE_SINGLE_BRANCH:
+                // Sales-staff: sử dụng branch_id field, xóa branches trong pivot table
+                $user->branches()->sync([]);
+                // branch_id đã được set khi tạo/cập nhật user, không cần xử lý thêm
+                break;
+
+            case Role::SCOPE_MULTIPLE_BRANCHES:
+                // Branch-admin: cần có branches trong pivot table
+                // Nếu user chưa có branches, giữ nguyên (không xóa) để admin có thể gán sau
+                // Nếu user đã có branches, validate và giữ lại nếu hợp lệ
+                // Reload user để đảm bảo có relationship branches
+                $user = $user->fresh('branches');
+                $currentBranches = $user->branches->pluck('id')->toArray();
+                if (!empty($currentBranches)) {
+                    // Validate quyền của current user
+                    $currentUser = auth()->user();
+                    if ($currentUser && !$currentUser->hasRole('super-admin')) {
+                        $accessibleBranchIds = BranchAccessService::getAccessibleBranchIds($currentUser);
+                        $validBranches = array_intersect($currentBranches, $accessibleBranchIds);
+                        if (!empty($validBranches)) {
+                            // Giữ lại các branches hợp lệ
+                            $user->branches()->sync($validBranches);
+                        } else {
+                            // Nếu không có branches hợp lệ, xóa hết
+                            $user->branches()->sync([]);
+                        }
+                    }
+                    // Nếu là super-admin, giữ nguyên branches hiện tại
+                }
+                // Nếu user chưa có branches, không làm gì (để admin gán sau)
+                break;
+
+            default:
+                // Default: xóa branches
+                $user->branches()->sync([]);
+                break;
+        }
     }
 }

@@ -112,7 +112,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/{id}', [PurchaseInvoiceController::class, 'destroy'])->middleware('check.permission:purchase-invoices.delete');
     });
     // --- Supplier Groups ---
-    Route::prefix('supplier-groups')->middleware('check.permission:supplier-groups.view')->group(function () {
+    Route::prefix('supplier-groups')->middleware('check.permission:supplier-groups.view,suppliers.create,suppliers.update')->group(function () {
         Route::get('/', [SupplierGroupController::class, 'index']);
         Route::get('/{id}', [SupplierGroupController::class, 'show']);
         Route::post('/', [SupplierGroupController::class, 'store'])->middleware('check.permission:supplier-groups.create');
@@ -122,7 +122,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // --- Suppliers ---
-    Route::prefix('suppliers')->middleware('check.permission:suppliers.view')->group(function () {
+    Route::prefix('suppliers')->middleware('check.permission:suppliers.view,purchase-invoices.create,purchase-invoices.update')->group(function () {
         Route::get('/', [SupplierController::class, 'index']);
         Route::get('/{id}', [SupplierController::class, 'show']);
         Route::get('/{supplierId}/purchase-history', [PurchaseInvoiceController::class, 'getHistoryBySupplier']);
@@ -132,7 +132,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/{id}', [SupplierController::class, 'destroy'])->middleware('check.permission:suppliers.delete');
     });
     // --- Branch ---
-    Route::prefix('branches')->middleware('check.permission:branches.view')->group(function () {
+    Route::prefix('branches')->middleware('check.permission:branches.view,admin-users.create,admin-users.update')->group(function () {
         Route::get('/', [BranchController::class, 'index']);
         Route::get('/{id}', [BranchController::class, 'show']);
         Route::post('/', [BranchController::class, 'store'])->middleware('check.permission:branches.create');
@@ -170,7 +170,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Combo---
-    Route::prefix('combos')->middleware('check.permission:combos.view,orders.create,orders.update,promotions.create,promotions.update,sliders.view')->group(function () {
+    Route::prefix('combos')->middleware('check.permission:combos.view,orders.create,orders.update,promotions.create,promotions.update,sliders.create,sliders.update')->group(function () {
         Route::get('/', [ComboController::class, 'index']);
         Route::get('/{id}', [ComboController::class, 'show']);
         Route::post('/', [ComboController::class, 'store'])->middleware('check.permission:combos.create');
@@ -180,7 +180,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Category---
-    Route::prefix('categories')->middleware('check.permission:categories.view,promotions.create,promotions.update,products.view,products.create,products.update,posts.view')->group(function () {
+    Route::prefix('categories')->middleware('check.permission:categories.view,promotions.create,promotions.update,products.view,products.create,products.update,posts.create,posts.update')->group(function () {
         Route::get('/', [CategoryController::class, 'index']);
         // Lấy danh mục theo loại (product hoặc post) - dùng cho dropdown
         Route::get('/for-type', [CategoryController::class, 'getForType']);
@@ -192,7 +192,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Product---
-    Route::prefix('products')->middleware('check.permission:products.view,orders.create,orders.update,promotions.create,promotions.update,sliders.view,combos.view')->group(function () {
+    Route::prefix('products')->middleware('check.permission:products.view,orders.create,orders.update,promotions.create,promotions.update,sliders.create,sliders.update,combos.create,combos.update,purchase-invoices.create,purchase-invoices.update')->group(function () {
         Route::get('/search-for-purchase', [ProductController::class, 'searchForPurchase']);
         Route::get('/', [ProductController::class, 'index']);
         Route::get('/{id}', [ProductController::class, 'show']);
@@ -212,7 +212,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     });
 
     // ---Promotion---
-    Route::prefix('promotions')->middleware('check.permission:promotions.view,sliders.view')->group(function () {
+    Route::prefix('promotions')->middleware('check.permission:promotions.view,sliders.create,sliders.update')->group(function () {
         Route::get('/', [PromotionController::class, 'index']);
         Route::get('/{promotion}', [PromotionController::class, 'show']);
         Route::post('/', [PromotionController::class, 'store'])->middleware('check.permission:promotions.create');
@@ -230,7 +230,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/multi-delete', [UserController::class, 'multiDelete'])->middleware('check.permission:users.delete');
         Route::delete('/{id}', [UserController::class, 'destroy'])->middleware('check.permission:users.delete');
     });
-    Route::prefix('admins')->middleware('check.permission:admin-users.view')->group(function () {
+    Route::prefix('admins')->middleware('check.permission:admin-users.view,purchase-invoices.create,purchase-invoices.update')->group(function () {
         Route::get('/', [AdminUserController::class, 'index'])->name('admins.index');
         Route::post('/', [AdminUserController::class, 'store'])->middleware('check.permission:admin-users.create')->name('admins.store');
         Route::get('/trash', [AdminUserController::class, 'trash'])->name('admins.trash');
@@ -255,7 +255,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 
     // ---Role & Permission---
     Route::prefix('roles')->group(function () {
-        Route::get('/', [RoleController::class, 'index'])->middleware('check.permission:roles.view')->name('roles.index');
+        Route::get('/', [RoleController::class, 'index'])->middleware('check.permission:roles.view,admin-users.create,admin-users.update')->name('roles.index');
         Route::get('/{role}', [RoleController::class, 'show'])->middleware('check.permission:roles.view')->name('roles.show');
         Route::post('/', [RoleController::class, 'store'])->middleware('check.permission:roles.create')->name('roles.store');
         Route::put('/{id}', [RoleController::class, 'update'])->middleware('check.permission:roles.update')->name('roles.update');
