@@ -42,6 +42,7 @@ class UpdateTimeSlotRequest extends FormRequest
                 
                 Rule::when($this->filled('start_time'), 'after:start_time'),
             ],
+            'delivery_start_time' => 'sometimes|required|date_format:H:i:s',
             'delivery_end_time' => [
                 'sometimes',
                 'required',
@@ -70,7 +71,7 @@ class UpdateTimeSlotRequest extends FormRequest
             'delivery_start_time.required' => 'Giờ bắt đầu giao hàng là bắt buộc.',
             'delivery_start_time.date_format' => 'Giờ bắt đầu giao hàng phải có định dạng HH:MM:SS.',
             'delivery_end_time.required' => 'Giờ kết thúc giao hàng là bắt buộc.',
-            
+
             'delivery_end_time.date_format' => 'Giờ kết thúc giao hàng phải có định dạng HH:MM:SS.',
             'delivery_end_time.after' => 'Giờ kết thúc giao hàng phải sau giờ bắt đầu giao hàng.',
         ];

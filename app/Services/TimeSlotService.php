@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Services;
+
 use App\Models\OrderTimeSlot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +35,12 @@ class TimeSlotService
             if ($request->filled('is_active')) {
                 $query->where('is_active', $request->boolean('is_active'));
             }
+            if ($request->filled('branch_id')) {
+                $branchId = $request->input('branch_id');
+                $query->whereHas('branches', function ($q) use ($branchId) {
+                    $q->where('branches.id', $branchId);
+                });
+            }
 
             // Sắp xếp theo giờ bắt đầu cho hợp lý
             $query->orderBy('created_at', 'desc');
@@ -53,7 +60,7 @@ class TimeSlotService
                 'total' => $total,
                 'last_page' => $lastPage,
                 'next_page' => $nextPage,
-                'pre_page' => $prevPage, 
+                'pre_page' => $prevPage,
             ];
         } catch (Exception $e) {
             Log::error('Lỗi khi lấy danh sách khung giờ: ' . $e->getMessage());
@@ -70,7 +77,7 @@ class TimeSlotService
             if (!isset($data['is_active'])) {
                 $data['is_active'] = true;
             }
-            
+
             $timeSlot = OrderTimeSlot::create($data);
             Log::info("Đã tạo khung giờ mới [ID: {$timeSlot->id}]");
             return $timeSlot;
@@ -90,10 +97,10 @@ class TimeSlotService
             return OrderTimeSlot::with(['branches', 'products', 'combos'])->findOrFail($id);
         } catch (ModelNotFoundException $e) {
             Log::error("Khung giờ với ID {$id} không tồn tại.");
-            throw $e; 
+            throw $e;
         } catch (Exception $e) {
             Log::error("Lỗi khi lấy chi tiết khung giờ ID {$id}: " . $e->getMessage());
-            throw $e; 
+            throw $e;
         }
     }
 
@@ -106,7 +113,6 @@ class TimeSlotService
             $timeSlot = OrderTimeSlot::findOrFail($id);
             $timeSlot->update($data);
             Log::info("Đã cập nhật khung giờ [ID: {$id}]");
-            //return $timeSlot->refresh()->load(['branches', 'products', 'combos']);
             return $timeSlot->refresh()->load(['branches', 'products', 'combos']);
         } catch (ModelNotFoundException $e) {
             throw $e;
@@ -123,23 +129,22 @@ class TimeSlotService
     {
         return DB::transaction(function () use ($id) {
             try {
-                $timeSlot = OrderTimeSlot::findOrFail($id); 
+                $timeSlot = OrderTimeSlot::findOrFail($id);
 
                 if (DB::table('branch_time_slot_pivot')->where('time_slot_id', $id)->exists()) {
-                     throw new Exception("Không thể xóa khung giờ '{$timeSlot->name}' vì đang được gán cho chi nhánh.");
+                    throw new Exception("Không thể xóa khung giờ '{$timeSlot->name}' vì đang được gán cho chi nhánh.");
                 }
                 if (DB::table('item_time_slots')->where('time_slot_id', $id)->exists()) {
-                   throw new Exception("Không thể xóa khung giờ '{$timeSlot->name}' vì đang được gán cho sản phẩm/combo.");
+                    throw new Exception("Không thể xóa khung giờ '{$timeSlot->name}' vì đang được gán cho sản phẩm/combo.");
                 }
                 $isDeleted = $timeSlot->delete();
                 Log::warning("Đã xóa khung giờ [ID: {$id}]");
                 return $isDeleted;
-
             } catch (ModelNotFoundException $e) {
                 throw $e;
             } catch (Exception $e) {
                 Log::error("Lỗi khi xóa khung giờ ID {$id}: " . $e->getMessage());
-                throw $e; 
+                throw $e;
             }
         });
     }
@@ -149,12 +154,12 @@ class TimeSlotService
      */
     public function multiDeleteTimeSlots(array $ids)
     {
-    
+
         $inUseBranch = DB::table('branch_time_slot_pivot')->whereIn('time_slot_id', $ids)->exists();
         if ($inUseBranch) {
-             throw new Exception("Một hoặc nhiều khung giờ đang được gán cho chi nhánh và không thể xóa.");
+            throw new Exception("Một hoặc nhiều khung giờ đang được gán cho chi nhánh và không thể xóa.");
         }
-        
+
         $inUseItem = DB::table('item_time_slots')->whereIn('time_slot_id', $ids)->exists();
         if ($inUseItem) {
             throw new Exception("Một hoặc nhiều khung giờ đang được gán cho sản phẩm/combo và không thể xóa.");

@@ -19,7 +19,7 @@ class TimeSlotResource extends JsonResource
             'name' => $this->name,
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
-            
+
             'delivery_start_time' => $this->delivery_start_time, 
             'delivery_end_time' => $this->delivery_end_time,
 
@@ -31,13 +31,13 @@ class TimeSlotResource extends JsonResource
             'branches' => BranchResource::collection($this->whenLoaded('branches')),
             
             // Chỉ trả về ID, không cần load cả object Product/Combo nặng nề
-            'product_ids' => $this->whenLoaded('products', function () {
-                return $this->products->pluck('id');
-            }),
+            // 'product_ids' => $this->whenLoaded('products', function () {
+            //     return $this->products->pluck('id');
+            // }),
             
-            'combo_ids' => $this->whenLoaded('combos', function () {
-                return $this->combos->pluck('id');
-            }),
+            // 'combo_ids' => $this->whenLoaded('combos', function () {
+            //     return $this->combos->pluck('id');
+            // }),
         ];
     }
 }
