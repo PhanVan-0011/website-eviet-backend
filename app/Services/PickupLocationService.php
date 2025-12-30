@@ -32,11 +32,6 @@ class PickupLocationService
                 }
             }
 
-            // Removed old branch_id filter
-            // if ($request->filled('branch_id')) {
-                $query->where('branch_id', $request->input('branch_id'));
-            
-
             // Tìm kiếm theo tên
             if ($request->filled('keyword')) {
                 $keyword = $request->input('keyword');

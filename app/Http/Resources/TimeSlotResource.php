@@ -19,7 +19,10 @@ class TimeSlotResource extends JsonResource
             'name' => $this->name,
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
-            'delivery_time' => $this->delivery_time,
+            
+            'delivery_start_time' => $this->delivery_start_time, 
+            'delivery_end_time' => $this->delivery_end_time,
+
             'is_active' => (bool) $this->is_active,
             'created_at' => optional($this->created_at)->format('Y-m-d H:i:s'),
             'updated_at' => optional($this->updated_at)->format('Y-m-d H:i:s'),

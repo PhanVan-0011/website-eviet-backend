@@ -42,7 +42,12 @@ class UpdateTimeSlotRequest extends FormRequest
                 
                 Rule::when($this->filled('start_time'), 'after:start_time'),
             ],
-            'delivery_time' => 'sometimes|required|date_format:H:i:s',
+            'delivery_end_time' => [
+                'sometimes',
+                'required',
+                'date_format:H:i:s',
+                Rule::when($this->filled('delivery_start_time'), 'after:delivery_start_time'),
+            ],
             'is_active' => 'sometimes|boolean',
         ];
     }
@@ -61,8 +66,13 @@ class UpdateTimeSlotRequest extends FormRequest
             'end_time.required' => 'Giờ kết thúc là bắt buộc.',
             'end_time.date_format' => 'Giờ kết thúc phải có định dạng HH:MM:SS.',
             'end_time.after' => 'Giờ kết thúc phải sau giờ bắt đầu.',
-            'delivery_time.required' => 'Giờ giao hàng dự kiến là bắt buộc.',
-            'delivery_time.date_format' => 'Giờ giao hàng phải có định dạng HH:MM:SS.',
+
+            'delivery_start_time.required' => 'Giờ bắt đầu giao hàng là bắt buộc.',
+            'delivery_start_time.date_format' => 'Giờ bắt đầu giao hàng phải có định dạng HH:MM:SS.',
+            'delivery_end_time.required' => 'Giờ kết thúc giao hàng là bắt buộc.',
+            
+            'delivery_end_time.date_format' => 'Giờ kết thúc giao hàng phải có định dạng HH:MM:SS.',
+            'delivery_end_time.after' => 'Giờ kết thúc giao hàng phải sau giờ bắt đầu giao hàng.',
         ];
     }
     /**

@@ -27,7 +27,8 @@ class StoreTimeSlotRequest extends FormRequest
             'name' => 'required|string|max:255|unique:order_time_slots,name',
             'start_time' => 'required|date_format:H:i:s',
             'end_time' => 'required|date_format:H:i:s|after:start_time',
-            'delivery_time' => 'required|date_format:H:i:s',
+            'delivery_start_time' => 'required|date_format:H:i:s',
+            'delivery_end_time' => 'required|date_format:H:i:s|after:delivery_start_time',
             'is_active' => 'sometimes|boolean',
         ];
     }
