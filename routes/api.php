@@ -141,13 +141,13 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/{id}', [BranchController::class, 'destroy'])->middleware('check.permission:branches.delete');
     });
     // --- Pickup Location (Nơi nhận hàng) ---
-    Route::prefix('pickup-locations')->group(function () {
+    Route::prefix('pickup-locations')->middleware('check.permission:pickup-locations.view')->group(function () {
         Route::get('/', [PickupLocationController::class, 'index']);
-        Route::post('/', [PickupLocationController::class, 'store']);
         Route::get('/{id}', [PickupLocationController::class, 'show']);
-        Route::put('/{id}', [PickupLocationController::class, 'update']);
-        Route::delete('/multi-delete', [PickupLocationController::class, 'multiDelete']);
-        Route::delete('/{id}', [PickupLocationController::class, 'destroy']);
+        Route::post('/', [PickupLocationController::class, 'store'])->middleware('check.permission:pickup-locations.create');
+        Route::put('/{id}', [PickupLocationController::class, 'update'])->middleware('check.permission:pickup-locations.update');
+        Route::delete('/multi-delete', [PickupLocationController::class, 'multiDelete'])->middleware('check.permission:pickup-locations.delete');
+        Route::delete('/{id}', [PickupLocationController::class, 'destroy'])->middleware('check.permission:pickup-locations.delete');
     });
     // --- Time Slots (Khung Giờ Bán Hàng) ---
     Route::prefix('time-slots')->middleware('check.permission:timeslots.manage')->group(function () {

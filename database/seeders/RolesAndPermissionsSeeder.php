@@ -106,6 +106,12 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'branches.update', 'display_name' => 'Sửa Chi nhánh'],
             ['name' => 'branches.delete', 'display_name' => 'Xóa Chi nhánh'],
             
+            // Pickup Locations (Địa điểm nhận hàng)
+            ['name' => 'pickup-locations.view', 'display_name' => 'Xem Địa điểm nhận hàng'],
+            ['name' => 'pickup-locations.create', 'display_name' => 'Tạo Địa điểm nhận hàng'],
+            ['name' => 'pickup-locations.update', 'display_name' => 'Sửa Địa điểm nhận hàng'],
+            ['name' => 'pickup-locations.delete', 'display_name' => 'Xóa Địa điểm nhận hàng'],
+            
             // Purchase Invoices
             ['name' => 'purchase-invoices.view', 'display_name' => 'Xem Nhập hàng'],
             ['name' => 'purchase-invoices.create', 'display_name' => 'Tạo Nhập hàng'],
@@ -201,6 +207,9 @@ class RolesAndPermissionsSeeder extends Seeder
             // Branches: Chỉ được Xem (không được tạo/sửa/xóa)
             'branches.view',
             
+            // Pickup Locations: Toàn quyền (quản lý địa điểm nhận hàng)
+            'pickup-locations.view', 'pickup-locations.create', 'pickup-locations.update', 'pickup-locations.delete',
+            
             // Payment Methods: Xem
             'payment_methods.view',
         ]);
@@ -242,6 +251,9 @@ class RolesAndPermissionsSeeder extends Seeder
             
             // Branches: Chỉ được Xem
             'branches.view',
+            
+            // Pickup Locations: Chỉ được Xem
+            'pickup-locations.view',
             
             // Payment Methods: Xem
             'payment_methods.view',
@@ -286,6 +298,9 @@ class RolesAndPermissionsSeeder extends Seeder
             
             // Branches: Chỉ được Xem
             'branches.view',
+            
+            // Pickup Locations: Chỉ được Xem (để chọn khi tạo đơn)
+            'pickup-locations.view',
             
             // Payment Methods: Xem (để chọn khi tạo đơn)
             'payment_methods.view',
