@@ -24,11 +24,16 @@ class BranchProductStockSeeder extends Seeder
 
         foreach ($products as $product) {
             foreach ($branches as $branch) {
-                BranchProductStock::create([
-                    'product_id' => $product->id,
-                    'branch_id' => $branch->id,
-                    'quantity' => $product->name === 'Cà phê đen' ? 5 : 20,
-                ]);
+                // Dùng updateOrCreate để tránh duplicate khi chạy lại seeder
+                BranchProductStock::updateOrCreate(
+                    [
+                        'product_id' => $product->id,
+                        'branch_id' => $branch->id,
+                    ],
+                    [
+                        'quantity' => $product->name === 'Cà phê đen' ? 5 : 20,
+                    ]
+                );
             }
         }
 

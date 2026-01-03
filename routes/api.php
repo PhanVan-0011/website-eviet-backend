@@ -150,13 +150,13 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
         Route::delete('/{id}', [PickupLocationController::class, 'destroy'])->middleware('check.permission:pickup-locations.delete');
     });
     // --- Time Slots (Khung Giờ Bán Hàng) ---
-    Route::prefix('time-slots')->middleware('check.permission:timeslots.manage')->group(function () {
+    Route::prefix('time-slots')->middleware('check.permission:time-slots.view')->group(function () {
         Route::get('/', [TimeSlotController::class, 'index']);
-        Route::put('/{id}', [TimeSlotController::class, 'update']);
         Route::get('/{id}', [TimeSlotController::class, 'show']);
-        Route::post('/', [TimeSlotController::class, 'store']);
-        Route::delete('/multi-delete', [TimeSlotController::class, 'multiDelete']);
-        Route::delete('/{id}', [TimeSlotController::class, 'destroy']);
+        Route::post('/', [TimeSlotController::class, 'store'])->middleware('check.permission:time-slots.create');
+        Route::put('/{id}', [TimeSlotController::class, 'update'])->middleware('check.permission:time-slots.update');
+        Route::delete('/multi-delete', [TimeSlotController::class, 'multiDelete'])->middleware('check.permission:time-slots.delete');
+        Route::delete('/{id}', [TimeSlotController::class, 'destroy'])->middleware('check.permission:time-slots.delete');
     });
 
     // ---Slider---

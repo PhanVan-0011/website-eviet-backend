@@ -112,6 +112,12 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'pickup-locations.update', 'display_name' => 'Sửa Địa điểm nhận hàng'],
             ['name' => 'pickup-locations.delete', 'display_name' => 'Xóa Địa điểm nhận hàng'],
             
+            // Time Slots (Ca thời gian đặt hàng)
+            ['name' => 'time-slots.view', 'display_name' => 'Xem Ca thời gian đặt hàng'],
+            ['name' => 'time-slots.create', 'display_name' => 'Tạo Ca thời gian đặt hàng'],
+            ['name' => 'time-slots.update', 'display_name' => 'Sửa Ca thời gian đặt hàng'],
+            ['name' => 'time-slots.delete', 'display_name' => 'Xóa Ca thời gian đặt hàng'],
+            
             // Purchase Invoices
             ['name' => 'purchase-invoices.view', 'display_name' => 'Xem Nhập hàng'],
             ['name' => 'purchase-invoices.create', 'display_name' => 'Tạo Nhập hàng'],
@@ -210,6 +216,9 @@ class RolesAndPermissionsSeeder extends Seeder
             // Pickup Locations: Toàn quyền (quản lý địa điểm nhận hàng)
             'pickup-locations.view', 'pickup-locations.create', 'pickup-locations.update', 'pickup-locations.delete',
             
+            // Time Slots: Toàn quyền (quản lý ca thời gian đặt hàng)
+            'time-slots.view', 'time-slots.create', 'time-slots.update', 'time-slots.delete',
+            
             // Payment Methods: Xem
             'payment_methods.view',
         ]);
@@ -254,6 +263,9 @@ class RolesAndPermissionsSeeder extends Seeder
             
             // Pickup Locations: Chỉ được Xem
             'pickup-locations.view',
+            
+            // Time Slots: Chỉ được Xem
+            'time-slots.view',
             
             // Payment Methods: Xem
             'payment_methods.view',
@@ -301,6 +313,9 @@ class RolesAndPermissionsSeeder extends Seeder
             
             // Pickup Locations: Chỉ được Xem (để chọn khi tạo đơn)
             'pickup-locations.view',
+            
+            // Time Slots: Chỉ được Xem (để chọn khi tạo đơn)
+            'time-slots.view',
             
             // Payment Methods: Xem (để chọn khi tạo đơn)
             'payment_methods.view',

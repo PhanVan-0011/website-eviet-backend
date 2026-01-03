@@ -241,7 +241,9 @@ class ProductService
                     $allBranchIds = Branch::where('active', true)->pluck('id')->all();
                     $product->branches()->sync($allBranchIds);
                 } elseif (!empty($branchIds)) {
-                    $product->branches()->attach(array_unique($branchIds));
+                    // Dùng syncWithoutDetaching để tránh duplicate entry
+                    // Nếu branch đã tồn tại, giữ nguyên; nếu chưa có, thêm mới
+                    $product->branches()->syncWithoutDetaching(array_unique($branchIds));
                 }
 
                 if (!empty($unitConversionsData)) {

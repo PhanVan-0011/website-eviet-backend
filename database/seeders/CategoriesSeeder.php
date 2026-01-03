@@ -25,6 +25,12 @@ class CategoriesSeeder extends Seeder
                 'updated_at' => now(),
             ];
         }
-        DB::table('categories')->insert($categories);
+        // Dùng upsert để tránh duplicate khi chạy lại seeder
+        // 'name' là unique key, nếu đã tồn tại thì update, chưa có thì insert
+        DB::table('categories')->upsert(
+            $categories,
+            ['name'], // unique key
+            ['status', 'description', 'parent_id', 'updated_at'] // columns to update if exists
+        );
     }
 }

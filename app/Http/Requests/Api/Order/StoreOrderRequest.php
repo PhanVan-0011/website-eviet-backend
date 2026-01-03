@@ -95,7 +95,6 @@ class StoreOrderRequest extends FormRequest
             'price_type.in' => 'Loại giá không hợp lệ (chỉ chấp nhận store hoặc app).',
 
             // Giao nhận
-            'shipping_address.required_if' => 'Vui lòng nhập địa chỉ giao hàng.',
             'pickup_time.after' => 'Giờ hẹn lấy phải sau thời điểm hiện tại.',
             'pickup_location_id.required_if' => 'Vui lòng chọn điểm nhận hàng (Canteen/Xưởng).',
 

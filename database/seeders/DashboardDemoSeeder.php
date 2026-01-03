@@ -32,7 +32,6 @@ class DashboardDemoSeeder extends Seeder
                 'order_code' => 'ORD' . now()->format('Ym') . sprintf('%04d', $i),
                 'client_name' => $user->name,
                 'client_phone' => $user->phone ?? '09' . rand(10000000, 99999999),
-                'shipping_address' => fake()->address,
                 'status' => $status,
                 'grand_total' => 0, // sẽ cập nhật sau
                 'total_amount' => 0,
