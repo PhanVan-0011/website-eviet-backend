@@ -83,7 +83,7 @@ class BranchService
             }
 
             $query->orderBy('id', 'desc');
-            $query->with('products');
+            $query->with(['timeSlots', 'pickupLocations']);
 
             $total = $query->count();
 
@@ -113,7 +113,7 @@ class BranchService
      */
     public function getBranchById(string $id): Branch
     {
-        return Branch::with('products', 'timeSlots')->findOrFail($id);
+        return Branch::with('products', 'timeSlots','pickupLocations')->findOrFail($id);
     }
 
     /**
@@ -133,7 +133,7 @@ class BranchService
             }
 
             // Load lại quan hệ để trả về
-            return $branch->load('timeSlots');
+            return $branch->load(['timeSlots', 'pickupLocations']);
         } catch (Exception $e) {
             Log::error('Lỗi khi tạo chi nhánh: ' . $e->getMessage());
             throw $e;
@@ -159,7 +159,7 @@ class BranchService
             }
 
             // Dùng refresh() để đảm bảo dữ liệu (kể cả 'timeSlots') là mới nhất
-            return $branch->refresh()->load(['products', 'timeSlots']);
+            return $branch->refresh()->load(['products', 'timeSlots','pickupLocations']);
         } catch (ModelNotFoundException $e) {
             throw $e;
         } catch (Exception $e) {
@@ -182,6 +182,8 @@ class BranchService
                 if ($branch->products->isNotEmpty()) {
                     throw new Exception('Không thể xóa chi nhánh có tồn kho sản phẩm.');
                 }
+                //
+                $branch->pickupLocations()->delete();
                 $branch->timeSlots()->detach();
 
                 return $branch->delete();
@@ -222,7 +224,7 @@ class BranchService
                 }
 
                 DB::table('branch_time_slot_pivot')->whereIn('branch_id', $ids)->delete();
-
+                DB::table('pickup_locations')->whereIn('branch_id', $ids)->delete();
                 $count = 0;
                 foreach ($branchesToDelete as $branch) {
                     $branch->delete();

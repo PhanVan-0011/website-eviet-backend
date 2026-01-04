@@ -13,7 +13,7 @@ class OrderTimeSlot extends Model
         'name',
         'start_time',
         'end_time',
-        'delivery_start_time', // Giờ bắt đầu giao (VD: 11:30) [MỚI]
+        'delivery_start_time',
         'delivery_end_time', 
         'is_active',
     ];

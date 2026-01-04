@@ -23,7 +23,7 @@ class Order extends Model
 
         // Thông tin giao nhận 
         'shipping_fee',
-        'delivery_start_time',
+        'pickup_start_time',
         'pickup_end_time',
         'order_method',
         'branch_id',

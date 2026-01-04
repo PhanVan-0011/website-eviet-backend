@@ -32,29 +32,12 @@ class UpdateBranchRequest extends FormRequest
                 'max:50',
                 Rule::unique('branches', 'code')->ignore($this->route('id')),
             ],
-            'name' => [
-                'sometimes',
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('branches', 'name')->ignore($this->route('id')),
-            ],
+            'name' => ['sometimes','required','string','max:255',Rule::unique('branches', 'name')->ignore($this->route('id')),],
             'address' => 'sometimes|nullable|string|max:255',
-            'phone_number' => [
-                'sometimes',
-                'nullable',
-                'string',
-                'max:20',
-                Rule::unique('branches', 'phone_number')->ignore($this->route('id')),
-            ],
-            'email' => [
-                'sometimes',
-                'nullable',
-                'email',
-                'max:255',
-                Rule::unique('branches', 'email')->ignore($this->route('id')),
-            ],
+            'phone_number' => ['sometimes','nullable','string','max:20',Rule::unique('branches', 'phone_number')->ignore($this->route('id')),],
+            'email' => ['sometimes','nullable','email','max:255',Rule::unique('branches', 'email')->ignore($this->route('id')),],
             'active' => 'sometimes|nullable|boolean',
+            'is_flexible_time' => 'sometimes|nullable|boolean',
             'time_slot_ids' => 'sometimes|nullable|array',
             'time_slot_ids.*' => 'required|integer|exists:order_time_slots,id'
         ];
@@ -90,7 +73,7 @@ class UpdateBranchRequest extends FormRequest
             'email.unique' => 'Email đã tồn tại.',
             
             'active.boolean' => 'Trạng thái hoạt động phải là hoạt động hoặc không.',
-            
+            'is_flexible_time.boolean' => 'Trạng thái thời gian linh hoạt phải là đúng hoặc sai.',
             'time_slot_ids.array' => 'Định dạng danh sách khung giờ không hợp lệ.',
             'time_slot_ids.*.exists' => 'Một trong các khung giờ được chọn không tồn tại.'
         ];

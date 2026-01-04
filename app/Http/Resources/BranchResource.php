@@ -22,7 +22,12 @@ class BranchResource extends JsonResource
             'phone_number' => $this->phone_number,
             'email' => $this->email,
             'active' => $this->active,
-            'time_slots' => TimeSlotResource::collection($this->whenLoaded('timeSlots')),
+            'is_flexible_time' => (bool) $this->is_flexible_time,
+            'time_slots' => $this->when(
+                !$this->is_flexible_time,
+                fn() => TimeSlotResource::collection($this->whenLoaded('timeSlots'))
+            ),
+            'pickup_locations' => PickupLocationResource::collection($this->whenLoaded('pickupLocations')),
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
         ];

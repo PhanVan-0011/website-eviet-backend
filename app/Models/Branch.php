@@ -17,6 +17,7 @@ class Branch extends Model
         'phone_number',
         'email',
         'active',
+        'is_flexible_time', 
     ];
     
     protected $casts = [
@@ -45,5 +46,9 @@ class Branch extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+    public function pickupLocations(): HasMany
+    {
+        return $this->hasMany(PickupLocation::class);
     }
 }
