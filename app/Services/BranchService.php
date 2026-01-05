@@ -36,11 +36,11 @@ class BranchService
             // Nếu user có quyền xem tất cả branches, không cần filter
             if (!$isAdmin) {
                 $accessibleBranchIds = BranchAccessService::getAccessibleBranchIds($user);
-                
+
                 if (!empty($accessibleBranchIds)) {
                     // User có quyền với một số branches cụ thể
                     $query->whereIn('id', $accessibleBranchIds);
-                    
+
                     // Lọc theo ID chi nhánh (từ select box) - chỉ áp dụng nếu user có quyền với branch đó
                     if ($request->has('branch_id')) {
                         $branchId = (int) $request->input('branch_id');
@@ -113,7 +113,7 @@ class BranchService
      */
     public function getBranchById(string $id): Branch
     {
-        return Branch::with('products', 'timeSlots','pickupLocations')->findOrFail($id);
+        return Branch::with('products', 'timeSlots', 'pickupLocations')->findOrFail($id);
     }
 
     /**
@@ -124,6 +124,10 @@ class BranchService
         try {
             $timeSlotIds = Arr::pull($data, 'time_slot_ids', []);
 
+            if (!isset($data['is_flexible_time'])) {
+                $data['is_flexible_time'] = false;
+            }
+
             $branch = Branch::create($data);
 
             if (!empty($timeSlotIds)) {
@@ -131,8 +135,6 @@ class BranchService
                 $syncData = array_fill_keys($timeSlotIds, ['is_enabled' => true]);
                 $branch->timeSlots()->sync($syncData);
             }
-
-            // Load lại quan hệ để trả về
             return $branch->load(['timeSlots', 'pickupLocations']);
         } catch (Exception $e) {
             Log::error('Lỗi khi tạo chi nhánh: ' . $e->getMessage());
@@ -148,18 +150,15 @@ class BranchService
         try {
             $timeSlotIds = Arr::pull($data, 'time_slot_ids', null);
 
-            // Dùng getBranchById() để đảm bảo đã load 'timeSlots'
             $branch = $this->getBranchById($id);
             $branch->update($data);
 
-            // Chỉ sync nếu 'time_slot_ids' được gửi lên (kể cả là mảng rỗng [])
             if ($timeSlotIds !== null) {
                 $syncData = array_fill_keys($timeSlotIds, ['is_enabled' => true]);
                 $branch->timeSlots()->sync($syncData);
             }
 
-            // Dùng refresh() để đảm bảo dữ liệu (kể cả 'timeSlots') là mới nhất
-            return $branch->refresh()->load(['products', 'timeSlots','pickupLocations']);
+            return $branch->refresh()->load(['products', 'timeSlots', 'pickupLocations']);
         } catch (ModelNotFoundException $e) {
             throw $e;
         } catch (Exception $e) {

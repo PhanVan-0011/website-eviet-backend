@@ -70,7 +70,7 @@ class StoreBranchRequest extends FormRequest
             
             'active.boolean' => 'Trạng thái hoạt động phải là đúng hoặc sai.',
             'is_flexible_time.boolean' => 'Trạng thái thời gian linh hoạt phải là đúng hoặc sai.',
-            
+        
             'time_slot_ids.array' => 'Định dạng danh sách khung giờ không hợp lệ.',
             'time_slot_ids.*.exists' => 'Một trong các khung giờ được chọn không tồn tại.'
         ];

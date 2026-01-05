@@ -56,15 +56,6 @@ class ProductResource extends JsonResource
                 !$this->is_flexible_time,
                 fn() => TimeSlotResource::collection($this->whenLoaded('timeSlots'))
             ),
-            // Chỉ trả về 'time_slot_ids' NẾU is_flexible_time = false
-            // 'time_slot_ids' => $this->when(
-            //     !$this->is_flexible_time,
-            //     fn() => $this->whenLoaded('timeSlots', fn() => $this->timeSlots->pluck('id'))
-            // ),
-
-
-
-
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
             

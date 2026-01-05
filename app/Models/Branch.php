@@ -22,6 +22,7 @@ class Branch extends Model
     
     protected $casts = [
         'active' => 'boolean', 
+        'is_flexible_time' => 'boolean',
     ];
     public function products(): BelongsToMany
     {
