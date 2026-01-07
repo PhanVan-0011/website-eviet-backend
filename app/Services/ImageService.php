@@ -105,23 +105,7 @@ class ImageService
         }
 
         try {
-            // $ext = pathinfo($basePath, PATHINFO_EXTENSION);
-            // $baseFileName = pathinfo($basePath, PATHINFO_FILENAME);
-            // $pathParts = explode('/', $basePath);
-            // $year = $pathParts[1];
-            // $month = $pathParts[2];
-            // $baseDir = "{$folder}/{$year}/{$month}";
-
-            // $imageSizes = $this->sizes[$folder] ?? [];
-
-            // // Xóa file SVG
-            // if ($ext === 'svg') {
-            //     $svgPath = "{$baseDir}/main/{$baseFileName}.{$ext}";
-            //     if (Storage::disk('public')->exists($svgPath)) {
-            //         Storage::disk('public')->delete($svgPath);
-            //     }
-            //     return;
-            // }
+           
             $directory = dirname($basePath);
             $filename = basename($basePath);
 
@@ -131,13 +115,6 @@ class ImageService
                 $imageSizes['main'] = true;
             }
 
-            // // Xóa tất cả biến thể (main, thumb,...)
-            // foreach (array_keys($imageSizes) as $sizeName) {
-            //     $fullPath = "{$baseDir}/{$sizeName}/{$baseFileName}.{$ext}";
-            //     if (Storage::disk('public')->exists($fullPath)) {
-            //         Storage::disk('public')->delete($fullPath);
-            //     }
-            // }
             // Vòng lặp này giờ sẽ xóa tất cả các phiên bản (main, thumb) cho mọi loại ảnh
             foreach (array_keys($imageSizes) as $sizeName) {
                 $fullPath = "{$directory}/{$sizeName}/{$filename}";
