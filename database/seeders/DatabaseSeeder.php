@@ -44,7 +44,7 @@ class DatabaseSeeder extends Seeder
             // 4. Seeder cho danh mục và sản phẩm
             CategoriesSeeder::class,
             ProductSeeder::class,
-            ProductPriceSeeder::class,
+            // ProductPriceSeeder::class,
             BranchProductStockSeeder::class,
             ProductAttributeSeeder::class,
 
